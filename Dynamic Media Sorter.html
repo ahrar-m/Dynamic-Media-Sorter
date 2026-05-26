@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Media Sorter</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --panel-bg: rgba(255, 255, 255, 0.03);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #e0e6ed;
+            --text-secondary: #8b9eb0;
+            --accent-blue: #4facfe;
+            --accent-green: #00f2fe;
+            --accent-red: #ff0844;
+            --slider-track: rgba(255, 255, 255, 0.1);
+            --glass-blur: blur(12px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 0%, rgba(20, 25, 35, 1) 0%, rgba(11, 12, 16, 1) 100%);
+            color: var(--text-primary);
+            height: 100dvh; /* dvh fixes mobile address bar cropping */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            overscroll-behavior: none;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Utility Classes */
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--panel-border);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border: none;
+            color: #000;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5cb4fe 0%, #1cf3fe 100%);
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
+            border: none;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        /* Layout */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 16px 24px;
+            z-index: 10;
+        }
+
+        .header-left, .header-right {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .stats {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 16px;
+        }
+
+        .stat-item span {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        #media-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        #media-container img, #media-container video {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: opacity 0.3s ease;
+        }
+
+        #btn-media-fullscreen {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.6);
+            border: none;
+            backdrop-filter: blur(4px);
+            z-index: 5;
+            padding: 12px;
+            border-radius: 50%;
+        }
+
+        #btn-media-fullscreen:hover {
+            background: rgba(0,0,0,0.8);
+            transform: scale(1.1);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            max-width: 400px;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+        
+        .empty-state p {
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Footer & Controls */
+        footer {
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 10;
+        }
+
+        .scoring-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .score-display {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            transition: color 0.3s ease;
+        }
+
+        .slider-container {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            touch-action: none;
+        }
+
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: linear-gradient(to right, var(--accent-red), #555, var(--accent-green));
+            border-radius: 4px;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            border: 2px solid #333;
+            transition: transform 0.1s;
+        }
+        
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        .nav-controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
+
+        .btn-icon-small {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-icon-small:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* File Information Overlay */
+        .file-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            padding: 12px 16px;
+            pointer-events: none;
+        }
+
+        .file-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            word-break: break-all;
+            max-width: 300px;
+        }
+
+        .file-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        .survival-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            margin-left: 8px;
+            font-size: 0.7rem;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: relative;
+        }
+
+        .modal h2 {
+            font-size: 1.2rem;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Staged List */
+        .staged-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 8px;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .staged-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 6px;
+            border: 1px solid transparent;
+        }
+
+        .staged-item:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.1);
+        }
+
+        .staged-thumb {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            object-fit: cover;
+            cursor: pointer;
+            background: #000;
+        }
+        
+        .staged-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        .staged-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .staged-name {
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .staged-score {
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .staged-score.negative { color: var(--accent-red); }
+        .staged-score.positive { color: var(--accent-green); }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 5px;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 0;
+            margin-top: 10px;
+        }
+
+        .tab {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--panel-border);
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .tab.active {
+            background: rgba(0,0,0,0.5);
+            color: var(--text-primary);
+            border-bottom: 1px solid rgba(0,0,0,0.5);
+            margin-bottom: -1px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--panel-border);
+            border-radius: 0 8px 8px 8px;
+            color: #a5d6ff;
+            font-family: monospace;
+            padding: 12px;
+            resize: vertical;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+        }
+
+        select, .form-input {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--panel-border);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: inherit;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+        
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            background: rgba(0,0,0,0.9);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 1000;
+        }
+        
+        #toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        /* Fullscreen Image View */
+        #fullscreen-viewer {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.95);
+            z-index: 200;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        #fullscreen-viewer.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #fullscreen-viewer img, #fullscreen-viewer video {
+            max-width: 95%; max-height: 95%;
+            object-fit: contain;
+        }
+        #fullscreen-viewer .close-viewer {
+            position: absolute;
+            top: 20px; right: 20px;
+            background: none; border: none; color: white;
+            font-size: 2rem; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="glass-panel">
+        <div class="header-left">
+            <input type="file" id="folder-input" webkitdirectory directory multiple class="hidden" accept="image/*,video/*">
+            <input type="file" id="file-input" multiple class="hidden" accept="image/*,video/*">
+            
+            <button class="btn btn-primary" id="btn-load-folder" onclick="document.getElementById('folder-input').click()">
+                <i class="fa-solid fa-folder-open"></i> Load Folder
+            </button>
+            <button class="btn" onclick="document.getElementById('file-input').click()">
+                <i class="fa-solid fa-file-image"></i> Load Files
+            </button>
+            <button class="btn btn-danger" id="btn-clear-queue" title="Clear current file queue">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+            
+            <select id="filter-select" class="form-input">
+                <option value="all">Filter: Show All</option>
+                <option value="unrated">Filter: Unrated Only</option>
+                <option value="positive">Filter: Top Tier (> 0.0)</option>
+                <option value="negative">Filter: Trash (< 0.0)</option>
+            </select>
+            
+            <select id="sort-select" class="form-input">
+                <option value="default">Sort: Default (Load Order)</option>
+                <option value="name-asc">Sort: Name (A-Z)</option>
+                <option value="name-desc">Sort: Name (Z-A)</option>
+                <option value="size-asc">Sort: Size (Smallest First)</option>
+                <option value="size-desc">Sort: Size (Largest First)</option>
+                <option value="score-desc">Sort: Score (Highest First)</option>
+                <option value="score-asc">Sort: Score (Lowest First)</option>
+            </select>
+        </div>
+        
+        <div class="header-right">
+            <div class="stats">
+                <div class="stat-item">Queue: <span id="queue-count">0/0</span></div>
+            </div>
+            <button class="btn" id="btn-app-fullscreen" title="Toggle App Fullscreen">
+                <i class="fa-solid fa-expand"></i>
+            </button>
+            <button class="btn" id="btn-export" title="Export Ratings JSON">
+                <i class="fa-solid fa-download"></i> Backup
+            </button>
+            <input type="file" id="import-input" accept=".json" class="hidden">
+            <button class="btn" onclick="document.getElementById('import-input').click()" title="Import Ratings JSON">
+                <i class="fa-solid fa-upload"></i> Restore
+            </button>
+            <button class="btn btn-danger" id="btn-purge">
+                <i class="fa-solid fa-skull"></i> The Executioner
+            </button>
+            <button class="btn btn-danger" id="btn-hard-reset" title="Wipe all data and restart">
+                <i class="fa-solid fa-bomb"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Stage -->
+    <main>
+        <div id="media-container">
+            <div class="empty-state glass-panel" style="padding: 40px;">
+                <i class="fa-solid fa-photo-film"></i>
+                <h2>No Media Loaded</h2>
+                <p>Select a folder or a batch of files to begin your triage session.<br>Everything remains locally on your device.</p>
+            </div>
+        </div>
+        <button class="btn hidden" id="btn-media-fullscreen" title="Fullscreen Media Only">
+            <i class="fa-solid fa-expand"></i>
+        </button>
+        
+        <div class="file-info glass-panel hidden" id="file-info-overlay">
+            <div class="file-name" id="display-filename">filename.jpg</div>
+            <div class="file-meta">
+                <span id="display-filesize">0 MB</span>
+                <span id="display-survival" class="survival-tag">Generation: 1</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer Controls -->
+    <footer class="glass-panel">
+        <div class="scoring-section">
+            <div class="score-display" id="score-display">0.00</div>
+            <div class="slider-container">
+                <i class="fa-solid fa-trash-can" style="color: var(--accent-red);"></i>
+                <input type="range" id="score-slider" min="-1.0" max="1.0" step="0.01" value="0.00">
+                <i class="fa-solid fa-star" style="color: var(--accent-green);"></i>
+            </div>
+        </div>
+        
+        <div class="nav-controls">
+            <button class="btn-icon-small" id="btn-shuffle" title="Shuffle Queue"><i class="fa-solid fa-shuffle"></i></button>
+            <button class="nav-btn" id="btn-prev" title="Previous (Left Arrow)"><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="nav-btn" id="btn-next" title="Next (Right Arrow)"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+    </footer>
+
+    <!-- Purge Helper Modal -->
+    <div class="modal-overlay" id="purge-modal-overlay">
+        <div class="modal glass-panel">
+            <button class="modal-close" id="close-purge-modal"><i class="fa-solid fa-xmark"></i></button>
+            <h2><i class="fa-solid fa-skull"></i> The Executioner - Staging Area</h2>
+            
+            <div class="modal-body">
+                <p style="font-size: 0.9rem; color: var(--text-secondary);">
+                    Stage files for physical deletion. Staged files will be combined into a script for you to run natively.
+                </p>
+                
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <label for="purge-threshold">Stage files with score < </label>
+                    <input type="number" id="purge-threshold" class="form-input" value="-0.5" step="0.1" min="-1.0" max="1.0" style="width: 80px;">
+                    <button class="btn btn-primary" id="btn-stage-files">Stage Files from Database</button>
+                    <button class="btn btn-danger" id="btn-clear-staged">Clear Staged</button>
+                </div>
+                
+                <ul class="staged-list" id="staged-list">
+                    <!-- Staged items injected here -->
+                    <div style="padding: 10px; text-align: center; color: var(--text-secondary);">No files staged.</div>
+                </ul>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span id="purge-stats" style="font-size: 0.85rem; color: var(--text-secondary);">0 files selected for execution.</span>
+                    <button class="btn btn-danger" id="btn-generate-script"><i class="fa-solid fa-code"></i> Generate Script</button>
+                </div>
+                
+                <div id="script-container" class="hidden">
+                    <div class="tabs">
+                        <button class="tab active" data-target="script-python">Python</button>
+                        <button class="tab" data-target="script-bash">Bash (Linux/Termux)</button>
+                        <button class="tab" data-target="script-cmd">Windows CMD</button>
+                    </div>
+                    <textarea id="script-output" readonly></textarea>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                        <div id="execution-instructions" style="font-size: 0.8rem; color: var(--text-secondary); max-width: 70%;"></div>
+                        <button class="btn" id="btn-copy-script">
+                            <i class="fa-regular fa-copy"></i> Copy Script
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div id="toast">Settings Saved</div>
+
+    <!-- Fullscreen Viewer Overlay for Thumbnails -->
+    <div id="fullscreen-viewer">
+        <button class="close-viewer" id="btn-close-viewer"><i class="fa-solid fa-xmark"></i></button>
+        <div id="fullscreen-viewer-content"></div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // --- State Management ---
+        const state = {
+            allFiles: [],
+            filteredFiles: [],
+            stagedFilesMap: new Map(), // key: id, value: file object
+            currentIndex: -1,
+            ratings: {}, // key: name_size -> { score: float, survivalCount: int }
+            currentObjectURL: null,
+            filter: 'all',
+            sort: 'default'
+        };
+
+        // --- DOM Elements ---
+        const elements = {
+            folderInput: document.getElementById('folder-input'),
+            fileInput: document.getElementById('file-input'),
+            mediaContainer: document.getElementById('media-container'),
+            slider: document.getElementById('score-slider'),
+            scoreDisplay: document.getElementById('score-display'),
+            btnPrev: document.getElementById('btn-prev'),
+            btnNext: document.getElementById('btn-next'),
+            btnShuffle: document.getElementById('btn-shuffle'),
+            queueCount: document.getElementById('queue-count'),
+            fileInfoOverlay: document.getElementById('file-info-overlay'),
+            displayFilename: document.getElementById('display-filename'),
+            displayFilesize: document.getElementById('display-filesize'),
+            displaySurvival: document.getElementById('display-survival'),
+            filterSelect: document.getElementById('filter-select'),
+            sortSelect: document.getElementById('sort-select'),
+            btnExport: document.getElementById('btn-export'),
+            importInput: document.getElementById('import-input'),
+            btnPurge: document.getElementById('btn-purge'),
+            purgeModal: document.getElementById('purge-modal-overlay'),
+            closePurgeModal: document.getElementById('close-purge-modal'),
+            btnStageFiles: document.getElementById('btn-stage-files'),
+            btnClearStaged: document.getElementById('btn-clear-staged'),
+            stagedList: document.getElementById('staged-list'),
+            btnGenerateScript: document.getElementById('btn-generate-script'),
+            scriptContainer: document.getElementById('script-container'),
+            scriptOutput: document.getElementById('script-output'),
+            tabs: document.querySelectorAll('.tab'),
+            btnCopyScript: document.getElementById('btn-copy-script'),
+            purgeThreshold: document.getElementById('purge-threshold'),
+            purgeStats: document.getElementById('purge-stats'),
+            executionInstructions: document.getElementById('execution-instructions'),
+            toast: document.getElementById('toast'),
+            btnClearQueue: document.getElementById('btn-clear-queue'),
+            btnAppFullscreen: document.getElementById('btn-app-fullscreen'),
+            btnHardReset: document.getElementById('btn-hard-reset'),
+            btnMediaFullscreen: document.getElementById('btn-media-fullscreen'),
+            fullscreenViewer: document.getElementById('fullscreen-viewer'),
+            fullscreenViewerContent: document.getElementById('fullscreen-viewer-content'),
+            btnCloseViewer: document.getElementById('btn-close-viewer')
+        };
+
+        let currentScriptType = 'script-python';
+        let generatedScripts = { 'script-python': '', 'script-bash': '', 'script-cmd': '' };
+
+        function init() {
+            loadRatingsFromStorage();
+            setupEventListeners();
+        }
+
+        // --- Core Helpers ---
+        function getFileId(file) {
+            return `${file.name}_${file.size}`;
+        }
+
+        function loadRatingsFromStorage() {
+            try {
+                const stored = localStorage.getItem('dynamicMediaSorterRatings');
+                if (stored) {
+                    state.ratings = JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error("Failed to load ratings", e);
+            }
+        }
+
+        function saveRatingsToStorage() {
+            try {
+                localStorage.setItem('dynamicMediaSorterRatings', JSON.stringify(state.ratings));
+            } catch (e) {
+                console.error("Failed to save ratings", e);
+            }
+        }
+
+        function showToast(msg) {
+            elements.toast.textContent = msg;
+            elements.toast.classList.add('show');
+            setTimeout(() => {
+                elements.toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // --- File Ingestion ---
+        function handleFilesSelected(event) {
+            try {
+                if (!event.target.files) return;
+                
+                const files = Array.from(event.target.files);
+                if (files.length === 0) return;
+
+                const newFiles = files.filter(f => {
+                    if (f.type) {
+                        return f.type.startsWith('image/') || f.type.startsWith('video/');
+                    }
+                    return /\.(jpe?g|png|gif|webp|mp4|webm|mkv|mov|avi)$/i.test(f.name);
+                });
+                
+                if (newFiles.length === 0) {
+                    alert(`Selected ${files.length} files, but none were identified as media. Check if they are valid media files.`);
+                    return;
+                }
+                
+                const existingIds = new Set(state.allFiles.map(f => getFileId(f)));
+                let addedCount = 0;
+                
+                newFiles.forEach(file => {
+                    const id = getFileId(file);
+                    if (!existingIds.has(id)) {
+                        state.allFiles.push(file);
+                        addedCount++;
+                        if (!state.ratings[id]) {
+                            state.ratings[id] = { score: 0.0, survivalCount: 1 };
+                        }
+                    }
+                });
+                
+                saveRatingsToStorage();
+                applyFilterAndSort();
+                
+                if (addedCount > 0) {
+                    showToast(`Added ${addedCount} new files to the queue.`);
+                } else {
+                    showToast("No new files added (duplicates ignored).");
+                }
+                
+                event.target.value = '';
+            } catch (err) {
+                alert(`CRITICAL ERROR during file load:\n${err.message}`);
+            }
+        }
+
+        // --- Filtering and Sorting ---
+        function applyFilterAndSort() {
+            state.filter = elements.filterSelect.value;
+            state.sort = elements.sortSelect.value;
+            
+            let currentFileId = null;
+            if (state.currentIndex >= 0 && state.currentIndex < state.filteredFiles.length) {
+                currentFileId = getFileId(state.filteredFiles[state.currentIndex]);
+            }
+            
+            // Filter
+            state.filteredFiles = state.allFiles.filter(file => {
+                const id = getFileId(file);
+                const score = state.ratings[id].score;
+                
+                if (state.filter === 'unrated') return score === 0.0;
+                if (state.filter === 'positive') return score > 0.0;
+                if (state.filter === 'negative') return score < 0.0;
+                return true; 
+            });
+
+            // Sort
+            if (state.sort === 'name-asc') {
+                state.filteredFiles.sort((a, b) => a.name.localeCompare(b.name));
+            } else if (state.sort === 'name-desc') {
+                state.filteredFiles.sort((a, b) => b.name.localeCompare(a.name));
+            } else if (state.sort === 'size-asc') {
+                state.filteredFiles.sort((a, b) => a.size - b.size);
+            } else if (state.sort === 'size-desc') {
+                state.filteredFiles.sort((a, b) => b.size - a.size);
+            } else if (state.sort === 'score-desc') {
+                state.filteredFiles.sort((a, b) => state.ratings[getFileId(b)].score - state.ratings[getFileId(a)].score);
+            } else if (state.sort === 'score-asc') {
+                state.filteredFiles.sort((a, b) => state.ratings[getFileId(a)].score - state.ratings[getFileId(b)].score);
+            }
+            
+            // Restore index
+            if (state.filteredFiles.length > 0) {
+                let newIndex = 0;
+                if (currentFileId) {
+                    const foundIdx = state.filteredFiles.findIndex(f => getFileId(f) === currentFileId);
+                    if (foundIdx !== -1) newIndex = foundIdx;
+                }
+                state.currentIndex = newIndex;
+                renderCurrentMedia();
+            } else {
+                state.currentIndex = -1;
+                renderCurrentMedia();
+            }
+            updateStats();
+        }
+
+        function shuffleQueue() {
+            if (state.filteredFiles.length <= 1) return;
+            // Fisher-Yates Shuffle
+            let array = state.filteredFiles;
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            state.currentIndex = 0;
+            elements.sortSelect.value = 'default';
+            state.sort = 'default';
+            renderCurrentMedia();
+            showToast("Queue shuffled!");
+        }
+
+        // --- Rendering ---
+        function renderCurrentMedia() {
+            if (state.currentObjectURL) {
+                URL.revokeObjectURL(state.currentObjectURL);
+                state.currentObjectURL = null;
+            }
+
+            if (state.filteredFiles.length === 0 || state.currentIndex < 0 || state.currentIndex >= state.filteredFiles.length) {
+                elements.mediaContainer.innerHTML = `
+                    <div class="empty-state glass-panel" style="padding: 40px;">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <h2>Queue Empty</h2>
+                        <p>No media to display based on current filters.</p>
+                    </div>`;
+                elements.fileInfoOverlay.classList.add('hidden');
+                elements.btnMediaFullscreen.classList.add('hidden');
+                elements.slider.value = 0;
+                updateSliderVisuals(false);
+                return;
+            }
+
+            const file = state.filteredFiles[state.currentIndex];
+            const id = getFileId(file);
+            state.currentObjectURL = URL.createObjectURL(file);
+            
+            elements.mediaContainer.innerHTML = '';
+            
+            let mediaNode;
+            if (file.type ? file.type.startsWith('video/') : /\.(mp4|webm|mkv|mov|avi)$/i.test(file.name)) {
+                mediaNode = document.createElement('video');
+                mediaNode.autoplay = true;
+                mediaNode.loop = true;
+                mediaNode.controls = true;
+                mediaNode.volume = 0.5;
+            } else {
+                mediaNode = document.createElement('img');
+            }
+            mediaNode.src = state.currentObjectURL;
+            mediaNode.id = 'active-media-node';
+            elements.mediaContainer.appendChild(mediaNode);
+
+            elements.fileInfoOverlay.classList.remove('hidden');
+            elements.btnMediaFullscreen.classList.remove('hidden');
+            elements.displayFilename.textContent = file.name;
+            elements.displayFilesize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+            elements.displaySurvival.textContent = 'Generation: ' + (state.ratings[id].survivalCount || 1);
+            
+            elements.slider.value = state.ratings[id].score;
+            updateSliderVisuals(false);
+            updateStats();
+        }
+
+        function updateSliderVisuals(save = true) {
+            const val = parseFloat(elements.slider.value).toFixed(2);
+            elements.scoreDisplay.textContent = val;
+            
+            let color = '#fff';
+            if (val < 0) {
+                const intensity = Math.abs(val);
+                color = `rgb(255, ${255 - (intensity * 255)}, ${255 - (intensity * 255)})`;
+            } else if (val > 0) {
+                const intensity = val;
+                color = `rgb(${255 - (intensity * 255)}, 255, ${255 - (intensity * 100)})`;
+            }
+            elements.scoreDisplay.style.color = color;
+            
+            if (save && state.currentIndex >= 0 && state.currentIndex < state.filteredFiles.length) {
+                const file = state.filteredFiles[state.currentIndex];
+                const id = getFileId(file);
+                if (state.ratings[id].score !== parseFloat(val)) {
+                    state.ratings[id].score = parseFloat(val);
+                    saveRatingsToStorage();
+                }
+            }
+        }
+
+        function updateStats() {
+            const total = state.filteredFiles.length;
+            const current = total > 0 ? state.currentIndex + 1 : 0;
+            elements.queueCount.textContent = `${current}/${total}`;
+        }
+
+        function navigate(direction) {
+            if (state.filteredFiles.length === 0) return;
+            state.currentIndex += direction;
+            if (state.currentIndex < 0) state.currentIndex = 0;
+            if (state.currentIndex >= state.filteredFiles.length) state.currentIndex = state.filteredFiles.length - 1;
+            renderCurrentMedia();
+        }
+
+        // --- Export / Import ---
+        function exportRatings() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.ratings, null, 2));
+            const node = document.createElement('a');
+            node.setAttribute("href", dataStr);
+            node.setAttribute("download", "ratings_backup.json");
+            document.body.appendChild(node);
+            node.click();
+            node.remove();
+            showToast("Backup Exported successfully!");
+        }
+
+        function importRatings(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    state.ratings = { ...state.ratings, ...imported };
+                    saveRatingsToStorage();
+                    showToast("Backup Restored successfully!");
+                    if (state.allFiles.length > 0) applyFilterAndSort();
+                } catch (err) {
+                    alert("Invalid JSON file.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- The Executioner (Staging) ---
+        function renderStagedList() {
+            elements.stagedList.innerHTML = '';
+            elements.scriptContainer.classList.add('hidden');
+            
+            if (state.stagedFilesMap.size === 0) {
+                elements.stagedList.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--text-secondary);">No files staged.</div>';
+                elements.purgeStats.textContent = "0 files selected.";
+                return;
+            }
+
+            elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged for deletion.`;
+
+            state.stagedFilesMap.forEach((file, id) => {
+                const score = state.ratings[id].score;
+                const scoreClass = score < 0 ? 'negative' : (score > 0 ? 'positive' : '');
+                
+                const li = document.createElement('li');
+                li.className = 'staged-item';
+                
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.checked = true;
+                cb.dataset.id = id;
+                
+                const thumb = document.createElement(file.type.startsWith('video') ? 'video' : 'img');
+                thumb.className = 'staged-thumb';
+                thumb.src = URL.createObjectURL(file);
+                thumb.onclick = () => openFullscreenViewer(thumb.src, file.type);
+                
+                const info = document.createElement('div');
+                info.className = 'staged-info';
+                
+                const nameStr = document.createElement('div');
+                nameStr.className = 'staged-name';
+                nameStr.textContent = file.name;
+                
+                const scoreStr = document.createElement('div');
+                scoreStr.className = `staged-score ${scoreClass}`;
+                scoreStr.textContent = `Score: ${score}`;
+                
+                info.appendChild(nameStr);
+                info.appendChild(scoreStr);
+                
+                li.appendChild(cb);
+                li.appendChild(thumb);
+                li.appendChild(info);
+                
+                elements.stagedList.appendChild(li);
+            });
+        }
+
+        function stageFilesFromDB() {
+            const threshold = parseFloat(elements.purgeThreshold.value);
+            let added = 0;
+            state.allFiles.forEach(file => {
+                const id = getFileId(file);
+                if (state.ratings[id] && state.ratings[id].score < threshold) {
+                    if (!state.stagedFilesMap.has(id)) {
+                        state.stagedFilesMap.set(id, file);
+                        added++;
+                    }
+                }
+            });
+            showToast(`Staged ${added} new files.`);
+            renderStagedList();
+        }
+
+        function openFullscreenViewer(src, type) {
+            elements.fullscreenViewerContent.innerHTML = '';
+            let node;
+            if (type.startsWith('video')) {
+                node = document.createElement('video');
+                node.controls = true;
+                node.autoplay = true;
+                node.loop = true;
+            } else {
+                node = document.createElement('img');
+            }
+            node.src = src;
+            elements.fullscreenViewerContent.appendChild(node);
+            elements.fullscreenViewer.classList.add('active');
+        }
+
+        function generateScripts() {
+            const selectedIds = [];
+            elements.stagedList.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                selectedIds.push(cb.dataset.id);
+            });
+            
+            if (selectedIds.length === 0) {
+                alert("No files selected via checkboxes.");
+                return;
+            }
+
+            // Extract file names (since we dropped paths, we just use filename)
+            const fileNames = selectedIds.map(id => state.stagedFilesMap.get(id).name);
+            
+            // Python
+            const pyArray = fileNames.map(f => `    "${f.replace(/"/g, '\\"')}"`).join(",\n");
+            generatedScripts['script-python'] = `#!/usr/bin/env python3
+import os
+
+files_to_delete = [
+${pyArray}
+]
+deleted = 0
+for f in files_to_delete:
+    if os.path.exists(f):
+        os.remove(f)
+        deleted += 1
+        print(f"[Deleted] {f}")
+print(f"\\nDone. Deleted {deleted} files.")`;
+
+            // Bash
+            const bashArray = fileNames.map(f => `"${f.replace(/"/g, '\\"')}"`).join(" ");
+            generatedScripts['script-bash'] = `#!/bin/bash\nrm -f ${bashArray}\necho "Done. Deleted files."`;
+
+            // CMD
+            const cmdArray = fileNames.map(f => `del "${f.replace(/"/g, '""')}" 2>nul`).join("\n");
+            generatedScripts['script-cmd'] = `@echo off\n${cmdArray}\necho Done. Deleted files.\npause`;
+
+            elements.scriptContainer.classList.remove('hidden');
+            updateScriptView();
+        }
+
+        function updateScriptView() {
+            elements.scriptOutput.value = generatedScripts[currentScriptType];
+            
+            elements.tabs.forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab[data-target="${currentScriptType}"]`).classList.add('active');
+
+            if (currentScriptType === 'script-python') {
+                elements.executionInstructions.innerHTML = "Save as <code>purge.py</code> in the folder, run: <code>python purge.py</code>";
+            } else if (currentScriptType === 'script-bash') {
+                elements.executionInstructions.innerHTML = "Open terminal in folder, paste this command and press Enter.";
+            } else {
+                elements.executionInstructions.innerHTML = "Save as <code>purge.bat</code> in the folder, double click to run.";
+            }
+        }
+
+        // --- Event Listeners ---
+        function setupEventListeners() {
+            elements.folderInput.addEventListener('change', handleFilesSelected);
+            elements.fileInput.addEventListener('change', handleFilesSelected);
+            
+            elements.btnClearQueue.addEventListener('click', () => {
+                if (confirm("Clear active queue? Ratings remain saved.")) {
+                    state.allFiles = [];
+                    applyFilterAndSort(); 
+                    showToast("Queue cleared.");
+                }
+            });
+            
+            elements.btnHardReset.addEventListener('click', () => {
+                if (confirm("WARNING: Permanently wipe ALL saved memory?")) {
+                    localStorage.removeItem('dynamicMediaSorterRatings');
+                    state.ratings = {};
+                    state.allFiles = [];
+                    applyFilterAndSort(); 
+                    showToast("Memory wiped.");
+                }
+            });
+
+            elements.btnAppFullscreen.addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(() => showToast("Fullscreen unsupported."));
+                } else {
+                    if (document.exitFullscreen) document.exitFullscreen();
+                }
+            });
+
+            elements.btnMediaFullscreen.addEventListener('click', () => {
+                const media = document.getElementById('active-media-node');
+                if (media) {
+                    if (media.requestFullscreen) {
+                        media.requestFullscreen();
+                    } else if (media.webkitRequestFullscreen) {
+                        media.webkitRequestFullscreen();
+                    }
+                }
+            });
+
+            elements.btnCloseViewer.addEventListener('click', () => {
+                elements.fullscreenViewer.classList.remove('active');
+                elements.fullscreenViewerContent.innerHTML = '';
+            });
+            
+            // Slider events
+            elements.slider.addEventListener('input', () => updateSliderVisuals(true));
+            elements.slider.addEventListener('change', () => {
+                // Auto-advance on release
+                navigate(1);
+            });
+            
+            elements.btnPrev.addEventListener('click', () => navigate(-1));
+            elements.btnNext.addEventListener('click', () => navigate(1));
+            elements.btnShuffle.addEventListener('click', shuffleQueue);
+            
+            elements.filterSelect.addEventListener('change', applyFilterAndSort);
+            elements.sortSelect.addEventListener('change', applyFilterAndSort);
+            
+            elements.btnExport.addEventListener('click', exportRatings);
+            elements.importInput.addEventListener('change', importRatings);
+            
+            // Modal events
+            elements.btnPurge.addEventListener('click', () => {
+                elements.purgeModal.classList.add('active');
+                renderStagedList();
+            });
+            elements.closePurgeModal.addEventListener('click', () => {
+                elements.purgeModal.classList.remove('active');
+            });
+            elements.btnStageFiles.addEventListener('click', stageFilesFromDB);
+            elements.btnClearStaged.addEventListener('click', () => {
+                state.stagedFilesMap.clear();
+                renderStagedList();
+            });
+            
+            elements.btnGenerateScript.addEventListener('click', generateScripts);
+            
+            elements.tabs.forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    currentScriptType = e.target.dataset.target;
+                    updateScriptView();
+                });
+            });
+
+            elements.btnCopyScript.addEventListener('click', () => {
+                elements.scriptOutput.select();
+                document.execCommand('copy');
+                showToast("Script copied!");
+            });
+
+            window.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                if (e.key === 'ArrowLeft') navigate(-1);
+                else if (e.key === 'ArrowRight') navigate(1);
+                else if (e.key === '0') {
+                    elements.slider.value = 0;
+                    updateSliderVisuals(true);
+                }
+            });
+        }
+
+        init();
+
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+            const folderBtn = document.getElementById('btn-load-folder');
+            if (folderBtn) folderBtn.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
