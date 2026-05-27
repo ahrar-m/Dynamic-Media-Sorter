@@ -39,7 +39,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            overscroll-behavior: none;
+            overscroll-behavior: none; /* Prevent pull-to-refresh and rubber-banding */
             -webkit-font-smoothing: antialiased;
         }
 
@@ -223,7 +223,7 @@
             -webkit-appearance: none;
             width: 100%;
             background: transparent;
-            touch-action: none;
+            touch-action: none; /* Prevent panning the page while sliding on mobile */
         }
 
         input[type=range]:focus {
@@ -363,6 +363,10 @@
             flex-direction: column;
             gap: 16px;
             position: relative;
+        }
+        
+        .modal-sm {
+            max-width: 400px;
         }
 
         .modal h2 {
@@ -510,6 +514,8 @@
             padding: 8px 12px;
             border-radius: 6px;
             font-family: inherit;
+            width: 100%;
+            margin-bottom: 10px;
         }
 
         .hidden {
@@ -548,20 +554,32 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.2s;
+            overflow: hidden;
         }
         #fullscreen-viewer.active {
             opacity: 1;
             pointer-events: auto;
         }
+        #fullscreen-viewer-content {
+            transition: transform 0.2s ease;
+            transform-origin: center center;
+        }
         #fullscreen-viewer img, #fullscreen-viewer video {
-            max-width: 95%; max-height: 95%;
+            max-width: 100vw; max-height: 100vh;
             object-fit: contain;
+        }
+        .viewer-controls {
+            position: absolute;
+            bottom: 20px;
+            display: flex;
+            gap: 15px;
+            z-index: 210;
         }
         #fullscreen-viewer .close-viewer {
             position: absolute;
             top: 20px; right: 20px;
-            background: none; border: none; color: white;
-            font-size: 2rem; cursor: pointer;
+            background: rgba(0,0,0,0.5); border: none; color: white;
+            font-size: 1.5rem; cursor: pointer; padding: 10px 15px; border-radius: 8px; z-index: 210;
         }
     </style>
 </head>
@@ -570,8 +588,9 @@
     <!-- Header -->
     <header class="glass-panel">
         <div class="header-left">
-            <input type="file" id="folder-input" webkitdirectory directory multiple class="hidden" accept="image/*,video/*">
-            <input type="file" id="file-input" multiple class="hidden" accept="image/*,video/*">
+            <input type="file" id="folder-input" webkitdirectory directory multiple class="hidden">
+            <!-- Removed 'accept' attribute below so Android shows real file managers instead of forcing Media Gallery -->
+            <input type="file" id="file-input" multiple class="hidden">
             
             <button class="btn btn-primary" id="btn-load-folder" onclick="document.getElementById('folder-input').click()">
                 <i class="fa-solid fa-folder-open"></i> Load Folder
@@ -583,43 +602,25 @@
                 <i class="fa-solid fa-trash"></i>
             </button>
             
-            <select id="filter-select" class="form-input">
-                <option value="all">Filter: Show All</option>
-                <option value="unrated">Filter: Unrated Only</option>
-                <option value="positive">Filter: Top Tier (> 0.0)</option>
-                <option value="negative">Filter: Trash (< 0.0)</option>
-            </select>
-            
-            <select id="sort-select" class="form-input">
-                <option value="default">Sort: Default (Load Order)</option>
-                <option value="name-asc">Sort: Name (A-Z)</option>
-                <option value="name-desc">Sort: Name (Z-A)</option>
-                <option value="size-asc">Sort: Size (Smallest First)</option>
-                <option value="size-desc">Sort: Size (Largest First)</option>
-                <option value="score-desc">Sort: Score (Highest First)</option>
-                <option value="score-asc">Sort: Score (Lowest First)</option>
-            </select>
+            <!-- Filters moved to Modal -->
+            <button class="btn" id="btn-open-filters" title="Filter & Sort">
+                <i class="fa-solid fa-filter"></i> Filters
+            </button>
         </div>
         
         <div class="header-right">
             <div class="stats">
-                <div class="stat-item">Queue: <span id="queue-count">0/0</span></div>
+                <div class="stat-item">Queue: <span id="queue-count">0/0 (0%)</span></div>
             </div>
             <button class="btn" id="btn-app-fullscreen" title="Toggle App Fullscreen">
                 <i class="fa-solid fa-expand"></i>
             </button>
-            <button class="btn" id="btn-export" title="Export Ratings JSON">
-                <i class="fa-solid fa-download"></i> Backup
-            </button>
-            <input type="file" id="import-input" accept=".json" class="hidden">
-            <button class="btn" onclick="document.getElementById('import-input').click()" title="Import Ratings JSON">
-                <i class="fa-solid fa-upload"></i> Restore
-            </button>
             <button class="btn btn-danger" id="btn-purge">
                 <i class="fa-solid fa-skull"></i> The Executioner
             </button>
-            <button class="btn btn-danger" id="btn-hard-reset" title="Wipe all data and restart">
-                <i class="fa-solid fa-bomb"></i>
+            <!-- Settings moved to Modal -->
+            <button class="btn" id="btn-open-settings" title="Settings">
+                <i class="fa-solid fa-gear"></i>
             </button>
         </div>
     </header>
@@ -664,6 +665,55 @@
         </div>
     </footer>
 
+    <!-- Filter/Sort Modal -->
+    <div class="modal-overlay" id="filter-modal">
+        <div class="modal modal-sm glass-panel">
+            <button class="modal-close" id="close-filter-modal"><i class="fa-solid fa-xmark"></i></button>
+            <h2><i class="fa-solid fa-filter"></i> Filter & Sort</h2>
+            <div class="modal-body">
+                <label>Filter By Status</label>
+                <select id="filter-select" class="form-input">
+                    <option value="all">Show All</option>
+                    <option value="unrated">Unrated Only</option>
+                    <option value="positive">Top Tier (> 0.0)</option>
+                    <option value="negative">Trash (< 0.0)</option>
+                </select>
+                
+                <label>Sort Queue By</label>
+                <select id="sort-select" class="form-input">
+                    <option value="default">Default (Load Order)</option>
+                    <option value="name-asc">Name (A-Z)</option>
+                    <option value="name-desc">Name (Z-A)</option>
+                    <option value="size-asc">Size (Smallest First)</option>
+                    <option value="size-desc">Size (Largest First)</option>
+                    <option value="score-desc">Score (Highest First)</option>
+                    <option value="score-asc">Score (Lowest First)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal modal-sm glass-panel">
+            <button class="modal-close" id="close-settings-modal"><i class="fa-solid fa-xmark"></i></button>
+            <h2><i class="fa-solid fa-gear"></i> Settings</h2>
+            <div class="modal-body">
+                <button class="btn" id="btn-export" style="width: 100%; justify-content: center;">
+                    <i class="fa-solid fa-download"></i> Export Backup (JSON)
+                </button>
+                <input type="file" id="import-input" accept=".json" class="hidden">
+                <button class="btn" onclick="document.getElementById('import-input').click()" style="width: 100%; justify-content: center;">
+                    <i class="fa-solid fa-upload"></i> Restore Backup (JSON)
+                </button>
+                <hr style="border: 0; border-top: 1px solid var(--panel-border); margin: 10px 0;">
+                <button class="btn btn-danger" id="btn-hard-reset" style="width: 100%; justify-content: center;">
+                    <i class="fa-solid fa-bomb"></i> Hard Reset (Wipe Memory)
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Purge Helper Modal -->
     <div class="modal-overlay" id="purge-modal-overlay">
         <div class="modal glass-panel">
@@ -677,8 +727,8 @@
                 
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                     <label for="purge-threshold">Stage files with score < </label>
-                    <input type="number" id="purge-threshold" class="form-input" value="-0.5" step="0.1" min="-1.0" max="1.0" style="width: 80px;">
-                    <button class="btn btn-primary" id="btn-stage-files">Stage Files from Database</button>
+                    <input type="number" id="purge-threshold" class="form-input" value="-0.5" step="0.1" min="-1.0" max="1.0" style="width: 80px; margin:0;">
+                    <button class="btn btn-primary" id="btn-stage-files">Stage Files</button>
                     <button class="btn btn-danger" id="btn-clear-staged">Clear Staged</button>
                 </div>
                 
@@ -714,10 +764,15 @@
     <!-- Toast Notification -->
     <div id="toast">Settings Saved</div>
 
-    <!-- Fullscreen Viewer Overlay for Thumbnails -->
+    <!-- Fullscreen Viewer Overlay for Thumbnails with Zoom -->
     <div id="fullscreen-viewer">
         <button class="close-viewer" id="btn-close-viewer"><i class="fa-solid fa-xmark"></i></button>
         <div id="fullscreen-viewer-content"></div>
+        <div class="viewer-controls">
+            <button class="btn btn-icon-small" id="btn-zoom-out" style="background: rgba(0,0,0,0.6);"><i class="fa-solid fa-minus"></i></button>
+            <button class="btn btn-icon-small" id="btn-zoom-reset" style="background: rgba(0,0,0,0.6); font-size: 0.8rem;">1:1</button>
+            <button class="btn btn-icon-small" id="btn-zoom-in" style="background: rgba(0,0,0,0.6);"><i class="fa-solid fa-plus"></i></button>
+        </div>
     </div>
 
     <!-- Application Logic -->
@@ -728,11 +783,13 @@
             filteredFiles: [],
             stagedFilesMap: new Map(), // key: id, value: file object
             currentIndex: -1,
-            ratings: {}, // key: name_size -> { score: float, survivalCount: int }
+            ratings: {}, // key: name_size -> { score: float, survivalCount: int, scoreHistory: [float] }
             currentObjectURL: null,
             filter: 'all',
             sort: 'default'
         };
+
+        let currentScale = 1;
 
         // --- DOM Elements ---
         const elements = {
@@ -749,10 +806,20 @@
             displayFilename: document.getElementById('display-filename'),
             displayFilesize: document.getElementById('display-filesize'),
             displaySurvival: document.getElementById('display-survival'),
+            
+            btnOpenFilters: document.getElementById('btn-open-filters'),
+            filterModal: document.getElementById('filter-modal'),
+            closeFilterModal: document.getElementById('close-filter-modal'),
             filterSelect: document.getElementById('filter-select'),
             sortSelect: document.getElementById('sort-select'),
+            
+            btnOpenSettings: document.getElementById('btn-open-settings'),
+            settingsModal: document.getElementById('settings-modal'),
+            closeSettingsModal: document.getElementById('close-settings-modal'),
             btnExport: document.getElementById('btn-export'),
             importInput: document.getElementById('import-input'),
+            btnHardReset: document.getElementById('btn-hard-reset'),
+            
             btnPurge: document.getElementById('btn-purge'),
             purgeModal: document.getElementById('purge-modal-overlay'),
             closePurgeModal: document.getElementById('close-purge-modal'),
@@ -767,14 +834,18 @@
             purgeThreshold: document.getElementById('purge-threshold'),
             purgeStats: document.getElementById('purge-stats'),
             executionInstructions: document.getElementById('execution-instructions'),
+            
             toast: document.getElementById('toast'),
             btnClearQueue: document.getElementById('btn-clear-queue'),
             btnAppFullscreen: document.getElementById('btn-app-fullscreen'),
-            btnHardReset: document.getElementById('btn-hard-reset'),
             btnMediaFullscreen: document.getElementById('btn-media-fullscreen'),
+            
             fullscreenViewer: document.getElementById('fullscreen-viewer'),
             fullscreenViewerContent: document.getElementById('fullscreen-viewer-content'),
-            btnCloseViewer: document.getElementById('btn-close-viewer')
+            btnCloseViewer: document.getElementById('btn-close-viewer'),
+            btnZoomIn: document.getElementById('btn-zoom-in'),
+            btnZoomOut: document.getElementById('btn-zoom-out'),
+            btnZoomReset: document.getElementById('btn-zoom-reset')
         };
 
         let currentScriptType = 'script-python';
@@ -846,7 +917,7 @@
                         state.allFiles.push(file);
                         addedCount++;
                         if (!state.ratings[id]) {
-                            state.ratings[id] = { score: 0.0, survivalCount: 1 };
+                            state.ratings[id] = { score: 0.0, survivalCount: 1, scoreHistory: [] };
                         }
                     }
                 });
@@ -1004,7 +1075,7 @@
                 const id = getFileId(file);
                 if (state.ratings[id].score !== parseFloat(val)) {
                     state.ratings[id].score = parseFloat(val);
-                    saveRatingsToStorage();
+                    saveRatingsToStorage(); // Only update current score here during drag
                 }
             }
         }
@@ -1012,7 +1083,8 @@
         function updateStats() {
             const total = state.filteredFiles.length;
             const current = total > 0 ? state.currentIndex + 1 : 0;
-            elements.queueCount.textContent = `${current}/${total}`;
+            const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+            elements.queueCount.textContent = `${current}/${total} (${pct}%)`;
         }
 
         function navigate(direction) {
@@ -1123,6 +1195,9 @@
 
         function openFullscreenViewer(src, type) {
             elements.fullscreenViewerContent.innerHTML = '';
+            currentScale = 1;
+            updateViewerTransform();
+            
             let node;
             if (type.startsWith('video')) {
                 node = document.createElement('video');
@@ -1137,6 +1212,10 @@
             elements.fullscreenViewer.classList.add('active');
         }
 
+        function updateViewerTransform() {
+            elements.fullscreenViewerContent.style.transform = `scale(${currentScale})`;
+        }
+
         function generateScripts() {
             const selectedIds = [];
             elements.stagedList.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
@@ -1148,10 +1227,8 @@
                 return;
             }
 
-            // Extract file names (since we dropped paths, we just use filename)
             const fileNames = selectedIds.map(id => state.stagedFilesMap.get(id).name);
             
-            // Python
             const pyArray = fileNames.map(f => `    "${f.replace(/"/g, '\\"')}"`).join(",\n");
             generatedScripts['script-python'] = `#!/usr/bin/env python3
 import os
@@ -1167,11 +1244,9 @@ for f in files_to_delete:
         print(f"[Deleted] {f}")
 print(f"\\nDone. Deleted {deleted} files.")`;
 
-            // Bash
             const bashArray = fileNames.map(f => `"${f.replace(/"/g, '\\"')}"`).join(" ");
             generatedScripts['script-bash'] = `#!/bin/bash\nrm -f ${bashArray}\necho "Done. Deleted files."`;
 
-            // CMD
             const cmdArray = fileNames.map(f => `del "${f.replace(/"/g, '""')}" 2>nul`).join("\n");
             generatedScripts['script-cmd'] = `@echo off\n${cmdArray}\necho Done. Deleted files.\npause`;
 
@@ -1186,11 +1261,11 @@ print(f"\\nDone. Deleted {deleted} files.")`;
             document.querySelector(`.tab[data-target="${currentScriptType}"]`).classList.add('active');
 
             if (currentScriptType === 'script-python') {
-                elements.executionInstructions.innerHTML = "Save as <code>purge.py</code> in the folder, run: <code>python purge.py</code>";
+                elements.executionInstructions.innerHTML = "Save as <code>purge.py</code>, run: <code>python purge.py</code>";
             } else if (currentScriptType === 'script-bash') {
-                elements.executionInstructions.innerHTML = "Open terminal in folder, paste this command and press Enter.";
+                elements.executionInstructions.innerHTML = "Paste this command in terminal and press Enter.";
             } else {
-                elements.executionInstructions.innerHTML = "Save as <code>purge.bat</code> in the folder, double click to run.";
+                elements.executionInstructions.innerHTML = "Save as <code>purge.bat</code>, double click to run.";
             }
         }
 
@@ -1207,6 +1282,17 @@ print(f"\\nDone. Deleted {deleted} files.")`;
                 }
             });
             
+            // Filter Modal
+            elements.btnOpenFilters.addEventListener('click', () => elements.filterModal.classList.add('active'));
+            elements.closeFilterModal.addEventListener('click', () => elements.filterModal.classList.remove('active'));
+            elements.filterSelect.addEventListener('change', applyFilterAndSort);
+            elements.sortSelect.addEventListener('change', applyFilterAndSort);
+
+            // Settings Modal
+            elements.btnOpenSettings.addEventListener('click', () => elements.settingsModal.classList.add('active'));
+            elements.closeSettingsModal.addEventListener('click', () => elements.settingsModal.classList.remove('active'));
+            elements.btnExport.addEventListener('click', exportRatings);
+            elements.importInput.addEventListener('change', importRatings);
             elements.btnHardReset.addEventListener('click', () => {
                 if (confirm("WARNING: Permanently wipe ALL saved memory?")) {
                     localStorage.removeItem('dynamicMediaSorterRatings');
@@ -1214,6 +1300,7 @@ print(f"\\nDone. Deleted {deleted} files.")`;
                     state.allFiles = [];
                     applyFilterAndSort(); 
                     showToast("Memory wiped.");
+                    elements.settingsModal.classList.remove('active');
                 }
             });
 
@@ -1241,22 +1328,32 @@ print(f"\\nDone. Deleted {deleted} files.")`;
                 elements.fullscreenViewerContent.innerHTML = '';
             });
             
+            // Zoom Controls
+            elements.btnZoomIn.addEventListener('click', () => { currentScale += 0.5; updateViewerTransform(); });
+            elements.btnZoomOut.addEventListener('click', () => { currentScale = Math.max(0.5, currentScale - 0.5); updateViewerTransform(); });
+            elements.btnZoomReset.addEventListener('click', () => { currentScale = 1; updateViewerTransform(); });
+            
             // Slider events
             elements.slider.addEventListener('input', () => updateSliderVisuals(true));
-            elements.slider.addEventListener('change', () => {
-                // Auto-advance on release
-                navigate(1);
+            elements.slider.addEventListener('change', () => { 
+                // Push to history ONLY on release
+                if (state.currentIndex >= 0 && state.currentIndex < state.filteredFiles.length) {
+                    const file = state.filteredFiles[state.currentIndex];
+                    const id = getFileId(file);
+                    const finalVal = parseFloat(elements.slider.value);
+                    if (!state.ratings[id].scoreHistory) state.ratings[id].scoreHistory = [];
+                    // Only push if it's different from the last history entry to avoid duplicate identical history logs if they click and release without moving
+                    if (state.ratings[id].scoreHistory.length === 0 || state.ratings[id].scoreHistory[state.ratings[id].scoreHistory.length - 1] !== finalVal) {
+                        state.ratings[id].scoreHistory.push(finalVal);
+                        saveRatingsToStorage();
+                    }
+                }
+                navigate(1); 
             });
             
             elements.btnPrev.addEventListener('click', () => navigate(-1));
             elements.btnNext.addEventListener('click', () => navigate(1));
             elements.btnShuffle.addEventListener('click', shuffleQueue);
-            
-            elements.filterSelect.addEventListener('change', applyFilterAndSort);
-            elements.sortSelect.addEventListener('change', applyFilterAndSort);
-            
-            elements.btnExport.addEventListener('click', exportRatings);
-            elements.importInput.addEventListener('change', importRatings);
             
             // Modal events
             elements.btnPurge.addEventListener('click', () => {
