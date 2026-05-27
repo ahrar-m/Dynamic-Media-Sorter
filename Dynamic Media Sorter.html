@@ -659,7 +659,6 @@
         </div>
         
         <div class="nav-controls">
-            <button class="btn-icon-small" id="btn-shuffle" title="Shuffle Queue"><i class="fa-solid fa-shuffle"></i></button>
             <button class="nav-btn" id="btn-prev" title="Previous (Left Arrow)"><i class="fa-solid fa-chevron-left"></i></button>
             <button class="nav-btn" id="btn-next" title="Next (Right Arrow)"><i class="fa-solid fa-chevron-right"></i></button>
         </div>
@@ -671,6 +670,9 @@
             <button class="modal-close" id="close-filter-modal"><i class="fa-solid fa-xmark"></i></button>
             <h2><i class="fa-solid fa-filter"></i> Filter & Sort</h2>
             <div class="modal-body">
+                <label>Search Filename</label>
+                <input type="text" id="search-input" class="form-input" placeholder="e.g. IMG_2023...">
+                
                 <label>Filter By Status</label>
                 <select id="filter-select" class="form-input">
                     <option value="all">Show All</option>
@@ -682,6 +684,7 @@
                 <label>Sort Queue By</label>
                 <select id="sort-select" class="form-input">
                     <option value="default">Default (Load Order)</option>
+                    <option value="random">Random (Shuffle)</option>
                     <option value="name-asc">Name (A-Z)</option>
                     <option value="name-desc">Name (Z-A)</option>
                     <option value="size-asc">Size (Smallest First)</option>
@@ -800,7 +803,6 @@
             scoreDisplay: document.getElementById('score-display'),
             btnPrev: document.getElementById('btn-prev'),
             btnNext: document.getElementById('btn-next'),
-            btnShuffle: document.getElementById('btn-shuffle'),
             queueCount: document.getElementById('queue-count'),
             fileInfoOverlay: document.getElementById('file-info-overlay'),
             displayFilename: document.getElementById('display-filename'),
@@ -812,6 +814,7 @@
             closeFilterModal: document.getElementById('close-filter-modal'),
             filterSelect: document.getElementById('filter-select'),
             sortSelect: document.getElementById('sort-select'),
+            searchInput: document.getElementById('search-input'),
             
             btnOpenSettings: document.getElementById('btn-open-settings'),
             settingsModal: document.getElementById('settings-modal'),
@@ -941,6 +944,7 @@
         function applyFilterAndSort() {
             state.filter = elements.filterSelect.value;
             state.sort = elements.sortSelect.value;
+            const searchStr = elements.searchInput.value.toLowerCase().trim();
             
             let currentFileId = null;
             if (state.currentIndex >= 0 && state.currentIndex < state.filteredFiles.length) {
@@ -949,6 +953,10 @@
             
             // Filter
             state.filteredFiles = state.allFiles.filter(file => {
+                if (searchStr && !file.name.toLowerCase().includes(searchStr)) {
+                    return false;
+                }
+                
                 const id = getFileId(file);
                 const score = state.ratings[id].score;
                 
@@ -971,12 +979,17 @@
                 state.filteredFiles.sort((a, b) => state.ratings[getFileId(b)].score - state.ratings[getFileId(a)].score);
             } else if (state.sort === 'score-asc') {
                 state.filteredFiles.sort((a, b) => state.ratings[getFileId(a)].score - state.ratings[getFileId(b)].score);
+            } else if (state.sort === 'random') {
+                for (let i = state.filteredFiles.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [state.filteredFiles[i], state.filteredFiles[j]] = [state.filteredFiles[j], state.filteredFiles[i]];
+                }
             }
             
             // Restore index
             if (state.filteredFiles.length > 0) {
                 let newIndex = 0;
-                if (currentFileId) {
+                if (currentFileId && state.sort !== 'random') {
                     const foundIdx = state.filteredFiles.findIndex(f => getFileId(f) === currentFileId);
                     if (foundIdx !== -1) newIndex = foundIdx;
                 }
@@ -989,23 +1002,18 @@
             updateStats();
         }
 
-        function shuffleQueue() {
-            if (state.filteredFiles.length <= 1) return;
-            // Fisher-Yates Shuffle
-            let array = state.filteredFiles;
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            state.currentIndex = 0;
-            elements.sortSelect.value = 'default';
-            state.sort = 'default';
-            renderCurrentMedia();
-            showToast("Queue shuffled!");
-        }
-
         // --- Rendering ---
         function renderCurrentMedia() {
+            if (state.filteredFiles.length > 0 && state.currentIndex >= 0 && state.currentIndex < state.filteredFiles.length) {
+                const id = getFileId(state.filteredFiles[state.currentIndex]);
+                const currentMedia = document.getElementById('active-media-node');
+                if (currentMedia && currentMedia.dataset.fileId === id) {
+                    // Exact same file is already on screen (likely due to a re-sort).
+                    // Do not blow away the video player so it keeps playing!
+                    return; 
+                }
+            }
+
             if (state.currentObjectURL) {
                 URL.revokeObjectURL(state.currentObjectURL);
                 state.currentObjectURL = null;
@@ -1043,6 +1051,7 @@
             }
             mediaNode.src = state.currentObjectURL;
             mediaNode.id = 'active-media-node';
+            mediaNode.dataset.fileId = id;
             elements.mediaContainer.appendChild(mediaNode);
 
             elements.fileInfoOverlay.classList.remove('hidden');
@@ -1287,6 +1296,7 @@ print(f"\\nDone. Deleted {deleted} files.")`;
             elements.closeFilterModal.addEventListener('click', () => elements.filterModal.classList.remove('active'));
             elements.filterSelect.addEventListener('change', applyFilterAndSort);
             elements.sortSelect.addEventListener('change', applyFilterAndSort);
+            elements.searchInput.addEventListener('input', applyFilterAndSort);
 
             // Settings Modal
             elements.btnOpenSettings.addEventListener('click', () => elements.settingsModal.classList.add('active'));
@@ -1353,7 +1363,6 @@ print(f"\\nDone. Deleted {deleted} files.")`;
             
             elements.btnPrev.addEventListener('click', () => navigate(-1));
             elements.btnNext.addEventListener('click', () => navigate(1));
-            elements.btnShuffle.addEventListener('click', shuffleQueue);
             
             // Modal events
             elements.btnPurge.addEventListener('click', () => {
