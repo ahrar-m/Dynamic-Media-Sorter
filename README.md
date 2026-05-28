@@ -16,6 +16,8 @@ Dynamic Media Sorter is a 100% offline, serverless HTML5 application designed fo
 * **Intelligent File Types:** Supports images and common web video formats (MP4, WebM, MKV).
 * **Search & Sort:** Instantly filter your queue by searching for specific filename strings. The queue can be sorted by Name, Size, Score, or completely randomized (shuffled) at any time.
 * **Seamless Media Transitions:** Switching between sort methods (e.g., from Random back to Load Order) while a video is playing will seamlessly preserve your exact playback position without stuttering or reloading the video player.
+* **Persistent Settings:** Configure options like 'Start Videos Muted' inside the Settings modal. These preferences save to your local browser storage indefinitely.
+* **Jump to Queue:** Click the Queue tracker in the top header to instantly jump to any specific index in your sorted queue.
 * **Minimalist UI Modals:** All settings, backups, filters, and sorting tools are safely tucked away in clean popup modals.
 
 ## How to Use on Desktop

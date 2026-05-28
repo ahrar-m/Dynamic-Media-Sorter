@@ -117,6 +117,17 @@
             gap: 16px;
         }
 
+        .stat-item {
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+        
+        .stat-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
         .stat-item span {
             color: var(--text-primary);
             font-weight: 600;
@@ -598,9 +609,6 @@
             <button class="btn" onclick="document.getElementById('file-input').click()">
                 <i class="fa-solid fa-file-image"></i> Load Files
             </button>
-            <button class="btn btn-danger" id="btn-clear-queue" title="Clear current file queue">
-                <i class="fa-solid fa-trash"></i>
-            </button>
             
             <!-- Filters moved to Modal -->
             <button class="btn" id="btn-open-filters" title="Filter & Sort">
@@ -610,7 +618,7 @@
         
         <div class="header-right">
             <div class="stats">
-                <div class="stat-item">Queue: <span id="queue-count">0/0 (0%)</span></div>
+                <div class="stat-item" id="btn-jump-queue" title="Click to jump to a specific position">Queue: <span id="queue-count">0/0 (0%)</span></div>
             </div>
             <button class="btn" id="btn-app-fullscreen" title="Toggle App Fullscreen">
                 <i class="fa-solid fa-expand"></i>
@@ -620,7 +628,7 @@
             </button>
             <!-- Settings moved to Modal -->
             <button class="btn" id="btn-open-settings" title="Settings">
-                <i class="fa-solid fa-gear"></i>
+                <i class="fa-solid fa-gear" style="color: var(--text-secondary);"></i>
             </button>
         </div>
     </header>
@@ -639,10 +647,10 @@
         </button>
         
         <div class="file-info glass-panel hidden" id="file-info-overlay">
-            <div class="file-name" id="display-filename">filename.jpg</div>
+            <div class="file-name hidden" id="display-filename">filename.jpg</div>
             <div class="file-meta">
-                <span id="display-filesize">0 MB</span>
-                <span id="display-survival" class="survival-tag">Generation: 1</span>
+                <span id="display-filesize" class="hidden">0 MB</span>
+                <span id="display-survival" class="survival-tag" style="margin-left: 0;">G1: Unrated</span>
             </div>
         </div>
     </main>
@@ -703,13 +711,23 @@
             <h2><i class="fa-solid fa-gear"></i> Settings</h2>
             <div class="modal-body">
                 <button class="btn" id="btn-export" style="width: 100%; justify-content: center;">
-                    <i class="fa-solid fa-download"></i> Export Backup (JSON)
+                    <i class="fa-solid fa-upload"></i> Export Backup (JSON)
                 </button>
                 <input type="file" id="import-input" accept=".json" class="hidden">
                 <button class="btn" onclick="document.getElementById('import-input').click()" style="width: 100%; justify-content: center;">
-                    <i class="fa-solid fa-upload"></i> Restore Backup (JSON)
+                    <i class="fa-solid fa-download"></i> Restore Backup (JSON)
                 </button>
                 <hr style="border: 0; border-top: 1px solid var(--panel-border); margin: 10px 0;">
+                
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px 0;">
+                    <input type="checkbox" id="setting-mute-videos">
+                    Start videos muted
+                </label>
+                
+                <hr style="border: 0; border-top: 1px solid var(--panel-border); margin: 10px 0;">
+                <button class="btn btn-danger" id="btn-clear-queue" style="width: 100%; justify-content: center;">
+                    <i class="fa-solid fa-trash"></i> Clear Current Queue
+                </button>
                 <button class="btn btn-danger" id="btn-hard-reset" style="width: 100%; justify-content: center;">
                     <i class="fa-solid fa-bomb"></i> Hard Reset (Wipe Memory)
                 </button>
@@ -764,6 +782,15 @@
         </div>
     </div>
     
+    <!-- Loading Overlay -->
+    <div class="modal-overlay" id="loading-overlay" style="z-index: 9999;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap: 15px;">
+            <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 3rem; color: var(--accent-blue);"></i>
+            <h2 style="color: white; margin: 0;">Processing Files...</h2>
+            <p style="color: var(--text-secondary); margin: 0;" id="loading-text">Please wait</p>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast">Settings Saved</div>
 
@@ -790,6 +817,10 @@
             currentObjectURL: null,
             filter: 'all',
             sort: 'default'
+        };
+
+        let appSettings = {
+            muteVideos: false
         };
 
         let currentScale = 1;
@@ -822,6 +853,7 @@
             btnExport: document.getElementById('btn-export'),
             importInput: document.getElementById('import-input'),
             btnHardReset: document.getElementById('btn-hard-reset'),
+            settingMuteVideos: document.getElementById('setting-mute-videos'),
             
             btnPurge: document.getElementById('btn-purge'),
             purgeModal: document.getElementById('purge-modal-overlay'),
@@ -856,12 +888,25 @@
 
         function init() {
             loadRatingsFromStorage();
+            loadSettingsFromStorage();
             setupEventListeners();
         }
 
         // --- Core Helpers ---
         function getFileId(file) {
             return `${file.name}_${file.size}`;
+        }
+
+        function loadSettingsFromStorage() {
+            try {
+                const stored = localStorage.getItem('dynamicMediaSorterSettings');
+                if (stored) {
+                    appSettings = JSON.parse(stored);
+                }
+                elements.settingMuteVideos.checked = appSettings.muteVideos;
+            } catch (e) {
+                console.error("Failed to load settings", e);
+            }
         }
 
         function loadRatingsFromStorage() {
@@ -899,42 +944,90 @@
                 const files = Array.from(event.target.files);
                 if (files.length === 0) return;
 
-                const newFiles = files.filter(f => {
-                    if (f.type) {
-                        return f.type.startsWith('image/') || f.type.startsWith('video/');
-                    }
-                    return /\.(jpe?g|png|gif|webp|mp4|webm|mkv|mov|avi)$/i.test(f.name);
-                });
-                
-                if (newFiles.length === 0) {
-                    alert(`Selected ${files.length} files, but none were identified as media. Check if they are valid media files.`);
-                    return;
-                }
-                
-                const existingIds = new Set(state.allFiles.map(f => getFileId(f)));
-                let addedCount = 0;
-                
-                newFiles.forEach(file => {
-                    const id = getFileId(file);
-                    if (!existingIds.has(id)) {
-                        state.allFiles.push(file);
-                        addedCount++;
-                        if (!state.ratings[id]) {
-                            state.ratings[id] = { score: 0.0, survivalCount: 1, scoreHistory: [] };
+                const loadingOverlay = document.getElementById('loading-overlay');
+                const loadingText = document.getElementById('loading-text');
+                if (loadingOverlay) loadingOverlay.classList.add('active');
+                if (loadingText) loadingText.textContent = `Preparing ${files.length} files... 0%`;
+
+                // Yield to browser so it can paint the loading overlay before the main thread blocks
+                setTimeout(() => {
+                    try {
+                        const existingIds = new Set(state.allFiles.map(f => getFileId(f)));
+                        let addedCount = 0;
+                        let validMediaCount = 0;
+                        
+                        const total = files.length;
+                        let currentIndex = 0;
+                        const chunkSize = 10; // Process 10 files per frame
+
+                        function processChunk() {
+                            const end = Math.min(currentIndex + chunkSize, total);
+                            for (let i = currentIndex; i < end; i++) {
+                                const f = files[i];
+                                
+                                let isValid = false;
+                                if (f.type) {
+                                    isValid = f.type.startsWith('image/') || f.type.startsWith('video/');
+                                } else {
+                                    isValid = /\.(jpe?g|png|gif|webp|mp4|webm|mkv|mov|avi)$/i.test(f.name);
+                                }
+                                
+                                if (isValid) {
+                                    validMediaCount++;
+                                    const id = getFileId(f);
+                                    if (!existingIds.has(id)) {
+                                        state.allFiles.push(f);
+                                        addedCount++;
+                                        if (!state.ratings[id]) {
+                                            state.ratings[id] = { score: 0.0, survivalCount: 1, scoreHistory: [] };
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            currentIndex = end;
+                            const pct = Math.round((currentIndex / total) * 100);
+                            if (loadingText) loadingText.textContent = `Analyzing files... ${pct}%`;
+
+                            if (currentIndex < total) {
+                                // Request next frame to allow DOM paint
+                                requestAnimationFrame(() => {
+                                    setTimeout(processChunk, 0);
+                                });
+                            } else {
+                                finalizeLoad();
+                            }
                         }
+
+                        function finalizeLoad() {
+                            if (validMediaCount === 0) {
+                                if (loadingOverlay) loadingOverlay.classList.remove('active');
+                                alert(`Selected ${total} files, but none were identified as media.`);
+                                return;
+                            }
+                            
+                            saveRatingsToStorage();
+                            applyFilterAndSort();
+                            
+                            if (addedCount > 0) {
+                                showToast(`Added ${addedCount} new files to the queue.`);
+                            } else {
+                                showToast("No new files added (duplicates ignored).");
+                            }
+                            
+                            event.target.value = '';
+                            if (loadingOverlay) loadingOverlay.classList.remove('active');
+                        }
+
+                        // Start asynchronous chunking process
+                        processChunk();
+
+                    } catch (err) {
+                        if (loadingOverlay) loadingOverlay.classList.remove('active');
+                        alert(`CRITICAL ERROR during processing:\n${err.message}`);
                     }
-                });
-                
-                saveRatingsToStorage();
-                applyFilterAndSort();
-                
-                if (addedCount > 0) {
-                    showToast(`Added ${addedCount} new files to the queue.`);
-                } else {
-                    showToast("No new files added (duplicates ignored).");
-                }
-                
-                event.target.value = '';
+                }, 50);
+
             } catch (err) {
                 alert(`CRITICAL ERROR during file load:\n${err.message}`);
             }
@@ -1045,7 +1138,8 @@
                 mediaNode.autoplay = true;
                 mediaNode.loop = true;
                 mediaNode.controls = true;
-                mediaNode.volume = 0.5;
+                mediaNode.muted = appSettings.muteVideos;
+                if (!appSettings.muteVideos) mediaNode.volume = 0.5;
             } else {
                 mediaNode = document.createElement('img');
             }
@@ -1056,9 +1150,15 @@
 
             elements.fileInfoOverlay.classList.remove('hidden');
             elements.btnMediaFullscreen.classList.remove('hidden');
-            elements.displayFilename.textContent = file.name;
-            elements.displayFilesize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
-            elements.displaySurvival.textContent = 'Generation: ' + (state.ratings[id].survivalCount || 1);
+            
+            // Format history display: G1:0.5, G2:-0.2
+            let historyText = "G1: Unrated";
+            if (state.ratings[id] && state.ratings[id].scoreHistory && state.ratings[id].scoreHistory.length > 0) {
+                historyText = state.ratings[id].scoreHistory.map((score, index) => `G${index + 1}: ${score}`).join(', ');
+            } else if (state.ratings[id] && state.ratings[id].score !== 0) {
+                historyText = `G1: ${state.ratings[id].score}`; // Fallback if history is missing but scored
+            }
+            elements.displaySurvival.textContent = historyText;
             
             elements.slider.value = state.ratings[id].score;
             updateSliderVisuals(false);
@@ -1114,6 +1214,7 @@
             node.click();
             node.remove();
             showToast("Backup Exported successfully!");
+            elements.settingsModal.classList.remove('active');
         }
 
         function importRatings(event) {
@@ -1126,6 +1227,7 @@
                     state.ratings = { ...state.ratings, ...imported };
                     saveRatingsToStorage();
                     showToast("Backup Restored successfully!");
+                    elements.settingsModal.classList.remove('active');
                     if (state.allFiles.length > 0) applyFilterAndSort();
                 } catch (err) {
                     alert("Invalid JSON file.");
@@ -1303,6 +1405,16 @@ print(f"\\nDone. Deleted {deleted} files.")`;
             elements.closeSettingsModal.addEventListener('click', () => elements.settingsModal.classList.remove('active'));
             elements.btnExport.addEventListener('click', exportRatings);
             elements.importInput.addEventListener('change', importRatings);
+            
+            elements.settingMuteVideos.addEventListener('change', (e) => {
+                appSettings.muteVideos = e.target.checked;
+                localStorage.setItem('dynamicMediaSorterSettings', JSON.stringify(appSettings));
+                const activeMedia = document.getElementById('active-media-node');
+                if (activeMedia && activeMedia.tagName === 'VIDEO') {
+                    activeMedia.muted = appSettings.muteVideos;
+                }
+            });
+
             elements.btnHardReset.addEventListener('click', () => {
                 if (confirm("WARNING: Permanently wipe ALL saved memory?")) {
                     localStorage.removeItem('dynamicMediaSorterRatings');
@@ -1392,6 +1504,23 @@ print(f"\\nDone. Deleted {deleted} files.")`;
                 document.execCommand('copy');
                 showToast("Script copied!");
             });
+
+            const btnJumpQueue = document.getElementById('btn-jump-queue');
+            if (btnJumpQueue) {
+                btnJumpQueue.addEventListener('click', () => {
+                    if (state.filteredFiles.length === 0) return;
+                    const jumpTo = prompt(`Jump to queue position (1 - ${state.filteredFiles.length}):`);
+                    if (jumpTo !== null && jumpTo.trim() !== '') {
+                        const num = parseInt(jumpTo, 10);
+                        if (!isNaN(num) && num >= 1 && num <= state.filteredFiles.length) {
+                            state.currentIndex = num - 1;
+                            renderCurrentMedia();
+                        } else {
+                            alert(`Please enter a valid number between 1 and ${state.filteredFiles.length}.`);
+                        }
+                    }
+                });
+            }
 
             window.addEventListener('keydown', (e) => {
                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
