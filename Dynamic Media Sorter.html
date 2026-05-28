@@ -97,16 +97,23 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            overflow-x: auto;
             gap: 10px;
-            padding: 16px 24px;
+            padding: 10px 12px;
             z-index: 10;
+            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none; /* Firefox */
+        }
+
+        header::-webkit-scrollbar {
+            display: none;
         }
 
         .header-left, .header-right {
             display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
+            flex-wrap: nowrap;
+            gap: 8px;
             align-items: center;
         }
 
@@ -140,7 +147,7 @@
             align-items: center;
             position: relative;
             overflow: hidden;
-            padding: 20px;
+            padding: 0;
         }
 
         #media-container {
@@ -228,6 +235,45 @@
             display: flex;
             align-items: center;
             gap: 15px;
+        }
+
+        #heatmap-container {
+            display: flex; 
+            align-items: flex-end; 
+            justify-content: space-between; 
+            width: 100%; 
+            padding: 0 10px; 
+            box-sizing: border-box; 
+            overflow: hidden; 
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            height: 0px;
+            margin-top: 0px;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #heatmap-container.visible {
+            height: 30px;
+            margin-top: 5px;
+            opacity: 1;
+        }
+
+        .heatmap-bar {
+            flex: 1;
+            margin: 0 1px;
+            min-height: 2px;
+            transition: height 0.3s ease, background-color 0.3s ease, filter 0.1s ease;
+            border-top-left-radius: 2px;
+            border-top-right-radius: 2px;
+            filter: brightness(0.6);
+            transform-origin: bottom;
+        }
+
+        .heatmap-bar.active-bucket {
+            filter: brightness(1.5) !important;
+            opacity: 1 !important;
+            box-shadow: 0 -2px 10px currentColor;
+            z-index: 2;
         }
 
         input[type=range] {
@@ -340,6 +386,7 @@
             border-radius: 4px;
             margin-left: 8px;
             font-size: 0.7rem;
+            pointer-events: auto; /* Re-enable clicks since parent is pointer-events: none */
         }
 
         /* Modals */
@@ -603,32 +650,32 @@
             <!-- Removed 'accept' attribute below so Android shows real file managers instead of forcing Media Gallery -->
             <input type="file" id="file-input" multiple class="hidden">
             
-            <button class="btn btn-primary" id="btn-load-folder" onclick="document.getElementById('folder-input').click()">
-                <i class="fa-solid fa-folder-open"></i> Load Folder
+            <button class="btn btn-primary" id="btn-load-folder" onclick="document.getElementById('folder-input').click()" title="Load Folder">
+                <i class="fa-solid fa-folder-open"></i> Folder
             </button>
-            <button class="btn" onclick="document.getElementById('file-input').click()">
-                <i class="fa-solid fa-file-image"></i> Load Files
+            <button class="btn" onclick="document.getElementById('file-input').click()" title="Load Files">
+                <i class="fa-solid fa-file-image"></i> Load
             </button>
             
             <!-- Filters moved to Modal -->
-            <button class="btn" id="btn-open-filters" title="Filter & Sort">
-                <i class="fa-solid fa-filter"></i> Filters
+            <button class="btn" id="btn-open-filters" title="Filters">
+                <i class="fa-solid fa-filter"></i>
             </button>
         </div>
         
         <div class="header-right">
             <div class="stats">
-                <div class="stat-item" id="btn-jump-queue" title="Click to jump to a specific position">Queue: <span id="queue-count">0/0 (0%)</span></div>
+                <div class="stat-item" id="btn-jump-queue" title="Click to jump to a specific position"><span id="queue-count">0/0 (0%)</span></div>
             </div>
             <button class="btn" id="btn-app-fullscreen" title="Toggle App Fullscreen">
                 <i class="fa-solid fa-expand"></i>
             </button>
-            <button class="btn btn-danger" id="btn-purge">
-                <i class="fa-solid fa-skull"></i> The Executioner
+            <button class="btn btn-danger" id="btn-purge" title="The Executioner">
+                <i class="fa-solid fa-skull"></i>
             </button>
             <!-- Settings moved to Modal -->
             <button class="btn" id="btn-open-settings" title="Settings">
-                <i class="fa-solid fa-gear" style="color: var(--text-secondary);"></i>
+                <i class="fa-solid fa-gear" style="color: var(--accent-blue);"></i>
             </button>
         </div>
     </header>
@@ -658,17 +705,19 @@
     <!-- Footer Controls -->
     <footer class="glass-panel">
         <div class="scoring-section">
-            <div class="score-display" id="score-display">0.00</div>
+            <div class="score-nav-row" style="display: flex; align-items: center; justify-content: center; gap: 20px; width: 100%;">
+                <button class="nav-btn" id="btn-prev" title="Previous (Left Arrow)"><i class="fa-solid fa-chevron-left"></i></button>
+                <div class="score-display" id="score-display">0.00</div>
+                <button class="nav-btn" id="btn-next" title="Next (Right Arrow)"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
             <div class="slider-container">
                 <i class="fa-solid fa-trash-can" style="color: var(--accent-red);"></i>
                 <input type="range" id="score-slider" min="-1.0" max="1.0" step="0.01" value="0.00">
                 <i class="fa-solid fa-star" style="color: var(--accent-green);"></i>
             </div>
-        </div>
-        
-        <div class="nav-controls">
-            <button class="nav-btn" id="btn-prev" title="Previous (Left Arrow)"><i class="fa-solid fa-chevron-left"></i></button>
-            <button class="nav-btn" id="btn-next" title="Next (Right Arrow)"><i class="fa-solid fa-chevron-right"></i></button>
+            <div id="heatmap-container">
+                <!-- Heatmap bars injected here -->
+            </div>
         </div>
     </footer>
 
@@ -685,6 +734,7 @@
                 <select id="filter-select" class="form-input">
                     <option value="all">Show All</option>
                     <option value="unrated">Unrated Only</option>
+                    <option value="rated">Rated Only</option>
                     <option value="positive">Top Tier (> 0.0)</option>
                     <option value="negative">Trash (< 0.0)</option>
                 </select>
@@ -713,7 +763,7 @@
                 <button class="btn" id="btn-export" style="width: 100%; justify-content: center;">
                     <i class="fa-solid fa-upload"></i> Export Backup (JSON)
                 </button>
-                <input type="file" id="import-input" accept=".json" class="hidden">
+                <input type="file" id="import-input" class="hidden">
                 <button class="btn" onclick="document.getElementById('import-input').click()" style="width: 100%; justify-content: center;">
                     <i class="fa-solid fa-download"></i> Restore Backup (JSON)
                 </button>
@@ -722,6 +772,16 @@
                 <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px 0;">
                     <input type="checkbox" id="setting-mute-videos">
                     Start videos muted
+                </label>
+                
+                <label style="display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; padding: 5px 0;">
+                    <span>Heatmap Bucket Width</span>
+                    <select id="setting-heatmap-width" class="form-input" style="width: 140px; padding: 4px;">
+                        <option value="0.2">0.20 (Coarse)</option>
+                        <option value="0.1">0.10 (Standard)</option>
+                        <option value="0.05">0.05 (Fine)</option>
+                        <option value="0.02">0.02 (Ultra Fine)</option>
+                    </select>
                 </label>
                 
                 <hr style="border: 0; border-top: 1px solid var(--panel-border); margin: 10px 0;">
@@ -820,7 +880,8 @@
         };
 
         let appSettings = {
-            muteVideos: false
+            muteVideos: false,
+            heatmapBucketWidth: 0.1
         };
 
         let currentScale = 1;
@@ -831,6 +892,7 @@
             fileInput: document.getElementById('file-input'),
             mediaContainer: document.getElementById('media-container'),
             slider: document.getElementById('score-slider'),
+            heatmapContainer: document.getElementById('heatmap-container'),
             scoreDisplay: document.getElementById('score-display'),
             btnPrev: document.getElementById('btn-prev'),
             btnNext: document.getElementById('btn-next'),
@@ -854,6 +916,7 @@
             importInput: document.getElementById('import-input'),
             btnHardReset: document.getElementById('btn-hard-reset'),
             settingMuteVideos: document.getElementById('setting-mute-videos'),
+            settingHeatmapWidth: document.getElementById('setting-heatmap-width'),
             
             btnPurge: document.getElementById('btn-purge'),
             purgeModal: document.getElementById('purge-modal-overlay'),
@@ -889,6 +952,7 @@
         function init() {
             loadRatingsFromStorage();
             loadSettingsFromStorage();
+            renderHeatmap();
             setupEventListeners();
         }
 
@@ -897,13 +961,63 @@
             return `${file.name}_${file.size}`;
         }
 
+        function renderHeatmap() {
+            const container = document.getElementById('heatmap-container');
+            if (!container) return;
+
+            const w = appSettings.heatmapBucketWidth || 0.1;
+            const numBuckets = Math.round(2 / w) + 1;
+            const buckets = new Array(numBuckets).fill(0);
+            let maxCount = 0;
+            
+            state.allFiles.forEach(f => {
+                const id = getFileId(f);
+                const rating = state.ratings[id];
+                if (rating && rating.score !== undefined) {
+                    const isRated = (rating.scoreHistory && rating.scoreHistory.length > 0) || rating.score !== 0.0;
+                    if (!isRated) return; 
+                    
+                    const score = rating.score;
+                    let idx = Math.round((score + 1) / w);
+                    if (idx < 0) idx = 0;
+                    if (idx >= numBuckets) idx = numBuckets - 1;
+                    buckets[idx]++;
+                    if (buckets[idx] > maxCount) maxCount = buckets[idx];
+                }
+            });
+
+            container.innerHTML = '';
+            buckets.forEach((count, idx) => {
+                const bar = document.createElement('div');
+                bar.className = 'heatmap-bar';
+                const heightPct = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                bar.style.height = `${Math.max(5, heightPct)}%`;
+                
+                const hue = (idx / (numBuckets - 1)) * 120; // 0=Red to 120=Green
+                bar.style.backgroundColor = `hsl(${hue}, 80%, 50%)`;
+                
+                if (count === 0) {
+                    bar.style.opacity = '0.1';
+                } else {
+                    bar.style.opacity = '0.8';
+                    const bucketScore = (idx * w) - 1;
+                    bar.title = `Score: ${bucketScore.toFixed(2)} | Files: ${count}`;
+                }
+                container.appendChild(bar);
+            });
+        }
+
         function loadSettingsFromStorage() {
             try {
                 const stored = localStorage.getItem('dynamicMediaSorterSettings');
                 if (stored) {
                     appSettings = JSON.parse(stored);
+                    if (appSettings.heatmapBucketWidth === undefined) appSettings.heatmapBucketWidth = 0.1;
                 }
                 elements.settingMuteVideos.checked = appSettings.muteVideos;
+                if (elements.settingHeatmapWidth) {
+                    elements.settingHeatmapWidth.value = appSettings.heatmapBucketWidth.toString();
+                }
             } catch (e) {
                 console.error("Failed to load settings", e);
             }
@@ -1008,6 +1122,7 @@
                             
                             saveRatingsToStorage();
                             applyFilterAndSort();
+                            renderHeatmap();
                             
                             if (addedCount > 0) {
                                 showToast(`Added ${addedCount} new files to the queue.`);
@@ -1051,9 +1166,13 @@
                 }
                 
                 const id = getFileId(file);
-                const score = state.ratings[id].score;
+                const rating = state.ratings[id];
+                const score = rating.score;
                 
-                if (state.filter === 'unrated') return score === 0.0;
+                const isRated = (rating.scoreHistory && rating.scoreHistory.length > 0) || score !== 0.0;
+                
+                if (state.filter === 'unrated') return !isRated;
+                if (state.filter === 'rated') return isRated;
                 if (state.filter === 'positive') return score > 0.0;
                 if (state.filter === 'negative') return score < 0.0;
                 return true; 
@@ -1187,6 +1306,23 @@
                     saveRatingsToStorage(); // Only update current score here during drag
                 }
             }
+            
+            // Heatmap highlighting
+            if (elements.heatmapContainer && elements.heatmapContainer.children.length > 0) {
+                const w = appSettings.heatmapBucketWidth || 0.1;
+                const numBuckets = Math.round(2 / w) + 1;
+                let idx = Math.round((parseFloat(val) + 1) / w);
+                if (idx < 0) idx = 0;
+                if (idx >= numBuckets) idx = numBuckets - 1;
+                
+                Array.from(elements.heatmapContainer.children).forEach((bar, i) => {
+                    if (i === idx) {
+                        bar.classList.add('active-bucket');
+                    } else {
+                        bar.classList.remove('active-bucket');
+                    }
+                });
+            }
         }
 
         function updateStats() {
@@ -1229,8 +1365,11 @@
                     showToast("Backup Restored successfully!");
                     elements.settingsModal.classList.remove('active');
                     if (state.allFiles.length > 0) applyFilterAndSort();
+                    renderHeatmap();
                 } catch (err) {
-                    alert("Invalid JSON file.");
+                    alert("Invalid JSON file or permission denied.");
+                } finally {
+                    event.target.value = ''; // Reset input to allow re-importing the same file
                 }
             };
             reader.readAsText(file);
@@ -1415,6 +1554,14 @@ print(f"\\nDone. Deleted {deleted} files.")`;
                 }
             });
 
+            if (elements.settingHeatmapWidth) {
+                elements.settingHeatmapWidth.addEventListener('change', (e) => {
+                    appSettings.heatmapBucketWidth = parseFloat(e.target.value);
+                    localStorage.setItem('dynamicMediaSorterSettings', JSON.stringify(appSettings));
+                    renderHeatmap();
+                });
+            }
+
             elements.btnHardReset.addEventListener('click', () => {
                 if (confirm("WARNING: Permanently wipe ALL saved memory?")) {
                     localStorage.removeItem('dynamicMediaSorterRatings');
@@ -1456,7 +1603,19 @@ print(f"\\nDone. Deleted {deleted} files.")`;
             elements.btnZoomReset.addEventListener('click', () => { currentScale = 1; updateViewerTransform(); });
             
             // Slider events
-            elements.slider.addEventListener('input', () => updateSliderVisuals(true));
+            const showHeatmap = () => elements.heatmapContainer && elements.heatmapContainer.classList.add('visible');
+            const hideHeatmap = () => elements.heatmapContainer && elements.heatmapContainer.classList.remove('visible');
+            
+            let heatmapTimeout;
+            
+            elements.slider.addEventListener('input', () => {
+                showHeatmap();
+                updateSliderVisuals(true);
+                clearTimeout(heatmapTimeout);
+                // Fallback to hide in case the release event is swallowed by the browser
+                heatmapTimeout = setTimeout(hideHeatmap, 2000); 
+            });
+            
             elements.slider.addEventListener('change', () => { 
                 // Push to history ONLY on release
                 if (state.currentIndex >= 0 && state.currentIndex < state.filteredFiles.length) {
@@ -1464,13 +1623,14 @@ print(f"\\nDone. Deleted {deleted} files.")`;
                     const id = getFileId(file);
                     const finalVal = parseFloat(elements.slider.value);
                     if (!state.ratings[id].scoreHistory) state.ratings[id].scoreHistory = [];
-                    // Only push if it's different from the last history entry to avoid duplicate identical history logs if they click and release without moving
                     if (state.ratings[id].scoreHistory.length === 0 || state.ratings[id].scoreHistory[state.ratings[id].scoreHistory.length - 1] !== finalVal) {
                         state.ratings[id].scoreHistory.push(finalVal);
                         saveRatingsToStorage();
                     }
                 }
+                renderHeatmap();
                 navigate(1); 
+                setTimeout(hideHeatmap, 400); // Hide smoothly after navigating
             });
             
             elements.btnPrev.addEventListener('click', () => navigate(-1));
@@ -1503,6 +1663,42 @@ print(f"\\nDone. Deleted {deleted} files.")`;
                 elements.scriptOutput.select();
                 document.execCommand('copy');
                 showToast("Script copied!");
+            });
+
+            // Clickable Score History (Edit)
+            elements.displaySurvival.style.cursor = 'pointer';
+            elements.displaySurvival.title = "Click to manually edit score history";
+            elements.displaySurvival.addEventListener('click', () => {
+                if (state.filteredFiles.length === 0 || state.currentIndex < 0) return;
+                const file = state.filteredFiles[state.currentIndex];
+                const id = getFileId(file);
+                
+                let currentStr = "";
+                if (state.ratings[id] && state.ratings[id].scoreHistory && state.ratings[id].scoreHistory.length > 0) {
+                    currentStr = state.ratings[id].scoreHistory.join(', ');
+                } else if (state.ratings[id]) {
+                    currentStr = state.ratings[id].score.toString();
+                }
+                
+                const newStr = prompt("Edit Score History (comma separated decimals, e.g. '0.5, -0.2'):", currentStr);
+                if (newStr !== null && newStr.trim() !== '') {
+                    try {
+                        const parts = newStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+                        if (parts.length > 0) {
+                            state.ratings[id].scoreHistory = parts;
+                            state.ratings[id].score = parts[parts.length - 1]; // Main score matches newest entry
+                            saveRatingsToStorage();
+                            
+                            // Re-render UI without advancing
+                            elements.slider.value = state.ratings[id].score;
+                            updateSliderVisuals(false); 
+                            renderCurrentMedia(); 
+                            renderHeatmap(); 
+                        }
+                    } catch (e) {
+                        alert("Invalid format. Please use comma separated decimals.");
+                    }
+                }
             });
 
             const btnJumpQueue = document.getElementById('btn-jump-queue');
