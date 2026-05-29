@@ -17,8 +17,13 @@ Dynamic Media Sorter is a 100% offline, serverless HTML5 application designed fo
 * **Search & Sort:** Instantly filter your queue by searching for specific filename strings. The queue can be sorted by Name, Size, Score, or completely randomized (shuffled) at any time.
 * **Seamless Media Transitions:** Switching between sort methods (e.g., from Random back to Load Order) while a video is playing will seamlessly preserve your exact playback position without stuttering or reloading the video player.
 * **Persistent Settings:** Configure options like 'Start Videos Muted' inside the Settings modal. These preferences save to your local browser storage indefinitely.
+* **Dynamic Heatmap Visualization:** Visualize your score distribution dynamically as you rate files. The heatmap pops up contextually when interacting with the slider.
+* **File Information Overlay:** Toggleable on-screen overlay displaying the current file's name, size, and specific scoring history across all previous sessions.
 * **Jump to Queue:** Click the Queue tracker in the top header to instantly jump to any specific index in your sorted queue.
 * **Minimalist UI Modals:** All settings, backups, filters, and sorting tools are safely tucked away in clean popup modals.
+
+## 🛠️ Developer Notes & Technical History
+If you are modifying this application in the future, **please read [DEVELOPER_NOTES.md](DEVELOPER_NOTES.md) first**. It contains critical information regarding Android WebView event handling, performance optimizations for massive file queues, and past bugs that must not be reintroduced.
 
 ## How to Use on Desktop
 1. Double click `Dynamic Media Sorter.html` to open it in your browser.
