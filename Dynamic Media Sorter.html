@@ -716,9 +716,9 @@
                     <button class="nav-btn" id="btn-info" title="File Information"><i class="fa-solid fa-circle-info"></i></button>
                 </div>
                 <div style="display: flex; gap: 20px; align-items: center; justify-self: center;">
-                    <button class="nav-btn" id="btn-prev" title="Previous (Left Arrow)" onclick="navigate(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button class="nav-btn" id="btn-prev" title="Previous (Left Arrow)"><i class="fa-solid fa-chevron-left"></i></button>
                     <div class="score-display" id="score-display">0.00</div>
-                    <button class="nav-btn" id="btn-next" title="Next (Right Arrow)" onclick="navigate(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                    <button class="nav-btn" id="btn-next" title="Next (Right Arrow)"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
                 <div style="justify-self: end;">
                     <button class="nav-btn" id="btn-app-fullscreen" title="Toggle App Fullscreen"><i class="fa-solid fa-expand"></i></button>
@@ -781,6 +781,18 @@
                 <button class="btn" onclick="document.getElementById('import-input').click()" style="width: 100%; justify-content: center;">
                     <i class="fa-solid fa-download"></i> Restore Backup (JSON)
                 </button>
+                <hr style="border: 0; border-top: 1px solid var(--panel-border); margin: 10px 0;">
+                
+                <label style="display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; padding: 5px 0;">
+                    <span>Auto Backup Interval</span>
+                    <select id="setting-auto-backup" class="form-input" style="width: 140px; padding: 4px;">
+                        <option value="0">Disabled</option>
+                        <option value="5">Every 5 min</option>
+                        <option value="15">Every 15 min</option>
+                        <option value="30">Every 30 min</option>
+                        <option value="60">Every 1 hour</option>
+                    </select>
+                </label>
                 <hr style="border: 0; border-top: 1px solid var(--panel-border); margin: 10px 0;">
                 
                 <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px 0;">
@@ -913,7 +925,8 @@
             heatmapBucketWidth: 0.1,
             infoShowFilename: true,
             infoShowSize: true,
-            infoShowHistory: true
+            infoShowHistory: true,
+            autoBackupInterval: 0
         };
 
         let currentScale = 1;
@@ -949,6 +962,7 @@
             btnHardReset: document.getElementById('btn-hard-reset'),
             settingMuteVideos: document.getElementById('setting-mute-videos'),
             settingHeatmapWidth: document.getElementById('setting-heatmap-width'),
+            settingAutoBackup: document.getElementById('setting-auto-backup'),
             
             btnPurge: document.getElementById('btn-purge'),
             purgeModal: document.getElementById('purge-modal-overlay'),
@@ -993,6 +1007,22 @@
         }
 
         // --- Core Helpers ---
+        let autoBackupIntervalId = null;
+
+        function startAutoBackupTimer() {
+            if (autoBackupIntervalId) {
+                clearInterval(autoBackupIntervalId);
+                autoBackupIntervalId = null;
+            }
+            if (appSettings.autoBackupInterval > 0) {
+                autoBackupIntervalId = setInterval(() => {
+                    if (Object.keys(state.ratings).length > 0) {
+                        exportRatings(true);
+                    }
+                }, appSettings.autoBackupInterval * 60 * 1000);
+            }
+        }
+        
         function getFileId(file) {
             return `${file.name}_${file.size}`;
         }
@@ -1052,12 +1082,15 @@
                     if (appSettings.infoShowFilename === undefined) appSettings.infoShowFilename = true;
                     if (appSettings.infoShowSize === undefined) appSettings.infoShowSize = true;
                     if (appSettings.infoShowHistory === undefined) appSettings.infoShowHistory = true;
+                    if (appSettings.autoBackupInterval === undefined) appSettings.autoBackupInterval = 0;
                 }
                 elements.settingMuteVideos.checked = appSettings.muteVideos;
                 if (elements.settingHeatmapWidth) elements.settingHeatmapWidth.value = appSettings.heatmapBucketWidth.toString();
+                if (elements.settingAutoBackup) elements.settingAutoBackup.value = appSettings.autoBackupInterval.toString();
                 if (elements.settingInfoFilename) elements.settingInfoFilename.checked = appSettings.infoShowFilename;
                 if (elements.settingInfoSize) elements.settingInfoSize.checked = appSettings.infoShowSize;
                 if (elements.settingInfoHistory) elements.settingInfoHistory.checked = appSettings.infoShowHistory;
+                startAutoBackupTimer();
             } catch (e) {
                 console.error("Failed to load settings", e);
             }
@@ -1404,16 +1437,24 @@
         }
 
         // --- Export / Import ---
-        function exportRatings() {
+        function exportRatings(isAuto = false) {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.ratings, null, 2));
             const node = document.createElement('a');
             node.setAttribute("href", dataStr);
-            node.setAttribute("download", "ratings_backup.json");
+            
+            const timestamp = isAuto ? "_" + new Date().toISOString().replace(/[:.]/g, '-') : "";
+            node.setAttribute("download", `ratings_backup${timestamp}.json`);
+            
             document.body.appendChild(node);
             node.click();
             node.remove();
-            showToast("Backup Exported successfully!");
-            elements.settingsModal.classList.remove('active');
+            
+            if (!isAuto) {
+                showToast("Backup Exported successfully!");
+                elements.settingsModal.classList.remove('active');
+            } else {
+                showToast("Auto-backup downloaded.");
+            }
         }
 
         function importRatings(event) {
@@ -1620,8 +1661,21 @@ print(f"\\nDone. Deleted {deleted} files.")`;
             if (elements.settingHeatmapWidth) {
                 elements.settingHeatmapWidth.addEventListener('change', (e) => {
                     appSettings.heatmapBucketWidth = parseFloat(e.target.value);
-                    localStorage.setItem('dynamicMediaSorterSettings', JSON.stringify(appSettings));
+                    saveSettingsAndRender();
                     renderHeatmap();
+                });
+            }
+            
+            if (elements.settingAutoBackup) {
+                elements.settingAutoBackup.addEventListener('change', (e) => {
+                    appSettings.autoBackupInterval = parseInt(e.target.value, 10);
+                    saveSettingsAndRender();
+                    startAutoBackupTimer();
+                    if (appSettings.autoBackupInterval > 0) {
+                        showToast(`Auto-backup set to every ${appSettings.autoBackupInterval} minutes`);
+                    } else {
+                        showToast("Auto-backup disabled");
+                    }
                 });
             }
             
