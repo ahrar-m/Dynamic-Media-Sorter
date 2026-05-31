@@ -576,6 +576,220 @@
             margin-bottom: 10px;
         }
 
+        }
+
+        /* Custom Dropdowns */
+        .custom-dropdown {
+            position: relative;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .dropdown-trigger {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--panel-border);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            width: 100%;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .dropdown-trigger:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .dropdown-trigger i {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            transition: transform 0.2s ease;
+        }
+
+        .custom-dropdown.open .dropdown-trigger i {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-options {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            width: 100%;
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 150;
+            background: rgba(11, 12, 16, 0.95);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 6px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+        }
+
+        .dropdown-options::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .dropdown-options::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .dropdown-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            transition: all 0.15s ease;
+        }
+
+        .dropdown-option:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .dropdown-option.active {
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.2) 0%, rgba(0, 242, 254, 0.2) 100%);
+            color: var(--text-primary);
+            border: 1px solid rgba(79, 172, 254, 0.3);
+            font-weight: 600;
+        }
+
+        .dropdown-option .option-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: normal;
+        }
+
+        .dropdown-option.active .option-meta {
+            background: rgba(79, 172, 254, 0.3);
+            color: #fff;
+        }
+
+        }
+
+        /* Custom Dropdowns */
+        .custom-dropdown {
+            position: relative;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .dropdown-trigger {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--panel-border);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            width: 100%;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .dropdown-trigger:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .dropdown-trigger i {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            transition: transform 0.2s ease;
+        }
+
+        .custom-dropdown.open .dropdown-trigger i {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-options {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            width: 100%;
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 150;
+            background: rgba(11, 12, 16, 0.95);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 6px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+        }
+
+        .dropdown-options::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .dropdown-options::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .dropdown-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            transition: all 0.15s ease;
+        }
+
+        .dropdown-option:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .dropdown-option.active {
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.2) 0%, rgba(0, 242, 254, 0.2) 100%);
+            color: var(--text-primary);
+            border: 1px solid rgba(79, 172, 254, 0.3);
+            font-weight: 600;
+        }
+
+        .dropdown-option .option-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: normal;
+        }
+
+        .dropdown-option.active .option-meta {
+            background: rgba(79, 172, 254, 0.3);
+            color: #fff;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -745,25 +959,52 @@
                 <input type="text" id="search-input" class="form-input" placeholder="e.g. IMG_2023...">
                 
                 <label>Filter By Status</label>
-                <select id="filter-select" class="form-input">
-                    <option value="all">Show All</option>
-                    <option value="unrated">Unrated Only</option>
-                    <option value="rated">Rated Only</option>
-                    <option value="positive">Top Tier (> 0.0)</option>
-                    <option value="negative">Trash (< 0.0)</option>
-                </select>
+                <div class="custom-dropdown" id="dropdown-filter">
+                    <div class="dropdown-trigger" id="dropdown-filter-trigger">
+                        <span class="selected-text">Show All</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                    <div class="dropdown-options glass-panel hidden" id="dropdown-filter-options">
+                        <div class="dropdown-option active" data-dropdown="filter" data-value="all">
+                            <span class="option-label">Show All</span>
+                            <span class="option-meta">0 (0%)</span>
+                        </div>
+                        <div class="dropdown-option" data-dropdown="filter" data-value="unrated">
+                            <span class="option-label">Unrated Only</span>
+                            <span class="option-meta">0 (0%)</span>
+                        </div>
+                        <div class="dropdown-option" data-dropdown="filter" data-value="rated">
+                            <span class="option-label">Rated Only</span>
+                            <span class="option-meta">0 (0%)</span>
+                        </div>
+                        <div class="dropdown-option" data-dropdown="filter" data-value="positive">
+                            <span class="option-label">Top Tier (&gt; 0.0)</span>
+                            <span class="option-meta">0 (0%)</span>
+                        </div>
+                        <div class="dropdown-option" data-dropdown="filter" data-value="negative">
+                            <span class="option-label">Trash (&lt; 0.0)</span>
+                            <span class="option-meta">0 (0%)</span>
+                        </div>
+                    </div>
+                </div>
                 
                 <label>Sort Queue By</label>
-                <select id="sort-select" class="form-input">
-                    <option value="default">Default (Load Order)</option>
-                    <option value="random">Random (Shuffle)</option>
-                    <option value="name-asc">Name (A-Z)</option>
-                    <option value="name-desc">Name (Z-A)</option>
-                    <option value="size-asc">Size (Smallest First)</option>
-                    <option value="size-desc">Size (Largest First)</option>
-                    <option value="score-desc">Score (Highest First)</option>
-                    <option value="score-asc">Score (Lowest First)</option>
-                </select>
+                <div class="custom-dropdown" id="dropdown-sort">
+                    <div class="dropdown-trigger" id="dropdown-sort-trigger">
+                        <span class="selected-text">Default (Load Order)</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                    <div class="dropdown-options glass-panel hidden" id="dropdown-sort-options">
+                        <div class="dropdown-option active" data-dropdown="sort" data-value="default">Default (Load Order)</div>
+                        <div class="dropdown-option" data-dropdown="sort" data-value="random">Random (Shuffle)</div>
+                        <div class="dropdown-option" data-dropdown="sort" data-value="name-asc">Name (A-Z)</div>
+                        <div class="dropdown-option" data-dropdown="sort" data-value="name-desc">Name (Z-A)</div>
+                        <div class="dropdown-option" data-dropdown="sort" data-value="size-asc">Size (Smallest First)</div>
+                        <div class="dropdown-option" data-dropdown="sort" data-value="size-desc">Size (Largest First)</div>
+                        <div class="dropdown-option" data-dropdown="sort" data-value="score-desc">Score (Highest First)</div>
+                        <div class="dropdown-option" data-dropdown="sort" data-value="score-asc">Score (Lowest First)</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -950,8 +1191,6 @@
             btnOpenFilters: document.getElementById('btn-open-filters'),
             filterModal: document.getElementById('filter-modal'),
             closeFilterModal: document.getElementById('close-filter-modal'),
-            filterSelect: document.getElementById('filter-select'),
-            sortSelect: document.getElementById('sort-select'),
             searchInput: document.getElementById('search-input'),
             
             btnOpenSettings: document.getElementById('btn-open-settings'),
@@ -1004,6 +1243,8 @@
             loadSettingsFromStorage();
             renderHeatmap();
             setupEventListeners();
+            setupCustomDropdowns();
+            updateFilterCountsAndPercentages();
         }
 
         // --- Core Helpers ---
@@ -1196,6 +1437,7 @@
                             saveRatingsToStorage();
                             applyFilterAndSort();
                             renderHeatmap();
+                            updateFilterCountsAndPercentages();
                             
                             if (addedCount > 0) {
                                 showToast(`Added ${addedCount} new files to the queue.`);
@@ -1221,10 +1463,134 @@
             }
         }
 
+        // --- Custom Dropdowns & Meta Tracking ---
+        function updateFilterCountsAndPercentages() {
+            const total = state.allFiles.length;
+            
+            let unratedCount = 0;
+            let ratedCount = 0;
+            let positiveCount = 0;
+            let negativeCount = 0;
+            
+            state.allFiles.forEach(file => {
+                const id = getFileId(file);
+                const rating = state.ratings[id];
+                if (rating) {
+                    const score = rating.score;
+                    const isRated = (rating.scoreHistory && rating.scoreHistory.length > 0) || score !== 0.0;
+                    if (isRated) {
+                        ratedCount++;
+                        if (score > 0.0) positiveCount++;
+                        else if (score < 0.0) negativeCount++;
+                    } else {
+                        unratedCount++;
+                    }
+                } else {
+                    unratedCount++;
+                }
+            });
+            
+            const formatCount = (count) => {
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                return `${count} (${pct}%)`;
+            };
+            
+            const updateOptionMeta = (val, text) => {
+                const metaSpan = document.querySelector(`.dropdown-option[data-dropdown="filter"][data-value="${val}"] .option-meta`);
+                if (metaSpan) metaSpan.textContent = text;
+            };
+            
+            updateOptionMeta('all', formatCount(total));
+            updateOptionMeta('unrated', formatCount(unratedCount));
+            updateOptionMeta('rated', formatCount(ratedCount));
+            updateOptionMeta('positive', formatCount(positiveCount));
+            updateOptionMeta('negative', formatCount(negativeCount));
+        }
+
+        function setupCustomDropdowns() {
+            const dropdowns = [
+                { id: 'dropdown-filter', triggerId: 'dropdown-filter-trigger', optionsId: 'dropdown-filter-options', stateKey: 'filter' },
+                { id: 'dropdown-sort', triggerId: 'dropdown-sort-trigger', optionsId: 'dropdown-sort-options', stateKey: 'sort' }
+            ];
+
+            dropdowns.forEach(dropdown => {
+                const wrapper = document.getElementById(dropdown.id);
+                const trigger = document.getElementById(dropdown.triggerId);
+                const optionsContainer = document.getElementById(dropdown.optionsId);
+                if (!wrapper || !trigger || !optionsContainer) return;
+
+                trigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = !optionsContainer.classList.contains('hidden');
+                    
+                    closeAllDropdowns();
+                    
+                    if (!isOpen) {
+                        optionsContainer.classList.remove('hidden');
+                        wrapper.classList.add('open');
+                    }
+                });
+
+                const options = optionsContainer.querySelectorAll('.dropdown-option');
+                options.forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const val = option.dataset.value;
+                        state[dropdown.stateKey] = val;
+
+                        options.forEach(opt => opt.classList.remove('active'));
+                        option.classList.add('active');
+
+                        const labelText = option.querySelector('.option-label') ? 
+                            option.querySelector('.option-label').textContent : 
+                            option.textContent;
+                        trigger.querySelector('.selected-text').textContent = labelText;
+
+                        optionsContainer.classList.add('hidden');
+                        wrapper.classList.remove('open');
+
+                        applyFilterAndSort();
+                    });
+                });
+            });
+
+            document.addEventListener('click', () => {
+                closeAllDropdowns();
+            });
+
+            function closeAllDropdowns() {
+                dropdowns.forEach(dropdown => {
+                    const wrapper = document.getElementById(dropdown.id);
+                    const optionsContainer = document.getElementById(dropdown.optionsId);
+                    if (wrapper) wrapper.classList.remove('open');
+                    if (optionsContainer) optionsContainer.classList.add('hidden');
+                });
+            }
+        }
+
+        function resetFiltersToDefault() {
+            state.filter = 'all';
+            state.sort = 'default';
+            elements.searchInput.value = '';
+            
+            document.querySelectorAll('.dropdown-option[data-dropdown="filter"]').forEach(opt => {
+                if (opt.dataset.value === 'all') opt.classList.add('active');
+                else opt.classList.remove('active');
+            });
+            const filterTrigger = document.getElementById('dropdown-filter-trigger');
+            if (filterTrigger) filterTrigger.querySelector('.selected-text').textContent = 'Show All';
+
+            document.querySelectorAll('.dropdown-option[data-dropdown="sort"]').forEach(opt => {
+                if (opt.dataset.value === 'default') opt.classList.add('active');
+                else opt.classList.remove('active');
+            });
+            const sortTrigger = document.getElementById('dropdown-sort-trigger');
+            if (sortTrigger) sortTrigger.querySelector('.selected-text').textContent = 'Default (Load Order)';
+        }
+
         // --- Filtering and Sorting ---
         function applyFilterAndSort() {
-            state.filter = elements.filterSelect.value;
-            state.sort = elements.sortSelect.value;
+            // state.filter and state.sort are updated via custom dropdown triggers
             const searchStr = elements.searchInput.value.toLowerCase().trim();
             
             let currentFileId = null;
@@ -1285,6 +1651,7 @@
                 renderCurrentMedia();
             }
             updateStats();
+            updateFilterCountsAndPercentages();
         }
 
         // --- Rendering ---
@@ -1631,6 +1998,7 @@ print(f"\\nDone. Deleted {deleted} files.")`;
             elements.btnClearQueue.addEventListener('click', () => {
                 if (confirm("Clear active queue? Ratings remain saved.")) {
                     state.allFiles = [];
+                    resetFiltersToDefault();
                     applyFilterAndSort(); 
                     showToast("Queue cleared.");
                 }
@@ -1639,8 +2007,6 @@ print(f"\\nDone. Deleted {deleted} files.")`;
             // Filter Modal
             elements.btnOpenFilters.addEventListener('click', () => elements.filterModal.classList.add('active'));
             elements.closeFilterModal.addEventListener('click', () => elements.filterModal.classList.remove('active'));
-            elements.filterSelect.addEventListener('change', applyFilterAndSort);
-            elements.sortSelect.addEventListener('change', applyFilterAndSort);
             elements.searchInput.addEventListener('input', applyFilterAndSort);
 
             // Settings Modal
@@ -1715,6 +2081,7 @@ print(f"\\nDone. Deleted {deleted} files.")`;
                     localStorage.removeItem('dynamicMediaSorterRatings');
                     state.ratings = {};
                     state.allFiles = [];
+                    resetFiltersToDefault();
                     applyFilterAndSort(); 
                     showToast("Memory wiped.");
                     elements.settingsModal.classList.remove('active');
@@ -1777,6 +2144,7 @@ print(f"\\nDone. Deleted {deleted} files.")`;
                     }
                 }
                 renderHeatmap();
+                updateFilterCountsAndPercentages();
                 navigate(1); 
                 setTimeout(hideHeatmap, 400); // Hide smoothly after navigating
             });
@@ -1842,6 +2210,7 @@ print(f"\\nDone. Deleted {deleted} files.")`;
                             updateSliderVisuals(false); 
                             renderCurrentMedia(); 
                             renderHeatmap(); 
+                            updateFilterCountsAndPercentages(); 
                         }
                     } catch (e) {
                         alert("Invalid format. Please use comma separated decimals.");
