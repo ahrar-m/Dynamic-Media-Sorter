@@ -92,6 +92,10 @@
             font-weight: 600;
         }
 
+        header .btn {
+            padding: 8px 10px;
+        }
+
         /* Layout */
         header {
             display: flex;
@@ -122,6 +126,7 @@
             color: var(--text-secondary);
             display: flex;
             gap: 16px;
+            align-items: center;
         }
 
         .stat-item {
@@ -129,6 +134,18 @@
             padding: 4px 8px;
             border-radius: 6px;
             transition: background 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #btn-jump-queue {
+            min-width: 130px;
+        }
+
+        #bg-loading-indicator {
+            min-width: 70px;
+            gap: 6px;
         }
         
         .stat-item:hover {
@@ -395,7 +412,7 @@
             top: 0;
             left: 0;
             width: 100vw;
-            height: 100vh;
+            height: 100dvh;
             background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(5px);
             display: flex;
@@ -415,7 +432,7 @@
         .modal {
             width: 90%;
             max-width: 700px;
-            max-height: 90vh;
+            max-height: 85dvh;
             padding: 24px;
             display: flex;
             flex-direction: column;
@@ -458,6 +475,38 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
+            padding-bottom: 12px;
+        }
+
+        .modal-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .modal-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            align-items: center;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 2px 0;
+            margin-bottom: 5px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            user-select: none;
         }
 
         /* Staged List */
@@ -574,115 +623,6 @@
             font-family: inherit;
             width: 100%;
             margin-bottom: 10px;
-        }
-
-        }
-
-        /* Custom Dropdowns */
-        .custom-dropdown {
-            position: relative;
-            width: 100%;
-            margin-bottom: 10px;
-        }
-
-        .dropdown-trigger {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid var(--panel-border);
-            color: var(--text-primary);
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-family: inherit;
-            font-size: 0.9rem;
-            width: 100%;
-            transition: all 0.2s ease;
-            user-select: none;
-        }
-
-        .dropdown-trigger:hover {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .dropdown-trigger i {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            transition: transform 0.2s ease;
-        }
-
-        .custom-dropdown.open .dropdown-trigger i {
-            transform: rotate(180deg);
-        }
-
-        .dropdown-options {
-            position: absolute;
-            top: calc(100% + 4px);
-            left: 0;
-            width: 100%;
-            max-height: 220px;
-            overflow-y: auto;
-            z-index: 150;
-            background: rgba(11, 12, 16, 0.95);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--panel-border);
-            border-radius: 8px;
-            padding: 6px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
-        }
-
-        .dropdown-options::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .dropdown-options::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-        }
-
-        .dropdown-option {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            transition: all 0.15s ease;
-        }
-
-        .dropdown-option:hover {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-primary);
-        }
-
-        .dropdown-option.active {
-            background: linear-gradient(135deg, rgba(79, 172, 254, 0.2) 0%, rgba(0, 242, 254, 0.2) 100%);
-            color: var(--text-primary);
-            border: 1px solid rgba(79, 172, 254, 0.3);
-            font-weight: 600;
-        }
-
-        .dropdown-option .option-meta {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            background: rgba(255, 255, 255, 0.05);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: normal;
-        }
-
-        .dropdown-option.active .option-meta {
-            background: rgba(79, 172, 254, 0.3);
-            color: #fff;
-        }
-
         }
 
         /* Custom Dropdowns */
@@ -874,11 +814,17 @@
             <button class="btn" id="btn-open-filters" title="Filters">
                 <i class="fa-solid fa-filter"></i>
             </button>
+            
+            <!-- Fullscreen Toggle -->
+            <button class="btn" id="btn-app-fullscreen" title="Toggle App Fullscreen">
+                <i class="fa-solid fa-expand"></i>
+            </button>
         </div>
         
         <div class="header-right">
             <div class="stats">
                 <div class="stat-item" id="btn-jump-queue" title="Click to jump to a specific position"><span id="queue-count">0/0 (0%)</span></div>
+                <div class="stat-item hidden" id="bg-loading-indicator" style="color: var(--accent-blue);" title="Files are loading in the background"><i class="fa-solid fa-circle-notch fa-spin"></i> <span id="bg-loading-progress">0%</span></div>
             </div>
 
             <button class="btn btn-danger" id="btn-purge" title="The Executioner">
@@ -893,10 +839,10 @@
 
     <!-- Global Load Dropdown -->
     <div id="load-dropdown" class="glass-panel hidden" style="position: fixed; top: 70px; left: 15px; display: flex; flex-direction: column; gap: 8px; padding: 10px; z-index: 9999; min-width: 140px; border: 1px solid var(--panel-border);">
-        <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('file-input').click(); document.getElementById('load-dropdown').classList.add('hidden');">
+        <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="triggerFileLoad('file-input'); document.getElementById('load-dropdown').classList.add('hidden');">
             <i class="fa-solid fa-file-image"></i> Load Files
         </button>
-        <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('folder-input').click(); document.getElementById('load-dropdown').classList.add('hidden');">
+        <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="triggerFileLoad('folder-input'); document.getElementById('load-dropdown').classList.add('hidden');">
             <i class="fa-solid fa-folder-open"></i> Load Folder
         </button>
     </div>
@@ -935,7 +881,6 @@
                     <button class="nav-btn" id="btn-next" title="Next (Right Arrow)"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
                 <div style="justify-self: end;">
-                    <button class="nav-btn" id="btn-app-fullscreen" title="Toggle App Fullscreen"><i class="fa-solid fa-expand"></i></button>
                 </div>
             </div>
             <div class="slider-container">
@@ -951,58 +896,65 @@
 
     <!-- Filter/Sort Modal -->
     <div class="modal-overlay" id="filter-modal">
-        <div class="modal modal-sm glass-panel">
+        <div class="modal glass-panel" style="width: 75%; max-width: 750px; overflow: visible;">
             <button class="modal-close" id="close-filter-modal"><i class="fa-solid fa-xmark"></i></button>
             <h2><i class="fa-solid fa-filter"></i> Filter & Sort</h2>
-            <div class="modal-body">
-                <label>Search Filename</label>
-                <input type="text" id="search-input" class="form-input" placeholder="e.g. IMG_2023...">
-                
-                <label>Filter By Status</label>
-                <div class="custom-dropdown" id="dropdown-filter">
-                    <div class="dropdown-trigger" id="dropdown-filter-trigger">
-                        <span class="selected-text">Show All</span>
-                        <i class="fa-solid fa-chevron-down"></i>
-                    </div>
-                    <div class="dropdown-options glass-panel hidden" id="dropdown-filter-options">
-                        <div class="dropdown-option active" data-dropdown="filter" data-value="all">
-                            <span class="option-label">Show All</span>
-                            <span class="option-meta">0 (0%)</span>
-                        </div>
-                        <div class="dropdown-option" data-dropdown="filter" data-value="unrated">
-                            <span class="option-label">Unrated Only</span>
-                            <span class="option-meta">0 (0%)</span>
-                        </div>
-                        <div class="dropdown-option" data-dropdown="filter" data-value="rated">
-                            <span class="option-label">Rated Only</span>
-                            <span class="option-meta">0 (0%)</span>
-                        </div>
-                        <div class="dropdown-option" data-dropdown="filter" data-value="positive">
-                            <span class="option-label">Top Tier (&gt; 0.0)</span>
-                            <span class="option-meta">0 (0%)</span>
-                        </div>
-                        <div class="dropdown-option" data-dropdown="filter" data-value="negative">
-                            <span class="option-label">Trash (&lt; 0.0)</span>
-                            <span class="option-meta">0 (0%)</span>
-                        </div>
-                    </div>
+            <div class="modal-body" style="overflow: visible;">
+                <div style="margin-bottom: 5px;">
+                    <label>Search Filename</label>
+                    <input type="text" id="search-input" class="form-input" placeholder="e.g. IMG_2023..." style="margin-bottom: 0;">
                 </div>
                 
-                <label>Sort Queue By</label>
-                <div class="custom-dropdown" id="dropdown-sort">
-                    <div class="dropdown-trigger" id="dropdown-sort-trigger">
-                        <span class="selected-text">Default (Load Order)</span>
-                        <i class="fa-solid fa-chevron-down"></i>
+                <div class="modal-grid-2">
+                    <div>
+                        <label>Filter By Status</label>
+                        <div class="custom-dropdown" id="dropdown-filter" style="margin-bottom: 0;">
+                            <div class="dropdown-trigger" id="dropdown-filter-trigger">
+                                <span class="selected-text">Show All</span>
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </div>
+                            <div class="dropdown-options glass-panel hidden" id="dropdown-filter-options">
+                                <div class="dropdown-option active" data-dropdown="filter" data-value="all">
+                                    <span class="option-label">Show All</span>
+                                    <span class="option-meta">0 (0%)</span>
+                                </div>
+                                <div class="dropdown-option" data-dropdown="filter" data-value="unrated">
+                                    <span class="option-label">Unrated Only</span>
+                                    <span class="option-meta">0 (0%)</span>
+                                </div>
+                                <div class="dropdown-option" data-dropdown="filter" data-value="rated">
+                                    <span class="option-label">Rated Only</span>
+                                    <span class="option-meta">0 (0%)</span>
+                                </div>
+                                <div class="dropdown-option" data-dropdown="filter" data-value="positive">
+                                    <span class="option-label">Top Tier (&gt; 0.0)</span>
+                                    <span class="option-meta">0 (0%)</span>
+                                </div>
+                                <div class="dropdown-option" data-dropdown="filter" data-value="negative">
+                                    <span class="option-label">Trash (&lt; 0.0)</span>
+                                    <span class="option-meta">0 (0%)</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="dropdown-options glass-panel hidden" id="dropdown-sort-options">
-                        <div class="dropdown-option active" data-dropdown="sort" data-value="default">Default (Load Order)</div>
-                        <div class="dropdown-option" data-dropdown="sort" data-value="random">Random (Shuffle)</div>
-                        <div class="dropdown-option" data-dropdown="sort" data-value="name-asc">Name (A-Z)</div>
-                        <div class="dropdown-option" data-dropdown="sort" data-value="name-desc">Name (Z-A)</div>
-                        <div class="dropdown-option" data-dropdown="sort" data-value="size-asc">Size (Smallest First)</div>
-                        <div class="dropdown-option" data-dropdown="sort" data-value="size-desc">Size (Largest First)</div>
-                        <div class="dropdown-option" data-dropdown="sort" data-value="score-desc">Score (Highest First)</div>
-                        <div class="dropdown-option" data-dropdown="sort" data-value="score-asc">Score (Lowest First)</div>
+                    <div>
+                        <label>Sort Queue By</label>
+                        <div class="custom-dropdown" id="dropdown-sort" style="margin-bottom: 0;">
+                            <div class="dropdown-trigger" id="dropdown-sort-trigger">
+                                <span class="selected-text">Default (Load Order)</span>
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </div>
+                            <div class="dropdown-options glass-panel hidden" id="dropdown-sort-options">
+                                <div class="dropdown-option active" data-dropdown="sort" data-value="default">Default (Load Order)</div>
+                                <div class="dropdown-option" data-dropdown="sort" data-value="random">Random (Shuffle)</div>
+                                <div class="dropdown-option" data-dropdown="sort" data-value="name-asc">Name (A-Z)</div>
+                                <div class="dropdown-option" data-dropdown="sort" data-value="name-desc">Name (Z-A)</div>
+                                <div class="dropdown-option" data-dropdown="sort" data-value="size-asc">Size (Smallest First)</div>
+                                <div class="dropdown-option" data-dropdown="sort" data-value="size-desc">Size (Largest First)</div>
+                                <div class="dropdown-option" data-dropdown="sort" data-value="score-desc">Score (Highest First)</div>
+                                <div class="dropdown-option" data-dropdown="sort" data-value="score-asc">Score (Lowest First)</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1011,68 +963,72 @@
 
     <!-- Settings Modal -->
     <div class="modal-overlay" id="settings-modal">
-        <div class="modal modal-sm glass-panel">
+        <div class="modal glass-panel" style="width: 75%; max-width: 750px; min-height: 560px; overflow: visible; display: flex; flex-direction: column;">
             <button class="modal-close" id="close-settings-modal"><i class="fa-solid fa-xmark"></i></button>
             <h2><i class="fa-solid fa-gear"></i> Settings</h2>
-            <div class="modal-body">
-                <button class="btn" id="btn-export" style="width: 100%; justify-content: center;">
-                    <i class="fa-solid fa-upload"></i> Export Backup (JSON)
-                </button>
-                <input type="file" id="import-input" class="hidden">
-                <button class="btn" onclick="document.getElementById('import-input').click()" style="width: 100%; justify-content: center;">
-                    <i class="fa-solid fa-download"></i> Restore Backup (JSON)
-                </button>
-                <hr style="border: 0; border-top: 1px solid var(--panel-border); margin: 10px 0;">
+            <div class="modal-body" style="gap: 16px; overflow: visible;">
+                <!-- Backup Actions -->
+                <div class="modal-grid-2" style="gap: 15px; margin-bottom: 10px;">
+                    <button class="btn" id="btn-export" style="justify-content: center; width: 100%; padding: 10px; font-size: 0.9rem; height: 40px;">
+                        <i class="fa-solid fa-upload"></i> Export Backup
+                    </button>
+                    <input type="file" id="import-input" class="hidden">
+                    <button class="btn" onclick="document.getElementById('import-input').click()" style="justify-content: center; width: 100%; padding: 10px; font-size: 0.9rem; height: 40px;">
+                        <i class="fa-solid fa-download"></i> Restore Backup
+                    </button>
+                </div>
                 
-                <label style="display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; padding: 5px 0;">
-                    <span>Auto Backup Interval</span>
-                    <select id="setting-auto-backup" class="form-input" style="width: 140px; padding: 4px;">
+                <!-- Configuration Options -->
+                <div style="margin-bottom: 5px;">
+                    <label style="font-size: 0.85rem; display: block; margin-bottom: 4px;">Auto Backup Interval</label>
+                    <select id="setting-auto-backup" class="form-input" style="margin-bottom: 0; padding: 8px; width: 100%;">
                         <option value="0">Disabled</option>
                         <option value="5">Every 5 min</option>
                         <option value="15">Every 15 min</option>
                         <option value="30">Every 30 min</option>
                         <option value="60">Every 1 hour</option>
                     </select>
-                </label>
-                <hr style="border: 0; border-top: 1px solid var(--panel-border); margin: 10px 0;">
+                </div>
                 
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px 0;">
-                    <input type="checkbox" id="setting-mute-videos">
-                    Start videos muted
-                </label>
-                
-                <hr style="border: 0; border-top: 1px solid var(--panel-border); margin: 10px 0;">
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px 0;">
-                    <input type="checkbox" id="setting-info-filename">
-                    Show Filename in Info
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px 0;">
-                    <input type="checkbox" id="setting-info-size">
-                    Show Filesize in Info
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px 0;">
-                    <input type="checkbox" id="setting-info-history">
-                    Show Past Scores in Info
-                </label>
-                <hr style="border: 0; border-top: 1px solid var(--panel-border); margin: 10px 0;">
-                
-                <label style="display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; padding: 5px 0;">
-                    <span>Heatmap Bucket Width</span>
-                    <select id="setting-heatmap-width" class="form-input" style="width: 140px; padding: 4px;">
+                <div style="margin-bottom: 5px;">
+                    <label style="font-size: 0.85rem; display: block; margin-bottom: 4px;">Heatmap Bucket Width</label>
+                    <select id="setting-heatmap-width" class="form-input" style="margin-bottom: 0; padding: 8px; width: 100%;">
                         <option value="0.2">0.20 (Coarse)</option>
                         <option value="0.1">0.10 (Standard)</option>
                         <option value="0.05">0.05 (Fine)</option>
                         <option value="0.02">0.02 (Ultra Fine)</option>
                     </select>
-                </label>
+                </div>
                 
-                <hr style="border: 0; border-top: 1px solid var(--panel-border); margin: 10px 0;">
-                <button class="btn btn-danger" id="btn-clear-queue" style="width: 100%; justify-content: center;">
-                    <i class="fa-solid fa-trash"></i> Clear Current Queue
-                </button>
-                <button class="btn btn-danger" id="btn-hard-reset" style="width: 100%; justify-content: center;">
-                    <i class="fa-solid fa-bomb"></i> Hard Reset (Wipe Memory)
-                </button>
+                <!-- Checkbox Settings -->
+                <div class="checkbox-group" style="margin-bottom: 5px;">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="setting-mute-videos"> Start videos muted
+                    </label>
+                </div>
+                
+                <div class="checkbox-group" style="border-top: 1px solid var(--panel-border); padding-top: 12px; margin-bottom: 5px;">
+                    <span style="font-size: 0.8rem; color: var(--text-secondary); width: 100%; display: block; margin-bottom: 6px;">Info Overlay Options:</span>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="setting-info-filename"> Filename
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="setting-info-size"> Size
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="setting-info-history"> Past Scores
+                    </label>
+                </div>
+                
+                <!-- Reset Actions -->
+                <div class="modal-grid-2" style="border-top: 1px solid var(--panel-border); padding-top: 15px; margin-top: 10px; gap: 15px;">
+                    <button class="btn btn-danger" id="btn-clear-queue" style="justify-content: center; width: 100%; padding: 10px; font-size: 0.9rem; height: 40px;">
+                        <i class="fa-solid fa-trash"></i> Clear Queue
+                    </button>
+                    <button class="btn btn-danger" id="btn-hard-reset" style="justify-content: center; width: 100%; padding: 10px; font-size: 0.9rem; height: 40px;">
+                        <i class="fa-solid fa-bomb"></i> Hard Reset (Wipe)
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1158,7 +1114,8 @@
             ratings: {}, // key: name_size -> { score: float, survivalCount: int, scoreHistory: [float] }
             currentObjectURL: null,
             filter: 'all',
-            sort: 'default'
+            sort: 'default',
+            loadingSessionId: null
         };
 
         let appSettings = {
@@ -1232,7 +1189,9 @@
             btnCloseViewer: document.getElementById('btn-close-viewer'),
             btnZoomIn: document.getElementById('btn-zoom-in'),
             btnZoomOut: document.getElementById('btn-zoom-out'),
-            btnZoomReset: document.getElementById('btn-zoom-reset')
+            btnZoomReset: document.getElementById('btn-zoom-reset'),
+            bgLoadingIndicator: document.getElementById('bg-loading-indicator'),
+            bgLoadingProgress: document.getElementById('bg-loading-progress')
         };
 
         let currentScriptType = 'script-python';
@@ -1364,6 +1323,11 @@
             }, 3000);
         }
 
+        function triggerFileLoad(inputId) {
+            const input = document.getElementById(inputId);
+            if (input) input.click();
+        }
+
         // --- File Ingestion ---
         function handleFilesSelected(event) {
             try {
@@ -1372,13 +1336,25 @@
                 const files = Array.from(event.target.files);
                 if (files.length === 0) return;
 
+                // Cancel any previous loading session
+                const sessionToken = Date.now();
+                state.loadingSessionId = sessionToken;
+
                 const loadingOverlay = document.getElementById('loading-overlay');
                 const loadingText = document.getElementById('loading-text');
+                
+                // Show full screen overlay initially
                 if (loadingOverlay) loadingOverlay.classList.add('active');
-                if (loadingText) loadingText.textContent = `Preparing ${files.length} files... 0%`;
+                if (loadingText) loadingText.textContent = `Preparing ${files.length} files...`;
 
-                // Yield to browser so it can paint the loading overlay before the main thread blocks
+                if (elements.bgLoadingIndicator) elements.bgLoadingIndicator.classList.add('hidden');
+
+                // Throttled UI update helper
+                let lastUIUpdateTime = Date.now();
+
                 setTimeout(() => {
+                    if (state.loadingSessionId !== sessionToken) return;
+
                     try {
                         const existingIds = new Set(state.allFiles.map(f => getFileId(f)));
                         let addedCount = 0;
@@ -1386,12 +1362,18 @@
                         
                         const total = files.length;
                         let currentIndex = 0;
-                        const chunkSize = 10; // Process 10 files per frame
+                        
+                        // We will track if we've rendered the initial media so we only do it once
+                        let initialMediaRendered = false;
 
                         function processChunk() {
-                            const end = Math.min(currentIndex + chunkSize, total);
-                            for (let i = currentIndex; i < end; i++) {
-                                const f = files[i];
+                            if (state.loadingSessionId !== sessionToken) return;
+
+                            const startTime = performance.now();
+                            const frameBudget = document.hidden ? 10000 : 6; // 10s budget when minimized to process all files instantly
+
+                            while (currentIndex < total && (performance.now() - startTime < frameBudget)) {
+                                const f = files[currentIndex];
                                 
                                 let isValid = false;
                                 if (f.type) {
@@ -1409,44 +1391,110 @@
                                         if (!state.ratings[id]) {
                                             state.ratings[id] = { score: 0.0, survivalCount: 1, scoreHistory: [] };
                                         }
+
+                                        // Append to filteredFiles incrementally if matching active filter/search
+                                        const searchStr = elements.searchInput.value.toLowerCase().trim();
+                                        let matchesFilter = true;
+                                        if (searchStr && !f.name.toLowerCase().includes(searchStr)) matchesFilter = false;
+                                        
+                                        const rating = state.ratings[id];
+                                        const score = rating.score;
+                                        const isRated = (rating.scoreHistory && rating.scoreHistory.length > 0) || score !== 0.0;
+                                        
+                                        if (state.filter === 'unrated' && isRated) matchesFilter = false;
+                                        else if (state.filter === 'rated' && !isRated) matchesFilter = false;
+                                        else if (state.filter === 'positive' && score <= 0.0) matchesFilter = false;
+                                        else if (state.filter === 'negative' && score >= 0.0) matchesFilter = false;
+                                        
+                                        if (matchesFilter) {
+                                            state.filteredFiles.push(f);
+                                        }
                                     }
                                 }
+                                currentIndex++;
                             }
                             
-                            currentIndex = end;
                             const pct = Math.round((currentIndex / total) * 100);
-                            if (loadingText) loadingText.textContent = `Analyzing files... ${pct}%`;
+                            
+                            // Update stats smoothly in UI
+                            updateStats();
+
+                            // Handle initial UI rendering
+                            // Once we've processed the first chunk or found first valid media
+                            if (!initialMediaRendered && (validMediaCount > 0 || currentIndex >= total)) {
+                                initialMediaRendered = true;
+                                if (loadingOverlay) loadingOverlay.classList.remove('active');
+                                
+                                saveRatingsToStorage();
+                                applyFilterAndSort();
+                                renderHeatmap();
+                                updateFilterCountsAndPercentages();
+
+                                // Show background loader indicator if there are remaining files
+                                if (currentIndex < total && elements.bgLoadingIndicator) {
+                                    elements.bgLoadingIndicator.classList.remove('hidden');
+                                    if (elements.bgLoadingProgress) {
+                                        elements.bgLoadingProgress.textContent = `${pct}%`;
+                                    }
+                                }
+                            } else {
+                                // Background loader is active, update background status
+                                if (elements.bgLoadingIndicator && !elements.bgLoadingIndicator.classList.contains('hidden')) {
+                                    if (elements.bgLoadingProgress) {
+                                        elements.bgLoadingProgress.textContent = `${pct}%`;
+                                    }
+                                }
+
+                                // Throttle UI refreshes (e.g., every 500ms) to update stats and heatmap smoothly
+                                const now = Date.now();
+                                if (now - lastUIUpdateTime > 500) {
+                                    lastUIUpdateTime = now;
+                                    // Non-disruptive update (preserves player/active media index)
+                                    saveRatingsToStorage();
+                                    applyFilterAndSort(true);
+                                    renderHeatmap();
+                                    updateFilterCountsAndPercentages();
+                                }
+                            }
 
                             if (currentIndex < total) {
-                                // Request next frame to allow DOM paint
-                                requestAnimationFrame(() => {
-                                    setTimeout(processChunk, 0);
-                                });
+                                setTimeout(processChunk, 10);
                             } else {
                                 finalizeLoad();
                             }
                         }
 
                         function finalizeLoad() {
+                            if (state.loadingSessionId !== sessionToken) return;
+
+                            if (elements.bgLoadingIndicator) {
+                                elements.bgLoadingIndicator.classList.add('hidden');
+                            }
+                            if (loadingOverlay) {
+                                loadingOverlay.classList.remove('active');
+                            }
+
                             if (validMediaCount === 0) {
-                                if (loadingOverlay) loadingOverlay.classList.remove('active');
                                 alert(`Selected ${total} files, but none were identified as media.`);
                                 return;
                             }
                             
                             saveRatingsToStorage();
-                            applyFilterAndSort();
+                            applyFilterAndSort(true);
                             renderHeatmap();
                             updateFilterCountsAndPercentages();
                             
                             if (addedCount > 0) {
-                                showToast(`Added ${addedCount} new files to the queue.`);
+                                if (addedCount === state.allFiles.length) {
+                                    showToast(`Added ${addedCount} new files.`);
+                                } else {
+                                    showToast(`Added ${addedCount} new files. Total: ${state.allFiles.length}`);
+                                }
                             } else {
                                 showToast("No new files added (duplicates ignored).");
                             }
                             
                             event.target.value = '';
-                            if (loadingOverlay) loadingOverlay.classList.remove('active');
                         }
 
                         // Start asynchronous chunking process
@@ -1454,6 +1502,7 @@
 
                     } catch (err) {
                         if (loadingOverlay) loadingOverlay.classList.remove('active');
+                        if (elements.bgLoadingIndicator) elements.bgLoadingIndicator.classList.add('hidden');
                         alert(`CRITICAL ERROR during processing:\n${err.message}`);
                     }
                 }, 50);
@@ -1589,7 +1638,7 @@
         }
 
         // --- Filtering and Sorting ---
-        function applyFilterAndSort() {
+        function applyFilterAndSort(isBackgroundUpdate = false) {
             // state.filter and state.sort are updated via custom dropdown triggers
             const searchStr = elements.searchInput.value.toLowerCase().trim();
             
@@ -1640,7 +1689,7 @@
             // Restore index
             if (state.filteredFiles.length > 0) {
                 let newIndex = 0;
-                if (currentFileId && state.sort !== 'random') {
+                if (currentFileId && (state.sort !== 'random' || isBackgroundUpdate)) {
                     const foundIdx = state.filteredFiles.findIndex(f => getFileId(f) === currentFileId);
                     if (foundIdx !== -1) newIndex = foundIdx;
                 }
@@ -1735,13 +1784,6 @@
                 elements.displaySurvival.classList.add('hidden');
             }
             
-            // Only show fullscreen button for images, as video player has native fullscreen
-            if (file.type ? file.type.startsWith('video/') : /\.(mp4|webm|mkv|mov|avi)$/i.test(file.name)) {
-                elements.btnAppFullscreen.classList.add('hidden');
-            } else {
-                elements.btnAppFullscreen.classList.remove('hidden');
-            }
-
             elements.slider.value = state.ratings[id].score;
             updateSliderVisuals(false);
             updateStats();
@@ -2096,6 +2138,17 @@ print(f"\\nDone. Deleted {deleted} files.")`;
                 }
             });
 
+            document.addEventListener('fullscreenchange', () => {
+                const icon = elements.btnAppFullscreen.querySelector('i');
+                if (icon) {
+                    if (document.fullscreenElement) {
+                        icon.className = 'fa-solid fa-compress';
+                    } else {
+                        icon.className = 'fa-solid fa-expand';
+                    }
+                }
+            });
+
             elements.btnMediaFullscreen.addEventListener('click', () => {
                 const media = document.getElementById('active-media-node');
                 if (media) {
@@ -2128,7 +2181,7 @@ print(f"\\nDone. Deleted {deleted} files.")`;
                 updateSliderVisuals(true);
                 clearTimeout(heatmapTimeout);
                 // Fallback to hide in case the release event is swallowed by the browser
-                heatmapTimeout = setTimeout(hideHeatmap, 2000); 
+                heatmapTimeout = setTimeout(hideHeatmap, 4000); 
             });
             
             elements.slider.addEventListener('change', () => { 
@@ -2146,7 +2199,7 @@ print(f"\\nDone. Deleted {deleted} files.")`;
                 renderHeatmap();
                 updateFilterCountsAndPercentages();
                 navigate(1); 
-                setTimeout(hideHeatmap, 400); // Hide smoothly after navigating
+                setTimeout(hideHeatmap, 800); // Hide smoothly after navigating
             });
             
             elements.btnPrev.addEventListener('click', () => navigate(-1));
