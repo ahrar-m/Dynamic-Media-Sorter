@@ -1,37 +1,30 @@
 # Dynamic Media Sorter
 
-Dynamic Media Sorter is a 100% offline, serverless HTML5 application designed for lightning-fast media triage, sorting, and batch deletion.
+A powerful, entirely local, Elo-based media ranking tool built in a single HTML file. Stop struggling with manual sorting—let mathematical matchmaking figure out your favorite images and videos!
 
-## 🔒 Security & Privacy (Zero Data Extraction)
-**This application is fully sandboxed.** 
-* **Zero Network Requests:** It does not make any API calls, it does not use a backend server, and it does not upload any of your files or metadata to the cloud. You can completely disconnect from the internet (Airplane Mode) and the application will still function flawlessly.
-* **Non-Destructive Scanning:** When you load a folder, the browser creates local, temporary memory links (`URL.createObjectURL`) to stream the media straight from your hard drive into the web-player. The source files are never altered, compressed, or moved.
-* **Executioner Safety:** Because browsers are sandbox-restricted from deleting local files directly, the "Executioner" tool safely generates a text script (Python, Bash, or Windows CMD). You maintain total control over when and how files are physically deleted by running that script yourself.
+## ✨ Key Features
 
-## Features
-* **Universal Compatibility:** Runs in any modern browser (Chrome, Firefox, Safari) on Windows, Linux, Mac, and Android.
-* **Persistent Memory & History:** Ratings are automatically saved to your browser's local memory (`localStorage`) using a fingerprint of the `Filename + FileSize`. It also maintains a complete historical array of every score you assign a file across multiple triage sessions!
-* **Auto-Advance:** Slide to assign a score; release the slider to instantly advance to the next file.
-* **Staging Queue (The Executioner):** Filter your lowest-rated files, stage them for deletion, preview them with thumbnails (click to fullscreen zoom), uncheck any you want to spare, and export a batch deletion script.
-* **Intelligent File Types:** Supports images and common web video formats (MP4, WebM, MKV).
-* **Search & Sort:** Instantly filter your queue by searching for specific filename strings. The queue can be sorted by Name, Size, Score, or completely randomized (shuffled) at any time.
-* **Seamless Media Transitions:** Switching between sort methods (e.g., from Random back to Load Order) while a video is playing will seamlessly preserve your exact playback position without stuttering or reloading the video player.
-* **Persistent Settings:** Configure options like 'Start Videos Muted' inside the Settings modal. These preferences save to your local browser storage indefinitely.
-* **Dynamic Heatmap Visualization:** Visualize your score distribution dynamically as you rate files. The heatmap pops up contextually when interacting with the slider.
-* **File Information Overlay:** Toggleable on-screen overlay displaying the current file's name, size, and specific scoring history across all previous sessions.
-* **Jump to Queue:** Click the Queue tracker in the top header to instantly jump to any specific index in your sorted queue.
-* **Minimalist UI Modals:** All settings, backups, filters, and sorting tools are safely tucked away in clean popup modals.
+- **Elo-Based Matchmaking**: Ranks your media using a chess-style Elo algorithm. Files start at an Elo of 800 and adjust based on face-offs. Early matches have a higher K-factor (128) for faster initial sorting, then settle down (32) for precise tiering.
+- **Privacy First & Fully Local**: No server required. The tool runs directly in your browser. All media logic uses local `blob:` URLs, and your ratings database is saved directly to your browser's `localStorage`.
+- **Gesture Controls & Native Video**: Clean, mobile-friendly interface. Tap "A" or "B" to preview, and **swipe up** to cast your vote! Video media comes with native playback controls, `autoplay`, `loop`, and a customizable "Start Muted" toggle.
+- **Priority Queue & Skip**: Can't decide? Hit **Skip**. Skipped items are immediately pushed to a background *Priority Queue* so they get re-matched quickly, ensuring no file is left behind.
+- **Undo & Match History**: Made a mistake? Use the **Undo** button to revert the last match. You can also view a file's complete head-to-head match history in an immersive timeline replay.
+- **Dynamic Leaderboards & Heatmaps**: View your absolute best (Top Tier) and worst (Bottom Tier) media. The settings menu features a dynamic heatmap visualizing your Elo distribution.
+- **The Executioner**: Time to clean house. Set an Elo threshold, stage the worst-rated files, and perform an immersive review. Once finalized, generate a simple Python script to automatically delete the losing files from your hard drive!
 
-## 🛠️ Developer Notes & Technical History
-If you are modifying this application in the future, **please read [DEVELOPER_NOTES.md](DEVELOPER_NOTES.md) first**. It contains critical information regarding Android WebView event handling, performance optimizations for massive file queues, and past bugs that must not be reintroduced.
+## 🚀 How to Use
 
-## How to Use on Desktop
-1. Double click `Dynamic Media Sorter.html` to open it in your browser.
-2. Click **Load Folder** to scan your media folder.
-3. Use the slider to score files. Pressing the left arrow key lets you instantly go back and edit a previous score.
-4. Click **The Executioner** (Skull Icon) to stage poorly rated files and generate a deletion script.
-5. Export your ratings database using the **Settings** (⚙️) modal to safely backup your data.
+1. **Load Media**: Click the **Folder+** button in the top left to load a folder or specific files. Background loading ensures the app stays responsive even with thousands of items.
+2. **Toggle Modes**: Switch between Image and Video modes using the top-left toggle icons.
+3. **Vote**: The app will present two pieces of media. 
+   - Tap **A** or **B** to focus on that media.
+   - Click/Tap the buttons, or **swipe up** on mobile, to cast your vote for the winner!
+   - Use the **Skip** button to pass on the current matchup (they will be queued up again shortly).
+   - Use the **Undo** button if you accidentally selected the wrong winner.
+4. **Filters**: Click the **Filter** icon to sort your matching pool. Filter by Unrated, Rated, or use dynamic percentiles (Top 25% or Bottom 25%).
+5. **Manage Your Library**: Open the **Leaderboard** to review the best and worst files. Or use **The Executioner** (skull icon) to purge the files that didn't make the cut.
 
-## ⚠️ Important Note for Android Users
-Android's default "Gallery" file picker masks real filenames with random numbers (e.g., `100004561.jpg`) for privacy reasons. Because the app uses the filename to track your ratings, this will break your history!
-**To fix this:** When you click **Load Files** on Android, tap the three-dot menu in the corner and select a dedicated **File Manager** app (like Solid Explorer, CX File Explorer, or My Files) to select your media. This forces Android to pass the real filename to the browser.
+## 💾 Backup & Restore
+
+Your data is safely stored in `localStorage`, but it's always good to have a hard copy.
+Go to **Settings** (gear icon) to export your ratings to a JSON file. You can also set an **Auto Backup** interval to periodically download backups automatically while you sort.

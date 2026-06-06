@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Media Sorter</title>
+    <title>Dynamic Media Sorter - Elo Edition</title>
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,2301 +11,1491 @@
     <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --bg-color: #0b0c10;
-            --panel-bg: rgba(255, 255, 255, 0.03);
-            --panel-border: rgba(255, 255, 255, 0.08);
-            --text-primary: #e0e6ed;
-            --text-secondary: #8b9eb0;
-            --accent-blue: #4facfe;
-            --accent-green: #00f2fe;
-            --accent-red: #ff0844;
-            --slider-track: rgba(255, 255, 255, 0.1);
-            --glass-blur: blur(12px);
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
-            background-image: radial-gradient(circle at 50% 0%, rgba(20, 25, 35, 1) 0%, rgba(11, 12, 16, 1) 100%);
-            color: var(--text-primary);
-            height: 100dvh; /* dvh fixes mobile address bar cropping */
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            overscroll-behavior: none; /* Prevent pull-to-refresh and rubber-banding */
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* Utility Classes */
-        .glass-panel {
-            background: var(--panel-bg);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--panel-border);
-            border-radius: 12px;
-        }
-
-        .btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--panel-border);
-            color: var(--text-primary);
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.2);
-            transform: translateY(-1px);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            border: none;
-            color: #000;
-            font-weight: 600;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #5cb4fe 0%, #1cf3fe 100%);
-            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
-            border: none;
-            color: #fff;
-            font-weight: 600;
-        }
-
-        header .btn {
-            padding: 8px 10px;
-        }
-
-        /* Layout */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            gap: 10px;
-            padding: 10px 12px;
-            z-index: 10;
-            -ms-overflow-style: none; /* IE and Edge */
-            scrollbar-width: none; /* Firefox */
-        }
-
-        header::-webkit-scrollbar {
-            display: none;
-        }
-
-        .header-left, .header-right {
-            display: flex;
-            flex-wrap: nowrap;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .stats {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-
-        .stat-item {
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 6px;
-            transition: background 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        #btn-jump-queue {
-            min-width: 130px;
-        }
-
-        #bg-loading-indicator {
-            min-width: 70px;
-            gap: 6px;
-        }
-        
-        .stat-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .stat-item span {
-            color: var(--text-primary);
-            font-weight: 600;
-        }
-
-        main {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-            padding: 0;
-        }
-
-        #media-container {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-        }
-
-        #media-container img, #media-container video {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            transition: opacity 0.3s ease;
-        }
-
-        #btn-media-fullscreen {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.6);
-            border: none;
-            backdrop-filter: blur(4px);
-            z-index: 5;
-            padding: 12px;
-            border-radius: 50%;
-        }
-
-        #btn-media-fullscreen:hover {
-            background: rgba(0,0,0,0.8);
-            transform: scale(1.1);
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            max-width: 400px;
-        }
-
-        .empty-state i {
-            font-size: 48px;
-            color: var(--text-secondary);
-            margin-bottom: 10px;
-        }
-        
-        .empty-state p {
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        /* Footer & Controls */
-        footer {
-            padding: 12px 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            z-index: 10;
-        }
-
-        .scoring-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .score-display {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            transition: color 0.3s ease;
-        }
-
-        .slider-container {
-            width: 100%;
-            max-width: 600px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        #heatmap-container {
-            display: flex; 
-            align-items: flex-end; 
-            justify-content: space-between; 
-            width: 100%; 
-            padding: 0 10px; 
-            box-sizing: border-box; 
-            overflow: hidden; 
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            height: 0px;
-            margin-top: 0px;
-            opacity: 0;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        #heatmap-container.visible {
-            height: 30px;
-            margin-top: 5px;
-            opacity: 1;
-        }
-
-        .heatmap-bar {
-            flex: 1;
-            margin: 0 1px;
-            min-height: 2px;
-            transition: height 0.3s ease, background-color 0.3s ease, filter 0.1s ease;
-            border-top-left-radius: 2px;
-            border-top-right-radius: 2px;
-            filter: brightness(0.6);
-            transform-origin: bottom;
-        }
-
-        .heatmap-bar.active-bucket {
-            filter: brightness(1.5) !important;
-            opacity: 1 !important;
-            box-shadow: 0 -2px 10px currentColor;
-            z-index: 2;
-        }
-
-        input[type=range] {
-            -webkit-appearance: none;
-            width: 100%;
-            background: transparent;
-            touch-action: none; /* Prevent panning the page while sliding on mobile */
-        }
-
-        input[type=range]:focus {
-            outline: none;
-        }
-
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 8px;
-            cursor: pointer;
-            background: linear-gradient(to right, var(--accent-red), #555, var(--accent-green));
-            border-radius: 4px;
-        }
-
-        input[type=range]::-webkit-slider-thumb {
-            height: 24px;
-            width: 24px;
-            border-radius: 50%;
-            background: #ffffff;
-            cursor: pointer;
-            -webkit-appearance: none;
-            margin-top: -8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-            border: 2px solid #333;
-            transition: transform 0.1s;
-        }
-        
-        input[type=range]::-webkit-slider-thumb:hover {
-            transform: scale(1.1);
-        }
-
-        .nav-controls {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            align-items: center;
-        }
-
-        .nav-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.2rem;
-            background: var(--panel-bg);
-            border: 1px solid var(--panel-border);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .nav-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: scale(1.05);
-        }
-
-        .btn-icon-small {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: var(--panel-bg);
-            border: 1px solid var(--panel-border);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-icon-small:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        /* File Information Overlay */
-        .file-info {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            padding: 12px 16px;
-            pointer-events: none;
-        }
-
-        .file-name {
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 4px;
-            word-break: break-all;
-            max-width: 300px;
-        }
-
-        .file-meta {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-        }
-        
-        .survival-tag {
-            display: inline-block;
-            padding: 2px 6px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 4px;
-            margin-left: 8px;
-            font-size: 0.7rem;
-            pointer-events: auto; /* Re-enable clicks since parent is pointer-events: none */
-        }
-
-        /* Modals */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100dvh;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(5px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-
-        .modal-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .modal {
-            width: 90%;
-            max-width: 700px;
-            max-height: 85dvh;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            position: relative;
-        }
-        
-        .modal-sm {
-            max-width: 400px;
-        }
-
-        .modal h2 {
-            font-size: 1.2rem;
-            border-bottom: 1px solid var(--panel-border);
-            padding-bottom: 12px;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 1.2rem;
-            cursor: pointer;
-        }
-        
-        .modal-close:hover {
-            color: var(--text-primary);
-        }
-
-        .modal-body {
-            overflow-y: auto;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            padding-bottom: 12px;
-        }
-
-        .modal-grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .modal-grid-3 {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            align-items: center;
-        }
-
-        .checkbox-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            padding: 2px 0;
-            margin-bottom: 5px;
-        }
-
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            user-select: none;
-        }
-
-        /* Staged List */
-        .staged-list {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            max-height: 250px;
-            overflow-y: auto;
-            border: 1px solid var(--panel-border);
-            border-radius: 8px;
-            padding: 8px;
-            background: rgba(0,0,0,0.2);
-        }
-
-        .staged-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px;
-            background: rgba(255,255,255,0.02);
-            border-radius: 6px;
-            border: 1px solid transparent;
-        }
-
-        .staged-item:hover {
-            background: rgba(255,255,255,0.05);
-            border-color: rgba(255,255,255,0.1);
-        }
-
-        .staged-thumb {
-            width: 40px;
-            height: 40px;
-            border-radius: 4px;
-            object-fit: cover;
-            cursor: pointer;
-            background: #000;
-        }
-        
-        .staged-thumb:hover {
-            transform: scale(1.1);
-        }
-
-        .staged-info {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .staged-name {
-            font-size: 0.85rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .staged-score {
-            font-size: 0.75rem;
-            font-weight: bold;
-        }
-
-        .staged-score.negative { color: var(--accent-red); }
-        .staged-score.positive { color: var(--accent-green); }
-
-        /* Tabs */
-        .tabs {
-            display: flex;
-            gap: 5px;
-            border-bottom: 1px solid var(--panel-border);
-            padding-bottom: 0;
-            margin-top: 10px;
-        }
-
-        .tab {
-            padding: 8px 16px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid var(--panel-border);
-            border-bottom: none;
-            border-radius: 8px 8px 0 0;
-            color: var(--text-secondary);
-            cursor: pointer;
-        }
-
-        .tab.active {
-            background: rgba(0,0,0,0.5);
-            color: var(--text-primary);
-            border-bottom: 1px solid rgba(0,0,0,0.5);
-            margin-bottom: -1px;
-        }
-
-        textarea {
-            width: 100%;
-            height: 200px;
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid var(--panel-border);
-            border-radius: 0 8px 8px 8px;
-            color: #a5d6ff;
-            font-family: monospace;
-            padding: 12px;
-            resize: vertical;
-            white-space: pre;
-            overflow-wrap: normal;
-            overflow-x: auto;
-        }
-
-        select, .form-input {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid var(--panel-border);
-            color: var(--text-primary);
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-family: inherit;
-            width: 100%;
-            margin-bottom: 10px;
-        }
-
-        /* Custom Dropdowns */
-        .custom-dropdown {
-            position: relative;
-            width: 100%;
-            margin-bottom: 10px;
-        }
-
-        .dropdown-trigger {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid var(--panel-border);
-            color: var(--text-primary);
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-family: inherit;
-            font-size: 0.9rem;
-            width: 100%;
-            transition: all 0.2s ease;
-            user-select: none;
-        }
-
-        .dropdown-trigger:hover {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .dropdown-trigger i {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            transition: transform 0.2s ease;
-        }
-
-        .custom-dropdown.open .dropdown-trigger i {
-            transform: rotate(180deg);
-        }
-
-        .dropdown-options {
-            position: absolute;
-            top: calc(100% + 4px);
-            left: 0;
-            width: 100%;
-            max-height: 220px;
-            overflow-y: auto;
-            z-index: 150;
-            background: rgba(11, 12, 16, 0.95);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--panel-border);
-            border-radius: 8px;
-            padding: 6px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
-        }
-
-        .dropdown-options::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .dropdown-options::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-        }
-
-        .dropdown-option {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            transition: all 0.15s ease;
-        }
-
-        .dropdown-option:hover {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-primary);
-        }
-
-        .dropdown-option.active {
-            background: linear-gradient(135deg, rgba(79, 172, 254, 0.2) 0%, rgba(0, 242, 254, 0.2) 100%);
-            color: var(--text-primary);
-            border: 1px solid rgba(79, 172, 254, 0.3);
-            font-weight: 600;
-        }
-
-        .dropdown-option .option-meta {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            background: rgba(255, 255, 255, 0.05);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: normal;
-        }
-
-        .dropdown-option.active .option-meta {
-            background: rgba(79, 172, 254, 0.3);
-            color: #fff;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-        
-        #toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            background: rgba(0,0,0,0.9);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: #fff;
-            transform: translateY(100px);
-            opacity: 0;
-            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            z-index: 1000;
-        }
-        
-        #toast.show {
-            transform: translateY(0);
-            opacity: 1;
-        }
-        
-        /* Fullscreen Image View */
-        #fullscreen-viewer {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.95);
-            z-index: 200;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s;
-            overflow: hidden;
-        }
-        #fullscreen-viewer.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        #fullscreen-viewer-content {
-            transition: transform 0.2s ease;
-            transform-origin: center center;
-        }
-        #fullscreen-viewer img, #fullscreen-viewer video {
-            max-width: 100vw; max-height: 100vh;
-            object-fit: contain;
-        }
-        .viewer-controls {
-            position: absolute;
-            bottom: 20px;
-            display: flex;
-            gap: 15px;
-            z-index: 210;
-        }
-        #fullscreen-viewer .close-viewer {
-            position: absolute;
-            top: 20px; right: 20px;
-            background: rgba(0,0,0,0.5); border: none; color: white;
-            font-size: 1.5rem; cursor: pointer; padding: 10px 15px; border-radius: 8px; z-index: 210;
-        }
+:root {
+    --bg-color: #0b0c10;
+    --panel-bg: rgba(255, 255, 255, 0.03);
+    --panel-border: rgba(255, 255, 255, 0.08);
+    --text-primary: #e0e6ed;
+    --text-secondary: #8b9eb0;
+    --accent-blue: #4facfe;
+    --accent-green: #00f2fe;
+    --accent-red: #ff0844;
+    --glass-blur: blur(12px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    background-image: radial-gradient(circle at 50% 0%, rgba(20, 25, 35, 1) 0%, rgba(11, 12, 16, 1) 100%);
+    color: var(--text-primary);
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+}
+
+.glass-panel {
+    background: var(--panel-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+}
+
+.btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--panel-border);
+    color: var(--text-primary);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+.btn-primary {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    border: none; color: #000; font-weight: 600;
+}
+.btn-danger {
+    background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
+    border: none; color: #fff; font-weight: 600;
+}
+header .btn { padding: 8px 10px; }
+
+header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 12px; z-index: 10;
+}
+.header-left, .header-right { display: flex; gap: 8px; align-items: center; }
+
+/* Circular Progress Bar */
+.progress-circle {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent-green) 0%, rgba(255,255,255,0.1) 0%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s;
+}
+.progress-circle::after {
+    content: '';
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    background: var(--bg-color);
+    border-radius: 50%;
+}
+.progress-circle span {
+    position: relative;
+    z-index: 1;
+    font-size: 0.65rem;
+    font-weight: bold;
+    color: #fff;
+}
+
+main {
+    flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
+    position: relative; overflow: hidden; padding: 0;
+}
+
+
+#match-status-indicator {
+    position: absolute;
+    top: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.7);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: var(--text-secondary);
+    z-index: 10;
+    backdrop-filter: blur(4px);
+    border: 1px solid var(--panel-border);
+    transition: all 0.3s;
+}
+#match-status-indicator.placement { color: #f6d365; border-color: rgba(246, 211, 101, 0.5); }
+#match-status-indicator.ranked { color: #a18cd1; border-color: rgba(161, 140, 209, 0.5); }
+#match-status-indicator.historical { color: #84fab0; border-color: rgba(132, 250, 176, 0.5); }
+#match-status-indicator.executioner { color: #ff0844; border-color: rgba(255, 8, 68, 0.5); }
+
+#media-container {
+    width: 100%; flex: 1; display: flex; justify-content: center;
+    align-items: center; position: relative;
+    min-height: 0;
+    min-width: 0;
+}
+
+video, img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    transition: all 0.3s ease;
+}
+#media-container video {
+    max-width: 100%; max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    user-select: none;
+    pointer-events: auto;
+    transition: all 0.3s ease;
+}
+.media-fit-contain { object-fit: contain !important; max-width: 100% !important; max-height: 100% !important; width: 100% !important; height: 100% !important; }
+.media-fit-cover { object-fit: cover !important; max-width: 100% !important; max-height: 100% !important; width: 100% !important; height: 100% !important; }
+.media-fit-stretch { object-fit: fill !important; max-width: 100% !important; max-height: 100% !important; width: 100% !important; height: 100% !important; }
+.media-fit-original { object-fit: scale-down !important; max-width: 100% !important; max-height: 100% !important; width: 100% !important; height: 100% !important; }
+
+.empty-state { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 20px; max-width: 400px; }
+.empty-state i { font-size: 48px; color: var(--text-secondary); margin-bottom: 10px; }
+.empty-state p { color: var(--text-secondary); line-height: 1.5; }
+
+/* File Info Overlay */
+.file-info {
+    position: absolute; bottom: 10px; left: 10px; padding: 12px 16px; z-index: 20;
+    background: rgba(0,0,0,0.7); border: 1px solid var(--panel-border); border-radius: 8px;
+    backdrop-filter: blur(10px); max-width: calc(100% - 20px);
+}
+.file-name { font-size: 0.9rem; font-weight: 600; word-break: break-all; }
+
+/* Footer & Gesture Controls */
+footer { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; z-index: 10; background: var(--bg-color); border-top: 1px solid var(--panel-border); flex-shrink: 0; }
+
+.gesture-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+    position: relative;
+}
+
+.btn-large {
+    flex: 1;
+    height: 68px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    border-radius: 20px;
+    background: var(--panel-bg);
+    border: 2px solid var(--panel-border);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    touch-action: none; /* Disable browser scrolling on these elements for swipe detection */
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-large.active-view {
+    background: rgba(79, 172, 254, 0.1);
+    border-color: var(--accent-blue);
+}
+
+.winner-bg { background: rgba(0, 255, 0, 0.2) !important; border-color: var(--accent-green) !important; }
+.loser-bg { background: rgba(255, 0, 0, 0.2) !important; border-color: var(--accent-red) !important; }
+
+.score-diff {
+    font-size: 1rem;
+    font-weight: normal;
+    height: 20px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+/* Timeline Controls */
+.timeline-controls {
+    display: flex; justify-content: space-between; gap: 10px; width: 100%;
+}
+.timeline-controls .btn { flex: 1; justify-content: center; }
+
+/* Modals */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
+    background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+.modal {
+    width: 90%; max-width: 700px; max-height: 85dvh; padding: 24px;
+    display: flex; flex-direction: column; gap: 16px; position: relative;
+}
+.modal h2 { font-size: 1.2rem; border-bottom: 1px solid var(--panel-border); padding-bottom: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+.modal-close { position: absolute; top: 20px; right: 20px; background: none; border: none; color: var(--text-secondary); font-size: 1.2rem; cursor: pointer; }
+.modal-body { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 15px; padding-bottom: 12px; }
+.modal-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; }
+
+textarea { width: 100%; height: 200px; background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border); border-radius: 8px; color: #a5d6ff; font-family: monospace; padding: 12px; resize: vertical; }
+select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: var(--text-primary); padding: 8px 12px; border-radius: 6px; width: 100%; }
+
+/* Heatmap inside settings */
+#heatmap-container {
+    display: flex; align-items: flex-end; justify-content: space-between; 
+    width: 100%; padding: 0; overflow: hidden; 
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    height: 40px; margin-top: 5px;
+}
+.heatmap-bar {
+    flex: 1; margin: 0 1px; min-height: 2px;
+    transition: height 0.3s, background-color 0.3s;
+    border-top-left-radius: 2px; border-top-right-radius: 2px;
+}
+
+.hidden { display: none !important; }
+
+#toast {
+    position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 8px;
+    background: rgba(0,0,0,0.9); border: 1px solid rgba(255,255,255,0.2); color: #fff;
+    transform: translateY(-100px); opacity: 0; transition: all 0.3s; z-index: 1000;
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+
+.leaderboard-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px; border-bottom: 1px solid var(--panel-border);
+}
+.leaderboard-item .filename { max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Executioner Checkbox */
+.executioner-checkbox {
+    position: absolute; top: 70px; right: 20px; z-index: 50;
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(0,0,0,0.8); padding: 10px 15px; border-radius: 8px;
+    border: 1px solid var(--panel-border); font-weight: bold; cursor: pointer;
+}
+.executioner-checkbox input { width: 20px; height: 20px; }
     </style>
 </head>
 <body>
-
-    <!-- Header -->
-    <header class="glass-panel">
-        <div class="header-left">
-            <input type="file" id="folder-input" webkitdirectory directory multiple class="hidden">
-            <!-- Removed 'accept' attribute below so Android shows real file managers instead of forcing Media Gallery -->
-            <input type="file" id="file-input" multiple class="hidden">
-            
-            <div>
-                <button class="btn btn-primary" id="btn-load-menu" title="Load Media" onclick="document.getElementById('load-dropdown').classList.toggle('hidden')">
-                    <i class="fa-solid fa-folder-plus"></i>
-                </button>
-            </div>
-            
-            <!-- Filters moved to Modal -->
-            <button class="btn" id="btn-open-filters" title="Filters">
-                <i class="fa-solid fa-filter"></i>
-            </button>
-            
-            <!-- Fullscreen Toggle -->
-            <button class="btn" id="btn-app-fullscreen" title="Toggle App Fullscreen">
-                <i class="fa-solid fa-expand"></i>
-            </button>
-        </div>
+<!-- Header -->
+<header class="glass-panel">
+    <div class="header-left">
+        <input type="file" id="folder-input" webkitdirectory directory multiple class="hidden">
+        <input type="file" id="file-input" multiple class="hidden">
         
-        <div class="header-right">
-            <div class="stats">
-                <div class="stat-item" id="btn-jump-queue" title="Click to jump to a specific position"><span id="queue-count">0/0 (0%)</span></div>
-                <div class="stat-item hidden" id="bg-loading-indicator" style="color: var(--accent-blue);" title="Files are loading in the background"><i class="fa-solid fa-circle-notch fa-spin"></i> <span id="bg-loading-progress">0%</span></div>
-            </div>
-
-            <button class="btn btn-danger" id="btn-purge" title="The Executioner">
-                <i class="fa-solid fa-skull"></i>
-            </button>
-            <!-- Settings moved to Modal -->
-            <button class="btn" id="btn-open-settings" title="Settings">
-                <i class="fa-solid fa-gear" style="color: var(--accent-blue);"></i>
-            </button>
-        </div>
-    </header>
-
-    <!-- Global Load Dropdown -->
-    <div id="load-dropdown" class="glass-panel hidden" style="position: fixed; top: 70px; left: 15px; display: flex; flex-direction: column; gap: 8px; padding: 10px; z-index: 9999; min-width: 140px; border: 1px solid var(--panel-border);">
-        <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="triggerFileLoad('file-input'); document.getElementById('load-dropdown').classList.add('hidden');">
-            <i class="fa-solid fa-file-image"></i> Load Files
+        <button class="btn btn-primary" id="btn-load-menu" onclick="document.getElementById('load-dropdown').classList.toggle('hidden')">
+            <i class="fa-solid fa-folder-plus"></i>
         </button>
-        <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="triggerFileLoad('folder-input'); document.getElementById('load-dropdown').classList.add('hidden');">
-            <i class="fa-solid fa-folder-open"></i> Load Folder
-        </button>
-    </div>
-
-    <!-- Main Content Area -->
-    <main>
-        <div id="media-container">
-            <div class="empty-state glass-panel" style="padding: 40px;">
-                <i class="fa-solid fa-photo-film"></i>
-                <h2>No Media Loaded</h2>
-                <p>Select a folder or a batch of files to begin your triage session.<br>Everything remains locally on your device.</p>
-            </div>
-        </div>
-        <button class="btn hidden" id="btn-media-fullscreen" title="Fullscreen Media Only">
-            <i class="fa-solid fa-expand"></i>
-        </button>
+        <button class="btn" id="btn-open-filters" title="Filters"><i class="fa-solid fa-filter"></i></button>
+        <button class="btn" id="btn-app-fullscreen" title="Toggle Fullscreen"><i class="fa-solid fa-expand"></i></button>
         
-        <!-- file-info-overlay acts as a popup now -->
-        <div class="file-info glass-panel hidden" id="file-info-overlay">
-            <div class="file-name hidden" id="display-filename">filename.jpg</div>
-            <div class="file-size hidden" id="display-filesize">2.4 MB</div>
-            <div class="file-history hidden" id="display-survival" style="font-size: 0.85rem; color: var(--accent-green); margin-top: 5px; pointer-events: auto; cursor: pointer;"><i class="fa-solid fa-circle-info"></i> G1: Unrated</div>
-        </div>
-    </main>
-
-    <!-- Footer Controls -->
-    <footer class="glass-panel">
-        <div class="scoring-section">
-            <div class="score-nav-row" style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; padding: 0 15px; box-sizing: border-box;">
-                <div style="justify-self: start;">
-                    <button class="nav-btn" id="btn-info" title="File Information"><i class="fa-solid fa-circle-info"></i></button>
-                </div>
-                <div style="display: flex; gap: 20px; align-items: center; justify-self: center;">
-                    <button class="nav-btn" id="btn-prev" title="Previous (Left Arrow)"><i class="fa-solid fa-chevron-left"></i></button>
-                    <div class="score-display" id="score-display">0.00</div>
-                    <button class="nav-btn" id="btn-next" title="Next (Right Arrow)"><i class="fa-solid fa-chevron-right"></i></button>
-                </div>
-                <div style="justify-self: end;">
-                </div>
-            </div>
-            <div class="slider-container">
-                <i class="fa-solid fa-trash-can" style="color: var(--accent-red);"></i>
-                <input type="range" id="score-slider" min="-1.0" max="1.0" step="0.01" value="0.00">
-                <i class="fa-solid fa-star" style="color: var(--accent-green);"></i>
-            </div>
-            <div id="heatmap-container">
-                <!-- Heatmap bars injected here -->
-            </div>
-        </div>
-    </footer>
-
-    <!-- Filter/Sort Modal -->
-    <div class="modal-overlay" id="filter-modal">
-        <div class="modal glass-panel" style="width: 75%; max-width: 750px; overflow: visible;">
-            <button class="modal-close" id="close-filter-modal"><i class="fa-solid fa-xmark"></i></button>
-            <h2><i class="fa-solid fa-filter"></i> Filter & Sort</h2>
-            <div class="modal-body" style="overflow: visible;">
-                <div style="margin-bottom: 5px;">
-                    <label>Search Filename</label>
-                    <input type="text" id="search-input" class="form-input" placeholder="e.g. IMG_2023..." style="margin-bottom: 0;">
-                </div>
-                
-                <div class="modal-grid-2">
-                    <div>
-                        <label>Filter By Status</label>
-                        <div class="custom-dropdown" id="dropdown-filter" style="margin-bottom: 0;">
-                            <div class="dropdown-trigger" id="dropdown-filter-trigger">
-                                <span class="selected-text">Show All</span>
-                                <i class="fa-solid fa-chevron-down"></i>
-                            </div>
-                            <div class="dropdown-options glass-panel hidden" id="dropdown-filter-options">
-                                <div class="dropdown-option active" data-dropdown="filter" data-value="all">
-                                    <span class="option-label">Show All</span>
-                                    <span class="option-meta">0 (0%)</span>
-                                </div>
-                                <div class="dropdown-option" data-dropdown="filter" data-value="unrated">
-                                    <span class="option-label">Unrated Only</span>
-                                    <span class="option-meta">0 (0%)</span>
-                                </div>
-                                <div class="dropdown-option" data-dropdown="filter" data-value="rated">
-                                    <span class="option-label">Rated Only</span>
-                                    <span class="option-meta">0 (0%)</span>
-                                </div>
-                                <div class="dropdown-option" data-dropdown="filter" data-value="positive">
-                                    <span class="option-label">Top Tier (&gt; 0.0)</span>
-                                    <span class="option-meta">0 (0%)</span>
-                                </div>
-                                <div class="dropdown-option" data-dropdown="filter" data-value="negative">
-                                    <span class="option-label">Trash (&lt; 0.0)</span>
-                                    <span class="option-meta">0 (0%)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <label>Sort Queue By</label>
-                        <div class="custom-dropdown" id="dropdown-sort" style="margin-bottom: 0;">
-                            <div class="dropdown-trigger" id="dropdown-sort-trigger">
-                                <span class="selected-text">Default (Load Order)</span>
-                                <i class="fa-solid fa-chevron-down"></i>
-                            </div>
-                            <div class="dropdown-options glass-panel hidden" id="dropdown-sort-options">
-                                <div class="dropdown-option active" data-dropdown="sort" data-value="default">Default (Load Order)</div>
-                                <div class="dropdown-option" data-dropdown="sort" data-value="random">Random (Shuffle)</div>
-                                <div class="dropdown-option" data-dropdown="sort" data-value="name-asc">Name (A-Z)</div>
-                                <div class="dropdown-option" data-dropdown="sort" data-value="name-desc">Name (Z-A)</div>
-                                <div class="dropdown-option" data-dropdown="sort" data-value="size-asc">Size (Smallest First)</div>
-                                <div class="dropdown-option" data-dropdown="sort" data-value="size-desc">Size (Largest First)</div>
-                                <div class="dropdown-option" data-dropdown="sort" data-value="score-desc">Score (Highest First)</div>
-                                <div class="dropdown-option" data-dropdown="sort" data-value="score-asc">Score (Lowest First)</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div style="display: flex; gap: 4px;">
+            <button class="btn" id="toggle-image" style="background: rgba(79, 172, 254, 0.4);"><i class="fa-solid fa-image"></i></button>
+            <button class="btn" id="toggle-video"><i class="fa-solid fa-video"></i></button>
         </div>
     </div>
-
-    <!-- Settings Modal -->
-    <div class="modal-overlay" id="settings-modal">
-        <div class="modal glass-panel" style="width: 75%; max-width: 750px; min-height: 560px; overflow: visible; display: flex; flex-direction: column;">
-            <button class="modal-close" id="close-settings-modal"><i class="fa-solid fa-xmark"></i></button>
-            <h2><i class="fa-solid fa-gear"></i> Settings</h2>
-            <div class="modal-body" style="gap: 16px; overflow: visible;">
-                <!-- Backup Actions -->
-                <div class="modal-grid-2" style="gap: 15px; margin-bottom: 10px;">
-                    <button class="btn" id="btn-export" style="justify-content: center; width: 100%; padding: 10px; font-size: 0.9rem; height: 40px;">
-                        <i class="fa-solid fa-upload"></i> Export Backup
-                    </button>
-                    <input type="file" id="import-input" class="hidden">
-                    <button class="btn" onclick="document.getElementById('import-input').click()" style="justify-content: center; width: 100%; padding: 10px; font-size: 0.9rem; height: 40px;">
-                        <i class="fa-solid fa-download"></i> Restore Backup
-                    </button>
-                </div>
-                
-                <!-- Configuration Options -->
-                <div style="margin-bottom: 5px;">
-                    <label style="font-size: 0.85rem; display: block; margin-bottom: 4px;">Auto Backup Interval</label>
-                    <select id="setting-auto-backup" class="form-input" style="margin-bottom: 0; padding: 8px; width: 100%;">
-                        <option value="0">Disabled</option>
-                        <option value="5">Every 5 min</option>
-                        <option value="15">Every 15 min</option>
-                        <option value="30">Every 30 min</option>
-                        <option value="60">Every 1 hour</option>
-                    </select>
-                </div>
-                
-                <div style="margin-bottom: 5px;">
-                    <label style="font-size: 0.85rem; display: block; margin-bottom: 4px;">Heatmap Bucket Width</label>
-                    <select id="setting-heatmap-width" class="form-input" style="margin-bottom: 0; padding: 8px; width: 100%;">
-                        <option value="0.2">0.20 (Coarse)</option>
-                        <option value="0.1">0.10 (Standard)</option>
-                        <option value="0.05">0.05 (Fine)</option>
-                        <option value="0.02">0.02 (Ultra Fine)</option>
-                    </select>
-                </div>
-                
-                <!-- Checkbox Settings -->
-                <div class="checkbox-group" style="margin-bottom: 5px;">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="setting-mute-videos"> Start videos muted
-                    </label>
-                </div>
-                
-                <div class="checkbox-group" style="border-top: 1px solid var(--panel-border); padding-top: 12px; margin-bottom: 5px;">
-                    <span style="font-size: 0.8rem; color: var(--text-secondary); width: 100%; display: block; margin-bottom: 6px;">Info Overlay Options:</span>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="setting-info-filename"> Filename
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="setting-info-size"> Size
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="setting-info-history"> Past Scores
-                    </label>
-                </div>
-                
-                <!-- Reset Actions -->
-                <div class="modal-grid-2" style="border-top: 1px solid var(--panel-border); padding-top: 15px; margin-top: 10px; gap: 15px;">
-                    <button class="btn btn-danger" id="btn-clear-queue" style="justify-content: center; width: 100%; padding: 10px; font-size: 0.9rem; height: 40px;">
-                        <i class="fa-solid fa-trash"></i> Clear Queue
-                    </button>
-                    <button class="btn btn-danger" id="btn-hard-reset" style="justify-content: center; width: 100%; padding: 10px; font-size: 0.9rem; height: 40px;">
-                        <i class="fa-solid fa-bomb"></i> Hard Reset (Wipe)
-                    </button>
-                </div>
-            </div>
+    <div class="header-right">
+        <!-- Circular Progress Bar for Background Loading -->
+        <div class="progress-circle hidden" id="loading-progress" title="Loading Media...">
+            <span id="loading-percent">0%</span>
         </div>
-    </div>
 
-    <!-- Purge Helper Modal -->
-    <div class="modal-overlay" id="purge-modal-overlay">
-        <div class="modal glass-panel">
-            <button class="modal-close" id="close-purge-modal"><i class="fa-solid fa-xmark"></i></button>
-            <h2><i class="fa-solid fa-skull"></i> The Executioner - Staging Area</h2>
-            
-            <div class="modal-body">
-                <p style="font-size: 0.9rem; color: var(--text-secondary);">
-                    Stage files for physical deletion. Staged files will be combined into a script for you to run natively.
-                </p>
-                
-                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                    <label for="purge-threshold">Stage files with score < </label>
-                    <input type="number" id="purge-threshold" class="form-input" value="-0.5" step="0.1" min="-1.0" max="1.0" style="width: 80px; margin:0;">
-                    <button class="btn btn-primary" id="btn-stage-files">Stage Files</button>
-                    <button class="btn btn-danger" id="btn-clear-staged">Clear Staged</button>
-                </div>
-                
-                <ul class="staged-list" id="staged-list">
-                    <!-- Staged items injected here -->
-                    <div style="padding: 10px; text-align: center; color: var(--text-secondary);">No files staged.</div>
-                </ul>
-                
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span id="purge-stats" style="font-size: 0.85rem; color: var(--text-secondary);">0 files selected for execution.</span>
-                    <button class="btn btn-danger" id="btn-generate-script"><i class="fa-solid fa-code"></i> Generate Script</button>
-                </div>
-                
-                <div id="script-container" class="hidden">
-                    <div class="tabs">
-                        <button class="tab active" data-target="script-python">Python</button>
-                        <button class="tab" data-target="script-bash">Bash (Linux/Termux)</button>
-                        <button class="tab" data-target="script-cmd">Windows CMD</button>
-                    </div>
-                    <textarea id="script-output" readonly></textarea>
-                    
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                        <div id="execution-instructions" style="font-size: 0.8rem; color: var(--text-secondary); max-width: 70%;"></div>
-                        <button class="btn" id="btn-copy-script">
-                            <i class="fa-regular fa-copy"></i> Copy Script
-                        </button>
-                    </div>
-                </div>
-            </div>
+        <button class="btn btn-primary" id="btn-open-leaderboard" title="Leaderboard"><i class="fa-solid fa-ranking-star"></i></button>
+        <button class="btn btn-danger" id="btn-purge" title="The Executioner"><i class="fa-solid fa-skull"></i></button>
+        <button class="btn" id="btn-open-settings" title="Settings"><i class="fa-solid fa-gear"></i></button>
+    </div>
+</header>
+
+<div id="load-dropdown" class="glass-panel hidden" style="position: fixed; top: 70px; left: 15px; display: flex; flex-direction: column; gap: 8px; padding: 10px; z-index: 9999; min-width: 140px;">
+    <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('file-input').click(); document.getElementById('load-dropdown').classList.add('hidden');"><i class="fa-solid fa-file-image"></i> Load Files</button>
+    <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('folder-input').click(); document.getElementById('load-dropdown').classList.add('hidden');"><i class="fa-solid fa-folder-open"></i> Load Folder</button>
+</div>
+
+<!-- Main Content Area -->
+<main id="main-area" style="display: flex; flex-direction: column; overflow: hidden; flex: 1;">
+
+    
+    <div id="match-status-indicator" class="hidden">Ranked Match</div>
+
+    <!-- Executioner Checkbox (Hidden normally) -->
+    <label class="executioner-checkbox hidden" id="executioner-check-container">
+        <input type="checkbox" id="executioner-checkbox" checked>
+        Delete File
+    </label>
+
+    <div id="media-container">
+        <div class="empty-state glass-panel" style="padding: 40px;">
+            <i class="fa-solid fa-photo-film"></i>
+            <h2>No Media Loaded</h2>
+            <p>Select a folder to begin Elo matchmaking.</p>
         </div>
     </div>
     
-    <!-- Loading Overlay -->
-    <div class="modal-overlay" id="loading-overlay" style="z-index: 9999;">
-        <div style="display:flex; flex-direction:column; align-items:center; gap: 15px;">
-            <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 3rem; color: var(--accent-blue);"></i>
-            <h2 style="color: white; margin: 0;">Processing Files...</h2>
-            <p style="color: var(--text-secondary); margin: 0;" id="loading-text">Please wait</p>
+    <div class="file-info glass-panel hidden" id="file-info-overlay">
+        <div class="file-name" id="display-filename"></div>
+    </div>
+</main>
+
+<!-- Footer Controls -->
+<footer class="glass-panel">
+    <div style="display: flex; justify-content: center; align-items: center; padding: 0 10px; position: relative; min-height: 44px;">
+        <div style="position: absolute; left: 10px; display: flex; gap: 8px;">
+            <button class="btn btn-secondary" id="btn-undo" title="Undo Last Match"><i class="fa-solid fa-rotate-left"></i> Undo</button>
+        <button class="btn btn-secondary" id="btn-skip" title="Skip Match"><i class="fa-solid fa-forward-step"></i> Skip</button>
+        <button class="btn btn-secondary" id="btn-info" title="Toggle Info"><i class="fa-solid fa-circle-info"></i> Info</button>
         </div>
+        <button class="btn" id="btn-toggle-fit" title="Cycle Media Fit" style="position: absolute; right: 10px; width: 44px;"><i class="fa-solid fa-compress"></i></button>
+    </div>
+    
+    <div class="gesture-controls" id="gesture-controls">
+        <button class="btn-large" id="btn-a">
+            <span>A</span>
+            <div class="score-diff" id="float-a"></div>
+        </button>
+        <div id="vs-badge" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 80px; font-weight: bold; color: var(--text-secondary);">
+            <span style="font-size: 0.8rem;">MATCHUP</span>
+            <span id="vs-score-text" style="font-size: 1.1rem; color: var(--text-primary); margin-top: 4px;"></span>
+        </div>
+        <button class="btn-large" id="btn-b">
+            <span>B</span>
+            <div class="score-diff" id="float-b"></div>
+        </button>
     </div>
 
-    <!-- Toast Notification -->
-    <div id="toast">Settings Saved</div>
+    <!-- Timeline Controls (Hidden by Default) -->
+    <div class="timeline-controls hidden" id="timeline-controls">
+        <button class="btn" id="btn-prev-match"><i class="fa-solid fa-chevron-left"></i> Previous</button>
+        <button class="btn btn-danger" id="btn-exit-review">Exit Mode</button>
+        <button class="btn" id="btn-next-match">Next <i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+</footer>
 
-    <!-- Fullscreen Viewer Overlay for Thumbnails with Zoom -->
-    <div id="fullscreen-viewer">
-        <button class="close-viewer" id="btn-close-viewer"><i class="fa-solid fa-xmark"></i></button>
-        <div id="fullscreen-viewer-content"></div>
-        <div class="viewer-controls">
-            <button class="btn btn-icon-small" id="btn-zoom-out" style="background: rgba(0,0,0,0.6);"><i class="fa-solid fa-minus"></i></button>
-            <button class="btn btn-icon-small" id="btn-zoom-reset" style="background: rgba(0,0,0,0.6); font-size: 0.8rem;">1:1</button>
-            <button class="btn btn-icon-small" id="btn-zoom-in" style="background: rgba(0,0,0,0.6);"><i class="fa-solid fa-plus"></i></button>
+<!-- Modals -->
+<div class="modal-overlay" id="filter-modal">
+    <div class="modal glass-panel" style="width: 75%; max-width: 500px;">
+        <button class="modal-close" id="close-filter-modal"><i class="fa-solid fa-xmark"></i></button>
+        <h2><i class="fa-solid fa-filter"></i> Filters</h2>
+        <div class="modal-body">
+            <label>Search Filename</label>
+            <input type="text" id="search-input" class="form-input" placeholder="e.g. IMG_2023...">
+            <label>Status Filter (Dynamic Percentiles)</label>
+            <select id="filter-select" class="form-input">
+                <option value="all">Show All</option>
+                <option value="unrated">Unrated (Matches = 0)</option>
+                <option value="rated">Rated (Matches > 0)</option>
+                <option value="positive" id="opt-positive">Top Tier (Top 25%)</option>
+                <option value="negative" id="opt-negative">Trash (Bottom 25%)</option>
+            </select>
         </div>
     </div>
+</div>
 
-    <!-- Application Logic -->
-    <script>
-        // --- State Management ---
-        const state = {
-            allFiles: [],
-            filteredFiles: [],
-            stagedFilesMap: new Map(), // key: id, value: file object
-            currentIndex: -1,
-            ratings: {}, // key: name_size -> { score: float, survivalCount: int, scoreHistory: [float] }
-            currentObjectURL: null,
-            filter: 'all',
-            sort: 'default',
-            loadingSessionId: null
-        };
-
-        let appSettings = {
-            muteVideos: false,
-            heatmapBucketWidth: 0.1,
-            infoShowFilename: true,
-            infoShowSize: true,
-            infoShowHistory: true,
-            autoBackupInterval: 0
-        };
-
-        let currentScale = 1;
-
-        // --- DOM Elements ---
-        const elements = {
-            folderInput: document.getElementById('folder-input'),
-            fileInput: document.getElementById('file-input'),
-            mediaContainer: document.getElementById('media-container'),
-            slider: document.getElementById('score-slider'),
-            heatmapContainer: document.getElementById('heatmap-container'),
-            scoreDisplay: document.getElementById('score-display'),
-            btnPrev: document.getElementById('btn-prev'),
-            btnNext: document.getElementById('btn-next'),
-            queueCount: document.getElementById('queue-count'),
-            fileInfoOverlay: document.getElementById('file-info-overlay'),
-            displayFilename: document.getElementById('display-filename'),
-            displayFilesize: document.getElementById('display-filesize'),
-            displaySurvival: document.getElementById('display-survival'),
+<div class="modal-overlay" id="settings-modal">
+    <div class="modal glass-panel" style="width: 75%; max-width: 600px;">
+        <button class="modal-close" id="close-settings-modal"><i class="fa-solid fa-xmark"></i></button>
+        <h2><i class="fa-solid fa-gear"></i> Settings</h2>
+        <div class="modal-body">
+            <div class="modal-grid-2">
+                <button class="btn" id="btn-export"><i class="fa-solid fa-upload"></i> Export Backup</button>
+                <input type="file" id="import-input" class="hidden">
+                <button class="btn" onclick="document.getElementById('import-input').click()"><i class="fa-solid fa-download"></i> Restore Backup</button>
+            </div>
+            <div class="modal-grid-2">
+                <div>
+                    <label>Leaderboard Display Size</label>
+                    <input type="number" id="setting-leaderboard-size" class="form-input" value="32">
+                </div>
+                <div>
+                    <label>Auto Backup (Mins, 0 to disable)</label>
+                    <input type="number" id="setting-auto-backup" class="form-input" value="0">
+                </div>
+            </div>
             
-            btnOpenFilters: document.getElementById('btn-open-filters'),
-            filterModal: document.getElementById('filter-modal'),
-            closeFilterModal: document.getElementById('close-filter-modal'),
-            searchInput: document.getElementById('search-input'),
+            <label style="margin-top:10px;">Elo Heatmap</label>
+            <div id="heatmap-container"></div>
             
-            btnOpenSettings: document.getElementById('btn-open-settings'),
-            settingsModal: document.getElementById('settings-modal'),
-            closeSettingsModal: document.getElementById('close-settings-modal'),
-            btnExport: document.getElementById('btn-export'),
-            importInput: document.getElementById('import-input'),
-            btnHardReset: document.getElementById('btn-hard-reset'),
-            settingMuteVideos: document.getElementById('setting-mute-videos'),
-            settingHeatmapWidth: document.getElementById('setting-heatmap-width'),
-            settingAutoBackup: document.getElementById('setting-auto-backup'),
-            
-            btnPurge: document.getElementById('btn-purge'),
-            purgeModal: document.getElementById('purge-modal-overlay'),
-            closePurgeModal: document.getElementById('close-purge-modal'),
-            btnStageFiles: document.getElementById('btn-stage-files'),
-            btnClearStaged: document.getElementById('btn-clear-staged'),
-            stagedList: document.getElementById('staged-list'),
-            btnGenerateScript: document.getElementById('btn-generate-script'),
-            scriptContainer: document.getElementById('script-container'),
-            scriptOutput: document.getElementById('script-output'),
-            tabs: document.querySelectorAll('.tab'),
-            btnCopyScript: document.getElementById('btn-copy-script'),
-            purgeThreshold: document.getElementById('purge-threshold'),
-            purgeStats: document.getElementById('purge-stats'),
-            executionInstructions: document.getElementById('execution-instructions'),
-            
-            toast: document.getElementById('toast'),
-            btnClearQueue: document.getElementById('btn-clear-queue'),
-            btnAppFullscreen: document.getElementById('btn-app-fullscreen'),
-            btnMediaFullscreen: document.getElementById('btn-media-fullscreen'),
-            btnInfo: document.getElementById('btn-info'),
-            settingInfoFilename: document.getElementById('setting-info-filename'),
-            settingInfoSize: document.getElementById('setting-info-size'),
-            settingInfoHistory: document.getElementById('setting-info-history'),
-            
-            fullscreenViewer: document.getElementById('fullscreen-viewer'),
-            fullscreenViewerContent: document.getElementById('fullscreen-viewer-content'),
-            btnCloseViewer: document.getElementById('btn-close-viewer'),
-            btnZoomIn: document.getElementById('btn-zoom-in'),
-            btnZoomOut: document.getElementById('btn-zoom-out'),
-            btnZoomReset: document.getElementById('btn-zoom-reset'),
-            bgLoadingIndicator: document.getElementById('bg-loading-indicator'),
-            bgLoadingProgress: document.getElementById('bg-loading-progress')
-        };
+            <div class="modal-grid-2" style="margin-top:5px;">
+                <div>
+                    <label>Heatmap Min Elo</label>
+                    <input type="number" id="setting-heatmap-min" class="form-input" value="400">
+                </div>
+                <div>
+                    <label>Heatmap Max Elo</label>
+                    <input type="number" id="setting-heatmap-max" class="form-input" value="1200">
+                </div>
+                <div>
+                    <label>Heatmap Bucket Size</label>
+                    <input type="number" id="setting-heatmap-width" class="form-input" value="50">
+                </div>
+                <div>
+                    <label>Default Media Fit</label>
+                    <select id="setting-default-fit" class="form-input">
+                        <option value="contain">Fit Screen</option>
+                        <option value="cover">Center Crop</option>
+                        <option value="stretch">Stretch</option>
+                        <option value="original">Original Size</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-top: 15px;">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                    <input type="checkbox" id="setting-start-muted" style="width:18px;height:18px;">
+                    Start Videos Muted
+                </label>
+            </div>
+            <button class="btn btn-danger" id="btn-hard-reset" style="margin-top: 15px;"><i class="fa-solid fa-bomb"></i> Hard Reset (Wipe All Data)</button>
+        </div>
+    </div>
+</div>
 
-        let currentScriptType = 'script-python';
-        let generatedScripts = { 'script-python': '', 'script-bash': '', 'script-cmd': '' };
+<div class="modal-overlay" id="leaderboard-modal">
+    <div class="modal glass-panel" style="width: 90%; max-width: 700px; height: 80vh;">
+        <button class="modal-close" id="close-leaderboard-modal"><i class="fa-solid fa-xmark"></i></button>
+        <h2><i class="fa-solid fa-ranking-star"></i> Leaderboard</h2>
+        <div class="modal-body" style="flex-direction: row; gap: 20px;">
+            <div style="flex: 1; border-right: 1px solid var(--panel-border); padding-right: 10px; overflow-y:auto;">
+                <h3 style="margin-bottom: 10px; color: var(--accent-green);">Top Tier</h3>
+                <div id="leaderboard-top-list"></div>
+            </div>
+            <div style="flex: 1; padding-left: 10px; overflow-y:auto;">
+                <h3 style="margin-bottom: 10px; color: var(--accent-red);">Bottom Tier</h3>
+                <div id="leaderboard-bottom-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
-        function init() {
-            loadRatingsFromStorage();
-            loadSettingsFromStorage();
-            renderHeatmap();
-            setupEventListeners();
-            setupCustomDropdowns();
-            updateFilterCountsAndPercentages();
+<div class="modal-overlay" id="purge-modal-overlay">
+    <div class="modal glass-panel">
+        <button class="modal-close" id="close-purge-modal"><i class="fa-solid fa-xmark"></i></button>
+        <h2><i class="fa-solid fa-skull"></i> The Executioner</h2>
+        <div class="modal-body">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <label>Stage files with Elo < </label>
+                <input type="number" id="purge-threshold" class="form-input" value="700" style="width: 100px; margin:0;">
+                <button class="btn btn-primary" id="btn-stage-files">Stage Files</button>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                <span id="purge-stats">0 files staged.</span>
+                <button class="btn btn-danger" id="btn-clear-staged">Clear All</button>
+            </div>
+            <button class="btn btn-primary" id="btn-review-staged" style="width: 100%; margin-top: 10px;"><i class="fa-solid fa-eye"></i> Immersive Review & Generate Script</button>
+            <div id="script-container" class="hidden" style="margin-top: 10px;">
+                <textarea id="script-output" readonly></textarea>
+                <button class="btn" id="btn-copy-script" style="margin-top: 10px;"><i class="fa-solid fa-copy"></i> Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const state = {
+    images: [],
+    videos: [],
+    ratings: {}, // key: id -> { elo: 800, matches: 0, history: [] }
+    stagedFilesMap: new Map(), // id -> file object
+    currentPair: null, // { a: file, b: file }
+    leaderboardType: 'image', // 'image' or 'video'
+    filter: 'all',
+    activeView: 'A', // 'A' or 'B'
+    appMode: 'matchmaking', // 'matchmaking', 'history', 'executioner'
+    
+    // History Simulation State
+    historyQueue: [], // Array of history objects for the selected file
+    historyIndex: 0,
+    historyFile: null, // The file whose history we are viewing
+    
+    // Executioner Review State
+    executionerQueue: [], // Array of staged file objects
+    executionerIndex: 0,
+    isAnimating: false,
+    infoVisible: false,
+    fitMode: 'contain',
+    hasSeenA: false,
+    hasSeenB: false,
+    undoStack: [],
+    priorityQueue: []
+};
+
+let appSettings = {
+    heatmapMin: 400,
+    heatmapMax: 1200,
+    heatmapBucketWidth: 50,
+    autoBackupInterval: 0,
+    leaderboardSize: 32,
+    defaultFitMode: 'contain',
+    startMuted: true
+};
+
+let elements = {};
+let autoBackupIntervalId = null;
+let objectUrlA = null;
+let objectUrlB = null;
+
+function init() {
+    bindElements();
+    loadRatingsFromStorage();
+    loadSettingsFromStorage();
+    setupEventListeners();
+    updateFilterCountsAndPercentages();
+    renderHeatmap();
+}
+
+function bindElements() {
+    elements = {
+        folderInput: document.getElementById('folder-input'),
+        fileInput: document.getElementById('file-input'),
+        mediaContainer: document.getElementById('media-container'),
+        fileInfoOverlay: document.getElementById('file-info-overlay'),
+        displayFilename: document.getElementById('display-filename'),
+        searchInput: document.getElementById('search-input'),
+        filterSelect: document.getElementById('filter-select'),
+        optPositive: document.getElementById('opt-positive'),
+        optNegative: document.getElementById('opt-negative'),
+        heatmapContainer: document.getElementById('heatmap-container'),
+        btnOpenSettings: document.getElementById('btn-open-settings'),
+        settingsModal: document.getElementById('settings-modal'),
+        closeSettingsModal: document.getElementById('close-settings-modal'),
+        filterModal: document.getElementById('filter-modal'),
+        btnOpenFilters: document.getElementById('btn-open-filters'),
+        closeFilterModal: document.getElementById('close-filter-modal'),
+        
+        btnA: document.getElementById('btn-a'),
+        btnB: document.getElementById('btn-b'),
+        vsScoreText: document.getElementById('vs-score-text'),
+        floatA: document.getElementById('float-a'),
+        floatB: document.getElementById('float-b'),
+        btnUndo: document.getElementById('btn-undo'),
+        btnSkip: document.getElementById('btn-skip'),
+        btnInfo: document.getElementById('btn-info'),
+        btnToggleFit: document.getElementById('btn-toggle-fit'),
+        
+
+        matchStatusIndicator: document.getElementById('match-status-indicator'),
+        
+        gestureControls: document.getElementById('gesture-controls'),
+        timelineControls: document.getElementById('timeline-controls'),
+        btnPrevMatch: document.getElementById('btn-prev-match'),
+        btnNextMatch: document.getElementById('btn-next-match'),
+        btnExitReview: document.getElementById('btn-exit-review'),
+        
+        executionerCheckContainer: document.getElementById('executioner-check-container'),
+        executionerCheckbox: document.getElementById('executioner-checkbox'),
+        
+        toast: document.getElementById('toast'),
+        purgeModal: document.getElementById('purge-modal-overlay'),
+        btnPurge: document.getElementById('btn-purge'),
+        closePurgeModal: document.getElementById('close-purge-modal'),
+        btnStageFiles: document.getElementById('btn-stage-files'),
+        btnClearStaged: document.getElementById('btn-clear-staged'),
+        btnReviewStaged: document.getElementById('btn-review-staged'),
+        scriptContainer: document.getElementById('script-container'),
+        scriptOutput: document.getElementById('script-output'),
+        btnCopyScript: document.getElementById('btn-copy-script'),
+        purgeThreshold: document.getElementById('purge-threshold'),
+        purgeStats: document.getElementById('purge-stats'),
+        btnExport: document.getElementById('btn-export'),
+        importInput: document.getElementById('import-input'),
+        btnHardReset: document.getElementById('btn-hard-reset'),
+        btnAppFullscreen: document.getElementById('btn-app-fullscreen'),
+        
+        leaderboardModal: document.getElementById('leaderboard-modal'),
+        closeLeaderboardModal: document.getElementById('close-leaderboard-modal'),
+        btnOpenLeaderboard: document.getElementById('btn-open-leaderboard'),
+        leaderboardTopList: document.getElementById('leaderboard-top-list'),
+        leaderboardBottomList: document.getElementById('leaderboard-bottom-list'),
+        
+        toggleImage: document.getElementById('toggle-image'),
+        toggleVideo: document.getElementById('toggle-video'),
+        
+        loadingProgress: document.getElementById('loading-progress'),
+        loadingPercent: document.getElementById('loading-percent')
+    };
+}
+
+function getFileId(file) { return `${file.name}_${file.size}`; }
+function showToast(msg) {
+    if(!elements.toast) return;
+    elements.toast.textContent = msg;
+    elements.toast.classList.add('show');
+    setTimeout(() => elements.toast.classList.remove('show'), 3000);
+}
+
+function loadSettingsFromStorage() {
+    try {
+        const stored = localStorage.getItem('eloSorterSettings');
+        if (stored) appSettings = { ...appSettings, ...JSON.parse(stored) };
+        
+        document.getElementById('setting-auto-backup').value = appSettings.autoBackupInterval;
+        document.getElementById('setting-heatmap-min').value = appSettings.heatmapMin;
+        document.getElementById('setting-heatmap-max').value = appSettings.heatmapMax;
+        document.getElementById('setting-heatmap-width').value = appSettings.heatmapBucketWidth;
+        document.getElementById('setting-default-fit').value = appSettings.defaultFitMode || 'contain';
+        document.getElementById('setting-start-muted').checked = appSettings.startMuted !== false;
+        document.getElementById('setting-leaderboard-size').value = appSettings.leaderboardSize || 32;
+        
+        state.fitMode = appSettings.defaultFitMode || 'contain';
+        const icons = { 'contain': 'fa-compress', 'cover': 'fa-crop-simple', 'stretch': 'fa-expand', 'original': 'fa-maximize' };
+        elements.btnToggleFit.innerHTML = `<i class="fa-solid ${icons[state.fitMode] || 'fa-compress'}"></i>`;
+        
+        if (appSettings.autoBackupInterval > 0) {
+            autoBackupIntervalId = setInterval(() => {
+                if (Object.keys(state.ratings).length > 0) exportRatings(true);
+            }, appSettings.autoBackupInterval * 60 * 1000);
+        }
+    } catch (e) { console.error(e); }
+}
+
+function saveSettingsToStorage() {
+    try {
+        appSettings.autoBackupInterval = parseInt(document.getElementById('setting-auto-backup').value) || 0;
+        appSettings.heatmapMin = parseInt(document.getElementById('setting-heatmap-min').value) || 400;
+        appSettings.heatmapMax = parseInt(document.getElementById('setting-heatmap-max').value) || 1200;
+        appSettings.heatmapBucketWidth = parseInt(document.getElementById('setting-heatmap-width').value) || 50;
+        appSettings.defaultFitMode = document.getElementById('setting-default-fit').value;
+        appSettings.startMuted = document.getElementById('setting-start-muted').checked;
+        appSettings.leaderboardSize = parseInt(document.getElementById('setting-leaderboard-size').value) || 32;
+        localStorage.setItem('eloSorterSettings', JSON.stringify(appSettings));
+        
+        state.fitMode = appSettings.defaultFitMode;
+        const icons = { 'contain': 'fa-compress', 'cover': 'fa-crop-simple', 'stretch': 'fa-expand', 'original': 'fa-maximize' };
+        elements.btnToggleFit.innerHTML = `<i class="fa-solid ${icons[state.fitMode] || 'fa-compress'}"></i>`;
+        if (state.currentPair) renderCurrentMedia();
+        
+        if (autoBackupIntervalId) clearInterval(autoBackupIntervalId);
+        if (appSettings.autoBackupInterval > 0) {
+            autoBackupIntervalId = setInterval(() => {
+                if (Object.keys(state.ratings).length > 0) exportRatings(true);
+            }, appSettings.autoBackupInterval * 60 * 1000);
+        }
+        renderHeatmap();
+        showToast("Settings saved.");
+    } catch (e) {
+        alert("Error saving settings: " + e.message + "\n" + e.stack);
+        console.error(e);
+    }
+}
+
+function loadRatingsFromStorage() {
+    try {
+        const stored = localStorage.getItem('eloSorterRatings');
+        if (stored) state.ratings = JSON.parse(stored);
+    } catch (e) { console.error(e); }
+}
+function saveRatingsToStorage() { localStorage.setItem('eloSorterRatings', JSON.stringify(state.ratings)); }
+
+// Background Loading Logic
+let loadingQueue = [];
+let totalLoading = 0;
+let loadedCount = 0;
+let loadingStartTime = 0;
+let isProcessRunning = false;
+
+function handleFilesSelected(event) {
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
+    
+    if (isProcessRunning) {
+        loadingQueue = loadingQueue.concat(files);
+        totalLoading += files.length;
+        return;
+    }
+    
+    isProcessRunning = true;
+    loadingQueue = files;
+    totalLoading = files.length;
+    loadedCount = 0;
+    loadingStartTime = Date.now();
+    
+    elements.loadingProgress.classList.remove('hidden');
+    elements.loadingPercent.textContent = "0%";
+    elements.loadingProgress.style.background = `conic-gradient(var(--accent-green) 0%, rgba(255,255,255,0.1) 0%)`;
+    
+    setTimeout(processLoadingQueue, 0);
+}
+
+function processLoadingQueue() {
+    if (loadingQueue.length === 0) {
+        isProcessRunning = false;
+        elements.loadingProgress.classList.add('hidden');
+        saveRatingsToStorage();
+        updatePercentileFilters();
+        
+        const seconds = Math.round((Date.now() - loadingStartTime) / 1000);
+        showToast(`Loaded ${totalLoading} files in ${seconds}s.`);
+        return;
+    }
+
+    const batch = loadingQueue.splice(0, 2); // Batch size 2
+    let didAdd = false;
+    
+    batch.forEach(f => {
+        let isImage = false, isVideo = false;
+        if (f.type) {
+            isImage = f.type.startsWith('image/');
+            isVideo = f.type.startsWith('video/');
+        } else {
+            isImage = /\.(jpe?g|png|gif|webp)$/i.test(f.name);
+            isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(f.name);
         }
 
-        // --- Core Helpers ---
-        let autoBackupIntervalId = null;
+        const id = getFileId(f);
+        if (isImage) {
+            if(!state.images.find(img => getFileId(img) === id)) { state.images.push(f); didAdd = true; }
+        } else if (isVideo) {
+            if(!state.videos.find(vid => getFileId(vid) === id)) { state.videos.push(f); didAdd = true; }
+        }
 
-        function startAutoBackupTimer() {
-            if (autoBackupIntervalId) {
-                clearInterval(autoBackupIntervalId);
-                autoBackupIntervalId = null;
+        if (didAdd && !state.ratings[id]) {
+            state.ratings[id] = { elo: 800, matches: 0, history: [] };
+        }
+    });
+
+    loadedCount += batch.length;
+    const pct = Math.floor((loadedCount / totalLoading) * 100);
+    elements.loadingPercent.textContent = `${pct}%`;
+    elements.loadingProgress.style.background = `conic-gradient(var(--accent-green) ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
+
+    if (didAdd && !state.currentPair && state.appMode === 'matchmaking') {
+        pickNextPair();
+    }
+    
+    setTimeout(processLoadingQueue, 0);
+}
+
+function updatePercentileFilters() {
+    const list = state.leaderboardType === 'image' ? state.images : state.videos;
+    const elos = list.map(f => state.ratings[getFileId(f)]?.elo || 800).sort((a,b) => a - b);
+    if (elos.length === 0) return;
+    
+    const p25 = elos[Math.floor(elos.length * 0.25)];
+    const p75 = elos[Math.floor(elos.length * 0.75)];
+    
+    elements.optPositive.textContent = `Top Tier (> ${Math.round(p75)})`;
+    elements.optNegative.textContent = `Trash (< ${Math.round(p25)})`;
+    
+    // Store dynamically for filter use
+    state.p25 = p25;
+    state.p75 = p75;
+    updateFilterCountsAndPercentages();
+}
+
+function getActiveList() {
+    let baseList = state.leaderboardType === 'image' ? state.images : state.videos;
+    const searchStr = elements.searchInput.value.toLowerCase().trim();
+    
+    return baseList.filter(file => {
+        if (searchStr && !file.name.toLowerCase().includes(searchStr)) return false;
+        const id = getFileId(file);
+        const rating = state.ratings[id];
+        
+        if (state.filter === 'unrated' && rating.matches > 0) return false;
+        if (state.filter === 'rated' && rating.matches === 0) return false;
+        if (state.filter === 'positive' && rating.elo <= (state.p75 || 1200)) return false; 
+        if (state.filter === 'negative' && rating.elo >= (state.p25 || 800)) return false; 
+        return true;
+    });
+}
+
+
+function pickNextPair() {
+    const list = getActiveList();
+    if (list.length < 2) {
+        state.currentPair = null;
+        renderCurrentMedia();
+        return;
+    }
+
+    if (!state.priorityQueue) state.priorityQueue = [];
+    state.priorityQueue = state.priorityQueue.filter(id => list.some(f => getFileId(f) === id));
+
+    const candidates = [...list];
+    for (let i = candidates.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+    candidates.sort((a, b) => state.ratings[getFileId(a)].matches - state.ratings[getFileId(b)].matches);
+    
+    let itemA = null;
+    let itemB = null;
+    let ratingA = null;
+
+    let searchPool = candidates;
+    if (state.priorityQueue.length > 0) {
+        const priorityCandidates = candidates.filter(f => state.priorityQueue.includes(getFileId(f)));
+        const otherCandidates = candidates.filter(f => !state.priorityQueue.includes(getFileId(f)));
+        searchPool = [...priorityCandidates, ...otherCandidates];
+    }
+
+    for (const candidateA of searchPool) {
+        const idA = getFileId(candidateA);
+        const rA = state.ratings[idA];
+        
+        const others = candidates.filter(f => {
+            const id = getFileId(f);
+            return id !== idA && !rA.history.some(h => h.opponentId === id);
+        });
+        
+        if (others.length > 0) {
+            itemA = candidateA;
+            ratingA = rA;
+            
+            if (rA.matches < 5) {
+                const pool = others.slice(0, Math.min(others.length, 50));
+                itemB = pool[Math.floor(Math.random() * pool.length)];
+            } else {
+                const validOthers = others.map(f => {
+                    return { file: f, diff: Math.abs(state.ratings[getFileId(f)].elo - rA.elo) };
+                });
+                validOthers.sort((a, b) => a.diff - b.diff);
+                const topN = Math.min(validOthers.length, 10);
+                itemB = validOthers[Math.floor(Math.random() * topN)].file;
             }
-            if (appSettings.autoBackupInterval > 0) {
-                autoBackupIntervalId = setInterval(() => {
-                    if (Object.keys(state.ratings).length > 0) {
-                        exportRatings(true);
-                    }
-                }, appSettings.autoBackupInterval * 60 * 1000);
-            }
+            break;
+        }
+    }
+
+    if (!itemA || !itemB) {
+        state.currentPair = null;
+        elements.mediaContainer.innerHTML = `<div class="empty-state glass-panel" style="padding: 40px;"><i class="fa-solid fa-flag-checkered"></i><h2>Matchups Complete!</h2><p>All possible pairs for these files have been evaluated.</p></div>`;
+        elements.fileInfoOverlay.classList.add('hidden');
+        elements.btnA.classList.add('hidden'); elements.btnB.classList.add('hidden');
+        if (elements.vsScoreText) elements.vsScoreText.textContent = '';
+        return;
+    }
+
+    const idB = getFileId(itemB);
+    const eloA = ratingA.elo;
+    const eloB = state.ratings[idB].elo;
+
+    if (eloA > eloB) {
+        state.currentPair = { a: itemB, b: itemA };
+    } else {
+        state.currentPair = { a: itemA, b: itemB };
+    }
+    
+    state.activeView = 'A';
+    state.hasSeenA = true;
+    state.hasSeenB = false;
+    renderCurrentMedia();
+}
+
+function calculateElo(ratingA, ratingB, sA, sB) {
+    const kA = ratingA.matches < 5 ? 128 : 32;
+    const kB = ratingB.matches < 5 ? 128 : 32;
+    const eA = 1 / (1 + Math.pow(10, (ratingB.elo - ratingA.elo) / 400));
+    const eB = 1 / (1 + Math.pow(10, (ratingA.elo - ratingB.elo) / 400));
+    return { newEloA: ratingA.elo + kA * (sA - eA), newEloB: ratingB.elo + kB * (sB - eB) };
+}
+
+function triggerAnimation(winner, changeA, changeB) {
+    elements.floatA.textContent = changeA >= 0 ? `+${changeA}` : `${changeA}`;
+    elements.floatA.style.color = changeA >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+    elements.floatB.textContent = changeB >= 0 ? `+${changeB}` : `${changeB}`;
+    elements.floatB.style.color = changeB >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+    
+    elements.floatA.style.opacity = '1';
+    elements.floatB.style.opacity = '1';
+    
+    if (winner === 'A') {
+        elements.btnA.classList.add('winner-bg');
+        elements.btnB.classList.add('loser-bg');
+    } else if (winner === 'B') {
+        elements.btnB.classList.add('winner-bg');
+        elements.btnA.classList.add('loser-bg');
+    }
+
+    setTimeout(() => {
+        state.isAnimating = false;
+        elements.floatA.style.opacity = '0';
+        elements.floatB.style.opacity = '0';
+        elements.btnA.classList.remove('winner-bg', 'loser-bg');
+        elements.btnB.classList.remove('winner-bg', 'loser-bg');
+        pickNextPair();
+    }, 800);
+}
+
+function castVote(winner) {
+    if (!state.currentPair || state.appMode !== 'matchmaking' || state.isAnimating) return;
+    
+    if (!state.hasSeenB || !state.hasSeenA) {
+        showToast("Please view both media before voting!");
+        return;
+    }
+    
+    state.isAnimating = true;
+    
+    const idA = getFileId(state.currentPair.a);
+    const idB = getFileId(state.currentPair.b);
+    const rA = state.ratings[idA];
+    const rB = state.ratings[idB];
+
+    state.undoStack.push({
+        pair: { a: state.currentPair.a, b: state.currentPair.b },
+        idA: idA, idB: idB,
+        eloA: rA.elo, eloB: rB.elo,
+        matchesA: rA.matches, matchesB: rB.matches,
+        priorityQueueSnapshot: [...(state.priorityQueue || [])]
+    });
+    
+    if (!state.priorityQueue) state.priorityQueue = [];
+    
+    if (winner === 'Skip') {
+        if (!state.priorityQueue.includes(idA)) state.priorityQueue.push(idA);
+        if (!state.priorityQueue.includes(idB)) state.priorityQueue.push(idB);
+    } else {
+        state.priorityQueue = state.priorityQueue.filter(id => id !== idA && id !== idB);
+    }
+
+    const sA = winner === 'A' ? 1 : 0;
+    const sB = winner === 'B' ? 1 : 0;
+    const preEloA = rA.elo;
+    const preEloB = rB.elo;
+    
+    let diffA = 0, diffB = 0;
+    
+    if (winner !== 'Skip') {
+        const { newEloA, newEloB } = calculateElo(rA, rB, sA, sB);
+        diffA = newEloA - rA.elo;
+        diffB = newEloB - rB.elo;
+        rA.elo = newEloA; rB.elo = newEloB;
+    }
+
+    rA.matches++; rB.matches++;
+
+    const t = Date.now();
+    let resA = 'draw', resB = 'draw';
+    if (winner === 'A') { resA = 'won'; resB = 'lost'; }
+    else if (winner === 'B') { resA = 'lost'; resB = 'won'; }
+    else if (winner === 'Skip') { resA = 'skip'; resB = 'skip'; }
+
+    rA.history.unshift({ opponentId: idB, opponentName: state.currentPair.b.name, result: resA, eloChange: diffA > 0 ? `+${diffA.toFixed(0)}` : diffA.toFixed(0), historicalEloA: Math.round(preEloA), historicalEloB: Math.round(preEloB), timestamp: t });
+    rB.history.unshift({ opponentId: idA, opponentName: state.currentPair.a.name, result: resB, eloChange: diffB > 0 ? `+${diffB.toFixed(0)}` : diffB.toFixed(0), historicalEloA: Math.round(preEloB), historicalEloB: Math.round(preEloA), timestamp: t });
+    
+    saveRatingsToStorage();
+    triggerAnimation(winner, Math.round(diffA), Math.round(diffB));
+}
+
+function formatSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function renderCurrentMedia() {
+    if (objectUrlA) URL.revokeObjectURL(objectUrlA);
+    if (objectUrlB) URL.revokeObjectURL(objectUrlB);
+    elements.mediaContainer.innerHTML = '';
+    elements.executionerCheckContainer.classList.add('hidden');
+    elements.matchStatusIndicator.classList.add('hidden');
+    
+    if (state.appMode === 'executioner') {
+        renderExecutionerMedia();
+        return;
+    }
+
+    if (!state.currentPair) {
+        elements.mediaContainer.innerHTML = `<div class="empty-state glass-panel" style="padding: 40px;"><i class="fa-solid fa-circle-check"></i><h2>Queue Empty</h2><p>No valid pairs found.</p></div>`;
+        elements.fileInfoOverlay.classList.add('hidden');
+        return;
+    }
+
+    const fileA = state.currentPair.a;
+    const fileB = state.currentPair.b;
+    const rA = state.ratings[getFileId(fileA)];
+    const rB = state.ratings[getFileId(fileB)];
+
+    if (state.appMode === 'matchmaking') {
+        if (elements.vsScoreText) elements.vsScoreText.textContent = `${Math.round(rA.elo)} - ${Math.round(rB.elo)}`;
+        elements.btnA.classList.remove('hidden');
+        elements.btnB.classList.remove('hidden');
+    } else if (state.appMode === 'history') {
+        elements.matchStatusIndicator.classList.remove('hidden');
+        elements.matchStatusIndicator.textContent = `Historical Match ${state.historyIndex + 1} of ${state.historyQueue.length}`;
+        elements.matchStatusIndicator.className = "historical";
+        const currentHist = state.historyQueue[state.historyIndex];
+        
+        let hEloA, hEloB;
+        if (getFileId(fileA) === getFileId(state.historyFile)) {
+            hEloA = currentHist.historicalEloA;
+            hEloB = currentHist.historicalEloB;
+        } else {
+            hEloA = currentHist.historicalEloB;
+            hEloB = currentHist.historicalEloA;
         }
         
-        function getFileId(file) {
-            return `${file.name}_${file.size}`;
-        }
+        let resultText = '';
+        if (currentHist.result === 'won') resultText = `<span style="color:var(--accent-green)">Winner</span>`;
+        else if (currentHist.result === 'lost') resultText = `<span style="color:var(--accent-red)">Loser</span>`;
+        else resultText = `<span style="color:var(--text-secondary)">Skipped</span>`;
+        
+        if (elements.vsScoreText) elements.vsScoreText.innerHTML = `${hEloA} - ${hEloB} <br><small>${resultText}</small>`;
+    }
 
-        function renderHeatmap() {
-            const container = document.getElementById('heatmap-container');
-            if (!container) return;
+    const activeFile = state.activeView === 'A' ? fileA : fileB;
+    const objUrl = URL.createObjectURL(activeFile);
+    if (state.activeView === 'A') objectUrlA = objUrl; else objectUrlB = objUrl;
 
-            const w = appSettings.heatmapBucketWidth || 0.1;
-            const numBuckets = Math.round(2 / w) + 1;
-            const buckets = new Array(numBuckets).fill(0);
-            let maxCount = 0;
-            
-            state.allFiles.forEach(f => {
-                const id = getFileId(f);
-                const rating = state.ratings[id];
-                if (rating && rating.score !== undefined) {
-                    const isRated = (rating.scoreHistory && rating.scoreHistory.length > 0) || rating.score !== 0.0;
-                    if (!isRated) return; 
-                    
-                    const score = rating.score;
-                    let idx = Math.round((score + 1) / w);
-                    if (idx < 0) idx = 0;
-                    if (idx >= numBuckets) idx = numBuckets - 1;
-                    buckets[idx]++;
-                    if (buckets[idx] > maxCount) maxCount = buckets[idx];
-                }
-            });
+    if (state.activeView === 'A') state.hasSeenA = true;
+    else state.hasSeenB = true;
 
-            container.innerHTML = '';
-            buckets.forEach((count, idx) => {
-                const bar = document.createElement('div');
-                bar.className = 'heatmap-bar';
-                const heightPct = maxCount > 0 ? (count / maxCount) * 100 : 0;
-                bar.style.height = `${Math.max(5, heightPct)}%`;
-                
-                const hue = (idx / (numBuckets - 1)) * 120; // 0=Red to 120=Green
-                bar.style.backgroundColor = `hsl(${hue}, 80%, 50%)`;
-                
-                if (count === 0) {
-                    bar.style.opacity = '0.1';
-                } else {
-                    bar.style.opacity = '0.8';
-                    const bucketScore = (idx * w) - 1;
-                    bar.title = `Score: ${bucketScore.toFixed(2)} | Files: ${count}`;
-                }
-                container.appendChild(bar);
-            });
-        }
+    let fitClass = '';
+    if (state.fitMode === 'contain') fitClass = 'media-fit-contain';
+    else if (state.fitMode === 'cover') fitClass = 'media-fit-cover';
+    else if (state.fitMode === 'stretch') fitClass = 'media-fit-stretch';
+    else if (state.fitMode === 'original') fitClass = 'media-fit-original';
 
-        function loadSettingsFromStorage() {
-            try {
-                const stored = localStorage.getItem('dynamicMediaSorterSettings');
-                if (stored) {
-                    appSettings = JSON.parse(stored);
-                    if (appSettings.heatmapBucketWidth === undefined) appSettings.heatmapBucketWidth = 0.1;
-                    if (appSettings.infoShowFilename === undefined) appSettings.infoShowFilename = true;
-                    if (appSettings.infoShowSize === undefined) appSettings.infoShowSize = true;
-                    if (appSettings.infoShowHistory === undefined) appSettings.infoShowHistory = true;
-                    if (appSettings.autoBackupInterval === undefined) appSettings.autoBackupInterval = 0;
-                }
-                elements.settingMuteVideos.checked = appSettings.muteVideos;
-                if (elements.settingHeatmapWidth) elements.settingHeatmapWidth.value = appSettings.heatmapBucketWidth.toString();
-                if (elements.settingAutoBackup) elements.settingAutoBackup.value = appSettings.autoBackupInterval.toString();
-                if (elements.settingInfoFilename) elements.settingInfoFilename.checked = appSettings.infoShowFilename;
-                if (elements.settingInfoSize) elements.settingInfoSize.checked = appSettings.infoShowSize;
-                if (elements.settingInfoHistory) elements.settingInfoHistory.checked = appSettings.infoShowHistory;
-                startAutoBackupTimer();
-            } catch (e) {
-                console.error("Failed to load settings", e);
-            }
-        }
+    if (state.leaderboardType === 'image') {
+        elements.mediaContainer.innerHTML = `<img src="${objUrl}" class="${fitClass}">`;
+    } else {
+        const mutedAttr = appSettings.startMuted ? 'muted' : '';
+        elements.mediaContainer.innerHTML = `<video src="${objUrl}" class="${fitClass}" autoplay loop controls ${mutedAttr}></video>`;
+    }
+    
+    if (state.activeView === 'A') {
+        elements.btnA.classList.add('active-view');
+        elements.btnB.classList.remove('active-view');
+    } else {
+        elements.btnB.classList.add('active-view');
+        elements.btnA.classList.remove('active-view');
+    }
+    
+    elements.displayFilename.textContent = `${activeFile.name} (${formatSize(activeFile.size)})`;
+    if (state.infoVisible) {
+        elements.fileInfoOverlay.classList.remove('hidden');
+    } else {
+        elements.fileInfoOverlay.classList.add('hidden');
+    }
+    updateFilterCountsAndPercentages();
+}
 
-        function loadRatingsFromStorage() {
-            try {
-                const stored = localStorage.getItem('dynamicMediaSorterRatings');
-                if (stored) {
-                    state.ratings = JSON.parse(stored);
-                }
-            } catch (e) {
-                console.error("Failed to load ratings", e);
-            }
-        }
+function updateFilterCountsAndPercentages() {
+    if (state.appMode !== 'matchmaking') return;
+    const list = getActiveList();
+}
 
-        function saveRatingsToStorage() {
-            try {
-                localStorage.setItem('dynamicMediaSorterRatings', JSON.stringify(state.ratings));
-            } catch (e) {
-                console.error("Failed to save ratings", e);
-            }
-        }
 
-        function showToast(msg) {
-            elements.toast.textContent = msg;
-            elements.toast.classList.add('show');
-            setTimeout(() => {
-                elements.toast.classList.remove('show');
-            }, 3000);
-        }
+// --- Leaderboard & History ---
 
-        function triggerFileLoad(inputId) {
-            const input = document.getElementById(inputId);
-            if (input) input.click();
-        }
+function renderLeaderboard() {
+    const list = state.leaderboardType === 'image' ? state.images : state.videos;
+    const sorted = [...list].sort((a,b) => (state.ratings[getFileId(b)]?.elo || 800) - (state.ratings[getFileId(a)]?.elo || 800));
+    const size = appSettings.leaderboardSize || 32;
+    
+    elements.leaderboardTopList.innerHTML = '';
+    elements.leaderboardBottomList.innerHTML = '';
+    
+    if (sorted.length === 0) {
+        elements.leaderboardTopList.innerHTML = 'No data.';
+        elements.leaderboardBottomList.innerHTML = 'No data.';
+        return;
+    }
+    
+    const topItems = sorted.slice(0, size);
+    const bottomItems = sorted.slice(-size).reverse(); // Worst at the top of the bottom list
+    
+    const createItemHTML = (file, rank) => {
+        const r = state.ratings[getFileId(file)];
+        const div = document.createElement('div');
+        div.className = 'leaderboard-item';
+        div.innerHTML = `
+            <div class="filename" title=""></div>
+            <div style="font-family:monospace; font-weight:bold; width:60px; text-align:right;">${Math.round(r.elo)}</div>
+            <button class="btn btn-sm btn-history" data-id="${getFileId(file)}" style="padding: 4px 8px;"><i class="fa-solid fa-clock-rotate-left"></i></button>
+        `;
+        div.querySelector('.filename').textContent = `#${rank} ${file.name}`;
+        div.querySelector('.filename').title = file.name;
+        return div;
+    };
+    
+    topItems.forEach((f, i) => elements.leaderboardTopList.appendChild(createItemHTML(f, i+1)));
+    bottomItems.forEach((f, i) => elements.leaderboardBottomList.appendChild(createItemHTML(f, sorted.length - i)));
+    
+    document.querySelectorAll('.btn-history').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            elements.leaderboardModal.classList.remove('active');
+            startHistoryReview(e.currentTarget.dataset.id);
+        });
+    });
+}
 
-        // --- File Ingestion ---
-        function handleFilesSelected(event) {
-            try {
-                if (!event.target.files) return;
-                
-                const files = Array.from(event.target.files);
-                if (files.length === 0) return;
+function startHistoryReview(id) {
+    const file = (state.leaderboardType === 'image' ? state.images : state.videos).find(f => getFileId(f) === id);
+    if (!file) return;
+    
+    const r = state.ratings[id];
+    if (!r || r.history.length === 0) {
+        showToast("No match history for this file.");
+        return;
+    }
+    
+    state.historyFile = file;
+    state.historyQueue = [...r.history].reverse(); // Chronological order
+    state.historyIndex = 0;
+    state.appMode = 'history';
+    
+    elements.gestureControls.classList.remove('hidden');
+    elements.timelineControls.classList.remove('hidden');
+    elements.btnExitReview.innerHTML = 'Exit Mode';
+    loadHistoryMatch();
+}
 
-                // Cancel any previous loading session
-                const sessionToken = Date.now();
-                state.loadingSessionId = sessionToken;
+function loadHistoryMatch() {
+    const hist = state.historyQueue[state.historyIndex];
+    const opponent = (state.leaderboardType === 'image' ? state.images : state.videos).find(f => getFileId(f) === hist.opponentId);
+    
+    if (!opponent) {
+        if (objectUrlA) URL.revokeObjectURL(objectUrlA);
+        if (objectUrlB) URL.revokeObjectURL(objectUrlB);
+        elements.mediaContainer.innerHTML = `<div class="empty-state glass-panel" style="padding: 40px;"><i class="fa-solid fa-file-circle-xmark" style="color:var(--accent-red)"></i><h2>File Missing</h2><p>${hist.opponentName} is no longer loaded.</p></div>`;
+        elements.matchStatusIndicator.classList.remove('hidden');
+        elements.matchStatusIndicator.textContent = `Historical Match ${state.historyIndex + 1} of ${state.historyQueue.length}`;
+        return;
+    }
+    
+    // Randomize A and B position for the simulation to avoid always being on one side
+    const hash = hist.timestamp % 2;
+    state.currentPair = {
+        a: hash === 0 ? state.historyFile : opponent,
+        b: hash === 0 ? opponent : state.historyFile
+    };
+    state.activeView = 'A';
+    renderCurrentMedia();
+}
 
-                const loadingOverlay = document.getElementById('loading-overlay');
-                const loadingText = document.getElementById('loading-text');
-                
-                // Show full screen overlay initially
-                if (loadingOverlay) loadingOverlay.classList.add('active');
-                if (loadingText) loadingText.textContent = `Preparing ${files.length} files...`;
+// --- Executioner Immersive Review ---
+function startExecutionerReview() {
+    if (state.stagedFilesMap.size === 0) {
+        showToast("No files staged.");
+        return;
+    }
+    state.appMode = 'executioner';
+    state.executionerQueue = Array.from(state.stagedFilesMap.values());
+    state.executionerIndex = 0;
+    
+    elements.purgeModal.classList.remove('active');
+    elements.gestureControls.classList.add('hidden');
+    elements.timelineControls.classList.remove('hidden');
+    elements.btnPrevMatch.innerHTML = '<i class="fa-solid fa-chevron-left"></i> Previous';
+    elements.btnNextMatch.innerHTML = 'Next <i class="fa-solid fa-chevron-right"></i>';
+    elements.btnExitReview.innerHTML = 'Generate Script & Exit';
+    
+    renderCurrentMedia();
+}
 
-                if (elements.bgLoadingIndicator) elements.bgLoadingIndicator.classList.add('hidden');
+function renderExecutionerMedia() {
+    if (objectUrlA) URL.revokeObjectURL(objectUrlA);
+    const file = state.executionerQueue[state.executionerIndex];
+    const id = getFileId(file);
+    objectUrlA = URL.createObjectURL(file);
+    
+    elements.matchStatusIndicator.classList.remove('hidden');
+    elements.matchStatusIndicator.textContent = `Staged File ${state.executionerIndex + 1} of ${state.executionerQueue.length}`;
+    elements.matchStatusIndicator.className = 'executioner';
+    
+    elements.executionerCheckContainer.classList.remove('hidden');
+    elements.executionerCheckbox.checked = state.stagedFilesMap.has(id);
+    
+    if (state.leaderboardType === 'image') {
+        elements.mediaContainer.innerHTML = `<img src="${objectUrlA}">`;
+    } else {
+        elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" autoplay loop controls muted></video>`;
+    }
+    
+    elements.displayFilename.textContent = `${file.name} (${formatSize(file.size)})`;
+    elements.fileInfoOverlay.classList.remove('hidden');
+    
+    elements.executionerCheckbox.onchange = (e) => {
+        if (e.target.checked) state.stagedFilesMap.set(id, file);
+        else state.stagedFilesMap.delete(id);
+    };
+}
 
-                // Throttled UI update helper
-                let lastUIUpdateTime = Date.now();
 
-                setTimeout(() => {
-                    if (state.loadingSessionId !== sessionToken) return;
+// --- Setup & Listeners ---
 
-                    try {
-                        const existingIds = new Set(state.allFiles.map(f => getFileId(f)));
-                        let addedCount = 0;
-                        let validMediaCount = 0;
-                        
-                        const total = files.length;
-                        let currentIndex = 0;
-                        
-                        // We will track if we've rendered the initial media so we only do it once
-                        let initialMediaRendered = false;
+function setupEventListeners() {
+    elements.folderInput.addEventListener('change', handleFilesSelected);
+    elements.fileInput.addEventListener('change', handleFilesSelected);
+    
+    // Toggle Media Type
+    const applyToggle = () => {
+        elements.toggleImage.style.background = state.leaderboardType === 'image' ? 'rgba(79, 172, 254, 0.4)' : 'transparent';
+        elements.toggleVideo.style.background = state.leaderboardType === 'video' ? 'rgba(79, 172, 254, 0.4)' : 'transparent';
+        const list = getActiveList();
+        showToast(`Switched to ${state.leaderboardType}s (Pool: ${list.length})`);
+        updatePercentileFilters();
+        pickNextPair();
+    };
+    elements.toggleImage.addEventListener('click', () => { state.appMode = 'matchmaking'; state.leaderboardType = 'image'; applyToggle(); });
+    elements.toggleVideo.addEventListener('click', () => { state.appMode = 'matchmaking'; state.leaderboardType = 'video'; applyToggle(); });
 
-                        function processChunk() {
-                            if (state.loadingSessionId !== sessionToken) return;
-
-                            const startTime = performance.now();
-                            const frameBudget = document.hidden ? 10000 : 6; // 10s budget when minimized to process all files instantly
-
-                            while (currentIndex < total && (performance.now() - startTime < frameBudget)) {
-                                const f = files[currentIndex];
-                                
-                                let isValid = false;
-                                if (f.type) {
-                                    isValid = f.type.startsWith('image/') || f.type.startsWith('video/');
-                                } else {
-                                    isValid = /\.(jpe?g|png|gif|webp|mp4|webm|mkv|mov|avi)$/i.test(f.name);
-                                }
-                                
-                                if (isValid) {
-                                    validMediaCount++;
-                                    const id = getFileId(f);
-                                    if (!existingIds.has(id)) {
-                                        state.allFiles.push(f);
-                                        addedCount++;
-                                        if (!state.ratings[id]) {
-                                            state.ratings[id] = { score: 0.0, survivalCount: 1, scoreHistory: [] };
-                                        }
-
-                                        // Append to filteredFiles incrementally if matching active filter/search
-                                        const searchStr = elements.searchInput.value.toLowerCase().trim();
-                                        let matchesFilter = true;
-                                        if (searchStr && !f.name.toLowerCase().includes(searchStr)) matchesFilter = false;
-                                        
-                                        const rating = state.ratings[id];
-                                        const score = rating.score;
-                                        const isRated = (rating.scoreHistory && rating.scoreHistory.length > 0) || score !== 0.0;
-                                        
-                                        if (state.filter === 'unrated' && isRated) matchesFilter = false;
-                                        else if (state.filter === 'rated' && !isRated) matchesFilter = false;
-                                        else if (state.filter === 'positive' && score <= 0.0) matchesFilter = false;
-                                        else if (state.filter === 'negative' && score >= 0.0) matchesFilter = false;
-                                        
-                                        if (matchesFilter) {
-                                            state.filteredFiles.push(f);
-                                        }
-                                    }
-                                }
-                                currentIndex++;
-                            }
-                            
-                            const pct = Math.round((currentIndex / total) * 100);
-                            
-                            // Update stats smoothly in UI
-                            updateStats();
-
-                            // Handle initial UI rendering
-                            // Once we've processed the first chunk or found first valid media
-                            if (!initialMediaRendered && (validMediaCount > 0 || currentIndex >= total)) {
-                                initialMediaRendered = true;
-                                if (loadingOverlay) loadingOverlay.classList.remove('active');
-                                
-                                saveRatingsToStorage();
-                                applyFilterAndSort();
-                                renderHeatmap();
-                                updateFilterCountsAndPercentages();
-
-                                // Show background loader indicator if there are remaining files
-                                if (currentIndex < total && elements.bgLoadingIndicator) {
-                                    elements.bgLoadingIndicator.classList.remove('hidden');
-                                    if (elements.bgLoadingProgress) {
-                                        elements.bgLoadingProgress.textContent = `${pct}%`;
-                                    }
-                                }
-                            } else {
-                                // Background loader is active, update background status
-                                if (elements.bgLoadingIndicator && !elements.bgLoadingIndicator.classList.contains('hidden')) {
-                                    if (elements.bgLoadingProgress) {
-                                        elements.bgLoadingProgress.textContent = `${pct}%`;
-                                    }
-                                }
-
-                                // Throttle UI refreshes (e.g., every 500ms) to update stats and heatmap smoothly
-                                const now = Date.now();
-                                if (now - lastUIUpdateTime > 500) {
-                                    lastUIUpdateTime = now;
-                                    // Non-disruptive update (preserves player/active media index)
-                                    saveRatingsToStorage();
-                                    applyFilterAndSort(true);
-                                    renderHeatmap();
-                                    updateFilterCountsAndPercentages();
-                                }
-                            }
-
-                            if (currentIndex < total) {
-                                setTimeout(processChunk, 10);
-                            } else {
-                                finalizeLoad();
-                            }
-                        }
-
-                        function finalizeLoad() {
-                            if (state.loadingSessionId !== sessionToken) return;
-
-                            if (elements.bgLoadingIndicator) {
-                                elements.bgLoadingIndicator.classList.add('hidden');
-                            }
-                            if (loadingOverlay) {
-                                loadingOverlay.classList.remove('active');
-                            }
-
-                            if (validMediaCount === 0) {
-                                alert(`Selected ${total} files, but none were identified as media.`);
-                                return;
-                            }
-                            
-                            saveRatingsToStorage();
-                            applyFilterAndSort(true);
-                            renderHeatmap();
-                            updateFilterCountsAndPercentages();
-                            
-                            if (addedCount > 0) {
-                                if (addedCount === state.allFiles.length) {
-                                    showToast(`Added ${addedCount} new files.`);
-                                } else {
-                                    showToast(`Added ${addedCount} new files. Total: ${state.allFiles.length}`);
-                                }
-                            } else {
-                                showToast("No new files added (duplicates ignored).");
-                            }
-                            
-                            event.target.value = '';
-                        }
-
-                        // Start asynchronous chunking process
-                        processChunk();
-
-                    } catch (err) {
-                        if (loadingOverlay) loadingOverlay.classList.remove('active');
-                        if (elements.bgLoadingIndicator) elements.bgLoadingIndicator.classList.add('hidden');
-                        alert(`CRITICAL ERROR during processing:\n${err.message}`);
-                    }
-                }, 50);
-
-            } catch (err) {
-                alert(`CRITICAL ERROR during file load:\n${err.message}`);
-            }
-        }
-
-        // --- Custom Dropdowns & Meta Tracking ---
-        function updateFilterCountsAndPercentages() {
-            const total = state.allFiles.length;
-            
-            let unratedCount = 0;
-            let ratedCount = 0;
-            let positiveCount = 0;
-            let negativeCount = 0;
-            
-            state.allFiles.forEach(file => {
-                const id = getFileId(file);
-                const rating = state.ratings[id];
-                if (rating) {
-                    const score = rating.score;
-                    const isRated = (rating.scoreHistory && rating.scoreHistory.length > 0) || score !== 0.0;
-                    if (isRated) {
-                        ratedCount++;
-                        if (score > 0.0) positiveCount++;
-                        else if (score < 0.0) negativeCount++;
-                    } else {
-                        unratedCount++;
-                    }
-                } else {
-                    unratedCount++;
-                }
-            });
-            
-            const formatCount = (count) => {
-                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-                return `${count} (${pct}%)`;
-            };
-            
-            const updateOptionMeta = (val, text) => {
-                const metaSpan = document.querySelector(`.dropdown-option[data-dropdown="filter"][data-value="${val}"] .option-meta`);
-                if (metaSpan) metaSpan.textContent = text;
-            };
-            
-            updateOptionMeta('all', formatCount(total));
-            updateOptionMeta('unrated', formatCount(unratedCount));
-            updateOptionMeta('rated', formatCount(ratedCount));
-            updateOptionMeta('positive', formatCount(positiveCount));
-            updateOptionMeta('negative', formatCount(negativeCount));
-        }
-
-        function setupCustomDropdowns() {
-            const dropdowns = [
-                { id: 'dropdown-filter', triggerId: 'dropdown-filter-trigger', optionsId: 'dropdown-filter-options', stateKey: 'filter' },
-                { id: 'dropdown-sort', triggerId: 'dropdown-sort-trigger', optionsId: 'dropdown-sort-options', stateKey: 'sort' }
-            ];
-
-            dropdowns.forEach(dropdown => {
-                const wrapper = document.getElementById(dropdown.id);
-                const trigger = document.getElementById(dropdown.triggerId);
-                const optionsContainer = document.getElementById(dropdown.optionsId);
-                if (!wrapper || !trigger || !optionsContainer) return;
-
-                trigger.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const isOpen = !optionsContainer.classList.contains('hidden');
-                    
-                    closeAllDropdowns();
-                    
-                    if (!isOpen) {
-                        optionsContainer.classList.remove('hidden');
-                        wrapper.classList.add('open');
-                    }
-                });
-
-                const options = optionsContainer.querySelectorAll('.dropdown-option');
-                options.forEach(option => {
-                    option.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const val = option.dataset.value;
-                        state[dropdown.stateKey] = val;
-
-                        options.forEach(opt => opt.classList.remove('active'));
-                        option.classList.add('active');
-
-                        const labelText = option.querySelector('.option-label') ? 
-                            option.querySelector('.option-label').textContent : 
-                            option.textContent;
-                        trigger.querySelector('.selected-text').textContent = labelText;
-
-                        optionsContainer.classList.add('hidden');
-                        wrapper.classList.remove('open');
-
-                        applyFilterAndSort();
-                    });
-                });
-            });
-
-            document.addEventListener('click', () => {
-                closeAllDropdowns();
-            });
-
-            function closeAllDropdowns() {
-                dropdowns.forEach(dropdown => {
-                    const wrapper = document.getElementById(dropdown.id);
-                    const optionsContainer = document.getElementById(dropdown.optionsId);
-                    if (wrapper) wrapper.classList.remove('open');
-                    if (optionsContainer) optionsContainer.classList.add('hidden');
-                });
-            }
-        }
-
-        function resetFiltersToDefault() {
-            state.filter = 'all';
-            state.sort = 'default';
-            elements.searchInput.value = '';
-            
-            document.querySelectorAll('.dropdown-option[data-dropdown="filter"]').forEach(opt => {
-                if (opt.dataset.value === 'all') opt.classList.add('active');
-                else opt.classList.remove('active');
-            });
-            const filterTrigger = document.getElementById('dropdown-filter-trigger');
-            if (filterTrigger) filterTrigger.querySelector('.selected-text').textContent = 'Show All';
-
-            document.querySelectorAll('.dropdown-option[data-dropdown="sort"]').forEach(opt => {
-                if (opt.dataset.value === 'default') opt.classList.add('active');
-                else opt.classList.remove('active');
-            });
-            const sortTrigger = document.getElementById('dropdown-sort-trigger');
-            if (sortTrigger) sortTrigger.querySelector('.selected-text').textContent = 'Default (Load Order)';
-        }
-
-        // --- Filtering and Sorting ---
-        function applyFilterAndSort(isBackgroundUpdate = false) {
-            // state.filter and state.sort are updated via custom dropdown triggers
-            const searchStr = elements.searchInput.value.toLowerCase().trim();
-            
-            let currentFileId = null;
-            if (state.currentIndex >= 0 && state.currentIndex < state.filteredFiles.length) {
-                currentFileId = getFileId(state.filteredFiles[state.currentIndex]);
-            }
-            
-            // Filter
-            state.filteredFiles = state.allFiles.filter(file => {
-                if (searchStr && !file.name.toLowerCase().includes(searchStr)) {
-                    return false;
-                }
-                
-                const id = getFileId(file);
-                const rating = state.ratings[id];
-                const score = rating.score;
-                
-                const isRated = (rating.scoreHistory && rating.scoreHistory.length > 0) || score !== 0.0;
-                
-                if (state.filter === 'unrated') return !isRated;
-                if (state.filter === 'rated') return isRated;
-                if (state.filter === 'positive') return score > 0.0;
-                if (state.filter === 'negative') return score < 0.0;
-                return true; 
-            });
-
-            // Sort
-            if (state.sort === 'name-asc') {
-                state.filteredFiles.sort((a, b) => a.name.localeCompare(b.name));
-            } else if (state.sort === 'name-desc') {
-                state.filteredFiles.sort((a, b) => b.name.localeCompare(a.name));
-            } else if (state.sort === 'size-asc') {
-                state.filteredFiles.sort((a, b) => a.size - b.size);
-            } else if (state.sort === 'size-desc') {
-                state.filteredFiles.sort((a, b) => b.size - a.size);
-            } else if (state.sort === 'score-desc') {
-                state.filteredFiles.sort((a, b) => state.ratings[getFileId(b)].score - state.ratings[getFileId(a)].score);
-            } else if (state.sort === 'score-asc') {
-                state.filteredFiles.sort((a, b) => state.ratings[getFileId(a)].score - state.ratings[getFileId(b)].score);
-            } else if (state.sort === 'random') {
-                for (let i = state.filteredFiles.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [state.filteredFiles[i], state.filteredFiles[j]] = [state.filteredFiles[j], state.filteredFiles[i]];
-                }
-            }
-            
-            // Restore index
-            if (state.filteredFiles.length > 0) {
-                let newIndex = 0;
-                if (currentFileId && (state.sort !== 'random' || isBackgroundUpdate)) {
-                    const foundIdx = state.filteredFiles.findIndex(f => getFileId(f) === currentFileId);
-                    if (foundIdx !== -1) newIndex = foundIdx;
-                }
-                state.currentIndex = newIndex;
-                renderCurrentMedia();
-            } else {
-                state.currentIndex = -1;
+    // Swipe and Tap logic for A and B buttons
+    let startY = 0;
+    const swipeThreshold = 30; // pixels to trigger vote
+    
+    const handleTouchStart = (e) => { startY = e.touches[0].clientY; };
+    const handleTouchEnd = (btnId, e) => {
+        const endY = e.changedTouches[0].clientY;
+        const diff = startY - endY; // positive if swiped up
+        if (diff > swipeThreshold) {
+            // It's a swipe
+            if (state.appMode === 'matchmaking') castVote(btnId);
+        } else {
+            // It's a tap
+            if (state.activeView !== btnId) {
+                state.activeView = btnId;
                 renderCurrentMedia();
             }
-            updateStats();
-            updateFilterCountsAndPercentages();
         }
+    };
+    
+    // Also allow click to tap if not touching
+    elements.btnA.addEventListener('click', (e) => { if(!e.pointerType || e.pointerType==='mouse'){ if(state.activeView !== 'A'){ state.activeView='A'; renderCurrentMedia(); } } });
+    elements.btnB.addEventListener('click', (e) => { if(!e.pointerType || e.pointerType==='mouse'){ if(state.activeView !== 'B'){ state.activeView='B'; renderCurrentMedia(); } } });
 
-        // --- Rendering ---
-        function renderCurrentMedia() {
-            if (state.filteredFiles.length > 0 && state.currentIndex >= 0 && state.currentIndex < state.filteredFiles.length) {
-                const id = getFileId(state.filteredFiles[state.currentIndex]);
-                const currentMedia = document.getElementById('active-media-node');
-                if (currentMedia && currentMedia.dataset.fileId === id) {
-                    // Exact same file is already on screen (likely due to a re-sort).
-                    // Do not blow away the video player so it keeps playing!
-                    return; 
-                }
-            }
+    elements.btnA.addEventListener('touchstart', handleTouchStart, {passive: true});
+    elements.btnA.addEventListener('touchend', (e) => handleTouchEnd('A', e));
+    elements.btnB.addEventListener('touchstart', handleTouchStart, {passive: true});
+    elements.btnB.addEventListener('touchend', (e) => handleTouchEnd('B', e));
 
-            if (state.currentObjectURL) {
-                URL.revokeObjectURL(state.currentObjectURL);
-                state.currentObjectURL = null;
-            }
-
-            if (state.filteredFiles.length === 0 || state.currentIndex < 0 || state.currentIndex >= state.filteredFiles.length) {
-                elements.mediaContainer.innerHTML = `
-                    <div class="empty-state glass-panel" style="padding: 40px;">
-                        <i class="fa-solid fa-circle-check"></i>
-                        <h2>Queue Empty</h2>
-                        <p>No media to display based on current filters.</p>
-                    </div>`;
-                elements.fileInfoOverlay.classList.add('hidden');
-                elements.btnMediaFullscreen.classList.add('hidden');
-                elements.slider.value = 0;
-                updateSliderVisuals(false);
-                return;
-            }
-
-            const file = state.filteredFiles[state.currentIndex];
-            const id = getFileId(file);
-            state.currentObjectURL = URL.createObjectURL(file);
-            
-            elements.mediaContainer.innerHTML = '';
-            
-            let mediaNode;
-            if (file.type ? file.type.startsWith('video/') : /\.(mp4|webm|mkv|mov|avi)$/i.test(file.name)) {
-                mediaNode = document.createElement('video');
-                mediaNode.autoplay = true;
-                mediaNode.loop = true;
-                mediaNode.controls = true;
-                mediaNode.muted = appSettings.muteVideos;
-                if (!appSettings.muteVideos) mediaNode.volume = 0.5;
-            } else {
-                mediaNode = document.createElement('img');
-            }
-            mediaNode.src = state.currentObjectURL;
-            mediaNode.id = 'active-media-node';
-            mediaNode.dataset.fileId = id;
-            elements.mediaContainer.appendChild(mediaNode);
-
-            // Configure Info Box Fields
-            if (appSettings.infoShowFilename) {
-                elements.displayFilename.textContent = file.name;
-                elements.displayFilename.classList.remove('hidden');
-            } else {
-                elements.displayFilename.classList.add('hidden');
-            }
-            
-            if (appSettings.infoShowSize) {
-                elements.displayFilesize.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
-                elements.displayFilesize.classList.remove('hidden');
-            } else {
-                elements.displayFilesize.classList.add('hidden');
-            }
-
-            if (appSettings.infoShowHistory) {
-                let historyText = "G1: Unrated";
-                if (state.ratings[id] && state.ratings[id].scoreHistory && state.ratings[id].scoreHistory.length > 0) {
-                    historyText = state.ratings[id].scoreHistory.map((score, index) => `G${index + 1}: ${score}`).join(', ');
-                } else if (state.ratings[id] && state.ratings[id].score !== 0) {
-                    historyText = `G1: ${state.ratings[id].score}`; 
-                }
-                elements.displaySurvival.innerHTML = `<i class="fa-solid fa-circle-info"></i> ${historyText}`;
-                elements.displaySurvival.classList.remove('hidden');
-            } else {
-                elements.displaySurvival.classList.add('hidden');
-            }
-            
-            elements.slider.value = state.ratings[id].score;
-            updateSliderVisuals(false);
-            updateStats();
+    elements.btnUndo.addEventListener('click', () => {
+        if (state.isAnimating) return;
+        if (state.undoStack.length === 0) { showToast("Nothing to undo."); return; }
+        const last = state.undoStack.pop();
+        
+        if (last.priorityQueueSnapshot) {
+            state.priorityQueue = last.priorityQueueSnapshot;
         }
+        
+        const rA = state.ratings[last.idA];
+        const rB = state.ratings[last.idB];
+        
+        rA.elo = last.eloA; rB.elo = last.eloB;
+        rA.matches = last.matchesA; rB.matches = last.matchesB;
+        rA.history.shift(); rB.history.shift();
+        
+        saveRatingsToStorage();
+        state.currentPair = last.pair;
+        state.activeView = 'A';
+        state.hasSeenA = true;
+        state.hasSeenB = false;
+        renderCurrentMedia();
+        showToast("Match reverted!");
+    });
+    
+    elements.btnSkip.addEventListener('click', () => {
+        if (!state.isAnimating) castVote('Skip');
+    });
 
-        function updateSliderVisuals(save = true) {
-            const val = parseFloat(elements.slider.value).toFixed(2);
-            elements.scoreDisplay.textContent = val;
-            
-            let color = '#fff';
-            if (val < 0) {
-                const intensity = Math.abs(val);
-                color = `rgb(255, ${255 - (intensity * 255)}, ${255 - (intensity * 255)})`;
-            } else if (val > 0) {
-                const intensity = val;
-                color = `rgb(${255 - (intensity * 255)}, 255, ${255 - (intensity * 100)})`;
-            }
-            elements.scoreDisplay.style.color = color;
-            
-            if (save && state.currentIndex >= 0 && state.currentIndex < state.filteredFiles.length) {
-                const file = state.filteredFiles[state.currentIndex];
-                const id = getFileId(file);
-                if (state.ratings[id].score !== parseFloat(val)) {
-                    state.ratings[id].score = parseFloat(val);
-                    // Removed saveRatingsToStorage() here to prevent main thread blocking during drag
-                }
-            }
-            
-            // Heatmap highlighting
-            if (elements.heatmapContainer && elements.heatmapContainer.children.length > 0) {
-                const w = appSettings.heatmapBucketWidth || 0.1;
-                const numBuckets = Math.round(2 / w) + 1;
-                let idx = Math.round((parseFloat(val) + 1) / w);
-                if (idx < 0) idx = 0;
-                if (idx >= numBuckets) idx = numBuckets - 1;
-                
-                Array.from(elements.heatmapContainer.children).forEach((bar, i) => {
-                    if (i === idx) {
-                        bar.classList.add('active-bucket');
-                    } else {
-                        bar.classList.remove('active-bucket');
-                    }
-                });
-            }
+    elements.btnInfo.addEventListener('click', () => {
+        state.infoVisible = !state.infoVisible;
+        if (state.infoVisible) elements.fileInfoOverlay.classList.remove('hidden');
+        else elements.fileInfoOverlay.classList.add('hidden');
+    });
+
+    elements.btnToggleFit.addEventListener('click', () => {
+        const modes = ['contain', 'cover', 'stretch', 'original'];
+        const icons = { 'contain': 'fa-compress', 'cover': 'fa-crop-simple', 'stretch': 'fa-expand', 'original': 'fa-maximize' };
+        let idx = modes.indexOf(state.fitMode);
+        state.fitMode = modes[(idx + 1) % modes.length];
+        elements.btnToggleFit.innerHTML = `<i class="fa-solid ${icons[state.fitMode]}"></i>`;
+        renderCurrentMedia();
+    });
+    
+    // Timeline / Nav Buttons
+    elements.btnPrevMatch.addEventListener('click', () => {
+        if (state.appMode === 'history') {
+            if (state.historyIndex > 0) { state.historyIndex--; loadHistoryMatch(); }
+        } else if (state.appMode === 'executioner') {
+            if (state.executionerIndex > 0) { state.executionerIndex--; renderCurrentMedia(); }
         }
-
-        function updateStats() {
-            const total = state.filteredFiles.length;
-            const current = total > 0 ? state.currentIndex + 1 : 0;
-            const pct = total > 0 ? Math.round((current / total) * 100) : 0;
-            elements.queueCount.textContent = `${current}/${total} (${pct}%)`;
+    });
+    elements.btnNextMatch.addEventListener('click', () => {
+        if (state.appMode === 'history') {
+            if (state.historyIndex < state.historyQueue.length - 1) { state.historyIndex++; loadHistoryMatch(); }
+        } else if (state.appMode === 'executioner') {
+            if (state.executionerIndex < state.executionerQueue.length - 1) { state.executionerIndex++; renderCurrentMedia(); }
         }
-
-        function navigate(direction) {
-            if (state.filteredFiles.length === 0) return;
-            state.currentIndex += direction;
-            if (state.currentIndex < 0) state.currentIndex = 0;
-            if (state.currentIndex >= state.filteredFiles.length) state.currentIndex = state.filteredFiles.length - 1;
-            renderCurrentMedia();
+    });
+    elements.btnExitReview.addEventListener('click', () => {
+        if (state.appMode === 'executioner') {
+            generateScripts();
         }
+        state.appMode = 'matchmaking';
+        elements.timelineControls.classList.add('hidden');
+        elements.gestureControls.classList.remove('hidden');
+        elements.executionerCheckContainer.classList.add('hidden');
+        pickNextPair();
+    });
 
-        // --- Export / Import ---
-        function exportRatings(isAuto = false) {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.ratings, null, 2));
-            const node = document.createElement('a');
-            node.setAttribute("href", dataStr);
-            
-            const timestamp = isAuto ? "_" + new Date().toISOString().replace(/[:.]/g, '-') : "";
-            node.setAttribute("download", `ratings_backup${timestamp}.json`);
-            
-            document.body.appendChild(node);
-            node.click();
-            node.remove();
-            
-            if (!isAuto) {
-                showToast("Backup Exported successfully!");
-                elements.settingsModal.classList.remove('active');
-            } else {
-                showToast("Auto-backup downloaded.");
+    // Modals
+    elements.btnOpenSettings.addEventListener('click', () => elements.settingsModal.classList.add('active'));
+    elements.closeSettingsModal.addEventListener('click', () => { saveSettingsToStorage(); elements.settingsModal.classList.remove('active'); });
+    
+    elements.btnOpenFilters.addEventListener('click', () => elements.filterModal.classList.add('active'));
+    elements.closeFilterModal.addEventListener('click', () => {
+        state.filter = elements.filterSelect.value;
+        elements.filterModal.classList.remove('active');
+        if (!state.isAnimating) pickNextPair();
+    });
+    elements.searchInput.addEventListener('input', () => { if (!state.isAnimating) pickNextPair(); });
+
+
+
+    elements.btnPurge.addEventListener('click', () => { 
+        elements.purgeModal.classList.add('active'); 
+        elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
+    });
+    elements.closePurgeModal.addEventListener('click', () => elements.purgeModal.classList.remove('active'));
+    
+    elements.btnStageFiles.addEventListener('click', () => {
+        const threshold = parseInt(elements.purgeThreshold.value);
+        let added = 0;
+        getActiveList().forEach(f => {
+            const id = getFileId(f);
+            if (state.ratings[id] && state.ratings[id].elo < threshold) {
+                if (!state.stagedFilesMap.has(id)) { state.stagedFilesMap.set(id, f); added++; }
             }
+        });
+        showToast(`Staged ${added} files.`);
+        elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
+    });
+    elements.btnClearStaged.addEventListener('click', () => { state.stagedFilesMap.clear(); elements.purgeStats.textContent = `0 files staged.`; });
+    elements.btnReviewStaged.addEventListener('click', startExecutionerReview);
+
+    elements.btnCopyScript.addEventListener('click', () => { elements.scriptOutput.select(); document.execCommand('copy'); showToast("Copied!"); });
+
+    elements.btnHardReset.addEventListener('click', () => {
+        if (!confirm("Are you sure? This will wipe all ratings completely!")) return;
+        state.appMode = 'matchmaking';
+        localStorage.removeItem('eloSorterRatings');
+        state.ratings = {}; state.images = []; state.videos = []; state.priorityQueue = [];
+        pickNextPair(); elements.settingsModal.classList.remove('active');
+    });
+    
+    elements.btnExport.addEventListener('click', () => exportRatings(false));
+    elements.importInput.addEventListener('change', importRatings);
+
+    elements.btnAppFullscreen.addEventListener('click', () => {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else if (document.exitFullscreen) document.exitFullscreen();
+    });
+    
+    elements.btnOpenLeaderboard.addEventListener('click', () => {
+        renderLeaderboard();
+        elements.leaderboardModal.classList.add('active');
+    });
+    elements.closeLeaderboardModal.addEventListener('click', () => elements.leaderboardModal.classList.remove('active'));
+    
+    // Keyboard Shortcuts
+    window.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        if (state.appMode === 'matchmaking') {
+            if (e.key === 'ArrowLeft') { state.activeView = 'A'; renderCurrentMedia(); }
+            if (e.key === 'ArrowRight') { state.activeView = 'B'; renderCurrentMedia(); }
+            if (e.key === 'ArrowUp') castVote(state.activeView);
+            if (e.key === 'ArrowDown') elements.btnUndo.click();
+        } else if (state.appMode === 'history' || state.appMode === 'executioner') {
+            if (e.key === 'ArrowLeft') elements.btnPrevMatch.click();
+            if (e.key === 'ArrowRight') elements.btnNextMatch.click();
         }
+    });
+}
 
-        function importRatings(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    state.ratings = { ...state.ratings, ...imported };
-                    saveRatingsToStorage();
-                    showToast("Backup Restored successfully!");
-                    elements.settingsModal.classList.remove('active');
-                    if (state.allFiles.length > 0) applyFilterAndSort();
-                    renderHeatmap();
-                } catch (err) {
-                    alert("Invalid JSON file or permission denied.");
-                } finally {
-                    event.target.value = ''; // Reset input to allow re-importing the same file
-                }
-            };
-            reader.readAsText(file);
+function exportRatings(isAuto = false) {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.ratings, null, 2));
+    const node = document.createElement('a');
+    node.setAttribute("href", dataStr);
+    const dt = new Date().toISOString().replace(/[:.]/g, '-');
+    node.setAttribute("download", `dms_elo_${isAuto?'autobackup':'backup'}_${dt}.json`);
+    document.body.appendChild(node); node.click(); node.remove();
+    if(!isAuto) showToast("Exported Backup!");
+}
+function importRatings(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            state.ratings = { ...state.ratings, ...JSON.parse(e.target.result) };
+            saveRatingsToStorage(); showToast("Restored!");
+            updatePercentileFilters();
+            pickNextPair(); renderHeatmap();
+        } catch (err) { alert("Invalid JSON."); }
+    };
+    reader.readAsText(file);
+}
+
+function generateScripts() {
+    if(state.stagedFilesMap.size === 0) {
+        showToast("No files left to delete.");
+        return;
+    }
+    elements.purgeModal.classList.add('active');
+    const names = Array.from(state.stagedFilesMap.values()).map(f => f.name);
+    const py = `import os\nfiles = [\n${names.map(n=>`  "${n}"`).join(',\n')}\n]\nfor f in files:\n  if os.path.exists(f): os.remove(f)`;
+    elements.scriptOutput.value = py;
+    elements.scriptContainer.classList.remove('hidden');
+    elements.purgeStats.textContent = `Script ready for ${state.stagedFilesMap.size} files.`;
+}
+
+// Rendering heatmap
+function renderHeatmap() {
+    const container = elements.heatmapContainer;
+    if (!container) return;
+    const list = getActiveList();
+    const min = appSettings.heatmapMin;
+    const max = appSettings.heatmapMax;
+    const w = appSettings.heatmapBucketWidth;
+    
+    const numBuckets = Math.ceil((max - min) / w);
+    if(numBuckets <= 0) return;
+    const buckets = new Array(numBuckets).fill(0);
+    let maxCount = 0;
+    
+    list.forEach(f => {
+        const rating = state.ratings[getFileId(f)];
+        if (rating && rating.matches > 0) {
+            let idx = Math.floor((rating.elo - min) / w);
+            if (idx < 0) idx = 0;
+            if (idx >= numBuckets) idx = numBuckets - 1;
+            buckets[idx]++;
+            if (buckets[idx] > maxCount) maxCount = buckets[idx];
         }
+    });
 
-        // --- The Executioner (Staging) ---
-        function renderStagedList() {
-            elements.stagedList.innerHTML = '';
-            elements.scriptContainer.classList.add('hidden');
-            
-            if (state.stagedFilesMap.size === 0) {
-                elements.stagedList.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--text-secondary);">No files staged.</div>';
-                elements.purgeStats.textContent = "0 files selected.";
-                return;
-            }
+    container.innerHTML = '';
+    buckets.forEach((count, idx) => {
+        const bar = document.createElement('div');
+        bar.className = 'heatmap-bar';
+        const heightPct = maxCount > 0 ? (count / maxCount) * 100 : 0;
+        bar.style.height = `${Math.max(5, heightPct)}%`;
+        const hue = (idx / (numBuckets - 1)) * 120;
+        bar.style.backgroundColor = `hsl(${hue}, 80%, 50%)`;
+        bar.style.opacity = count === 0 ? '0.1' : '0.8';
+        bar.title = `Elo: ${min + (idx * w)} | Files: ${count}`;
+        container.appendChild(bar);
+    });
+}
 
-            elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged for deletion.`;
+window.onload = init;
 
-            state.stagedFilesMap.forEach((file, id) => {
-                const score = state.ratings[id].score;
-                const scoreClass = score < 0 ? 'negative' : (score > 0 ? 'positive' : '');
-                
-                const li = document.createElement('li');
-                li.className = 'staged-item';
-                
-                const cb = document.createElement('input');
-                cb.type = 'checkbox';
-                cb.checked = true;
-                cb.dataset.id = id;
-                
-                const thumb = document.createElement(file.type.startsWith('video') ? 'video' : 'img');
-                thumb.className = 'staged-thumb';
-                thumb.src = URL.createObjectURL(file);
-                thumb.onclick = () => openFullscreenViewer(thumb.src, file.type);
-                
-                const info = document.createElement('div');
-                info.className = 'staged-info';
-                
-                const nameStr = document.createElement('div');
-                nameStr.className = 'staged-name';
-                nameStr.textContent = file.name;
-                
-                const scoreStr = document.createElement('div');
-                scoreStr.className = `staged-score ${scoreClass}`;
-                scoreStr.textContent = `Score: ${score}`;
-                
-                info.appendChild(nameStr);
-                info.appendChild(scoreStr);
-                
-                li.appendChild(cb);
-                li.appendChild(thumb);
-                li.appendChild(info);
-                
-                elements.stagedList.appendChild(li);
-            });
-        }
-
-        function stageFilesFromDB() {
-            const threshold = parseFloat(elements.purgeThreshold.value);
-            let added = 0;
-            state.allFiles.forEach(file => {
-                const id = getFileId(file);
-                if (state.ratings[id] && state.ratings[id].score < threshold) {
-                    if (!state.stagedFilesMap.has(id)) {
-                        state.stagedFilesMap.set(id, file);
-                        added++;
-                    }
-                }
-            });
-            showToast(`Staged ${added} new files.`);
-            renderStagedList();
-        }
-
-        function openFullscreenViewer(src, type) {
-            elements.fullscreenViewerContent.innerHTML = '';
-            currentScale = 1;
-            updateViewerTransform();
-            
-            let node;
-            if (type.startsWith('video')) {
-                node = document.createElement('video');
-                node.controls = true;
-                node.autoplay = true;
-                node.loop = true;
-            } else {
-                node = document.createElement('img');
-            }
-            node.src = src;
-            elements.fullscreenViewerContent.appendChild(node);
-            elements.fullscreenViewer.classList.add('active');
-        }
-
-        function updateViewerTransform() {
-            elements.fullscreenViewerContent.style.transform = `scale(${currentScale})`;
-        }
-
-        function generateScripts() {
-            const selectedIds = [];
-            elements.stagedList.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
-                selectedIds.push(cb.dataset.id);
-            });
-            
-            if (selectedIds.length === 0) {
-                alert("No files selected via checkboxes.");
-                return;
-            }
-
-            const fileNames = selectedIds.map(id => state.stagedFilesMap.get(id).name);
-            
-            const pyArray = fileNames.map(f => `    "${f.replace(/"/g, '\\"')}"`).join(",\n");
-            generatedScripts['script-python'] = `#!/usr/bin/env python3
-import os
-
-files_to_delete = [
-${pyArray}
-]
-deleted = 0
-for f in files_to_delete:
-    if os.path.exists(f):
-        os.remove(f)
-        deleted += 1
-        print(f"[Deleted] {f}")
-print(f"\\nDone. Deleted {deleted} files.")`;
-
-            const bashArray = fileNames.map(f => `"${f.replace(/"/g, '\\"')}"`).join(" ");
-            generatedScripts['script-bash'] = `#!/bin/bash\nrm -f ${bashArray}\necho "Done. Deleted files."`;
-
-            const cmdArray = fileNames.map(f => `del "${f.replace(/"/g, '""')}" 2>nul`).join("\n");
-            generatedScripts['script-cmd'] = `@echo off\n${cmdArray}\necho Done. Deleted files.\npause`;
-
-            elements.scriptContainer.classList.remove('hidden');
-            updateScriptView();
-        }
-
-        function updateScriptView() {
-            elements.scriptOutput.value = generatedScripts[currentScriptType];
-            
-            elements.tabs.forEach(t => t.classList.remove('active'));
-            document.querySelector(`.tab[data-target="${currentScriptType}"]`).classList.add('active');
-
-            if (currentScriptType === 'script-python') {
-                elements.executionInstructions.innerHTML = "Save as <code>purge.py</code>, run: <code>python purge.py</code>";
-            } else if (currentScriptType === 'script-bash') {
-                elements.executionInstructions.innerHTML = "Paste this command in terminal and press Enter.";
-            } else {
-                elements.executionInstructions.innerHTML = "Save as <code>purge.bat</code>, double click to run.";
-            }
-        }
-
-        // --- Event Listeners ---
-        function setupEventListeners() {
-            elements.folderInput.addEventListener('change', handleFilesSelected);
-            elements.fileInput.addEventListener('change', handleFilesSelected);
-            
-            elements.btnClearQueue.addEventListener('click', () => {
-                if (confirm("Clear active queue? Ratings remain saved.")) {
-                    state.allFiles = [];
-                    resetFiltersToDefault();
-                    applyFilterAndSort(); 
-                    showToast("Queue cleared.");
-                }
-            });
-            
-            // Filter Modal
-            elements.btnOpenFilters.addEventListener('click', () => elements.filterModal.classList.add('active'));
-            elements.closeFilterModal.addEventListener('click', () => elements.filterModal.classList.remove('active'));
-            elements.searchInput.addEventListener('input', applyFilterAndSort);
-
-            // Settings Modal
-            elements.btnOpenSettings.addEventListener('click', () => elements.settingsModal.classList.add('active'));
-            elements.closeSettingsModal.addEventListener('click', () => elements.settingsModal.classList.remove('active'));
-            elements.btnExport.addEventListener('click', exportRatings);
-            elements.importInput.addEventListener('change', importRatings);
-            
-            elements.settingMuteVideos.addEventListener('change', (e) => {
-                appSettings.muteVideos = e.target.checked;
-                localStorage.setItem('dynamicMediaSorterSettings', JSON.stringify(appSettings));
-                const activeMedia = document.getElementById('active-media-node');
-                if (activeMedia && activeMedia.tagName === 'VIDEO') {
-                    activeMedia.muted = appSettings.muteVideos;
-                }
-            });
-
-            if (elements.settingHeatmapWidth) {
-                elements.settingHeatmapWidth.addEventListener('change', (e) => {
-                    appSettings.heatmapBucketWidth = parseFloat(e.target.value);
-                    saveSettingsAndRender();
-                    renderHeatmap();
-                });
-            }
-            
-            if (elements.settingAutoBackup) {
-                elements.settingAutoBackup.addEventListener('change', (e) => {
-                    appSettings.autoBackupInterval = parseInt(e.target.value, 10);
-                    saveSettingsAndRender();
-                    startAutoBackupTimer();
-                    if (appSettings.autoBackupInterval > 0) {
-                        showToast(`Auto-backup set to every ${appSettings.autoBackupInterval} minutes`);
-                    } else {
-                        showToast("Auto-backup disabled");
-                    }
-                });
-            }
-            
-            const saveSettingsAndRender = () => {
-                localStorage.setItem('dynamicMediaSorterSettings', JSON.stringify(appSettings));
-                if(state.filteredFiles.length > 0) renderCurrentMedia();
-            };
-
-            if (elements.settingInfoFilename) {
-                elements.settingInfoFilename.addEventListener('change', (e) => {
-                    appSettings.infoShowFilename = e.target.checked;
-                    saveSettingsAndRender();
-                });
-            }
-            if (elements.settingInfoSize) {
-                elements.settingInfoSize.addEventListener('change', (e) => {
-                    appSettings.infoShowSize = e.target.checked;
-                    saveSettingsAndRender();
-                });
-            }
-            if (elements.settingInfoHistory) {
-                elements.settingInfoHistory.addEventListener('change', (e) => {
-                    appSettings.infoShowHistory = e.target.checked;
-                    saveSettingsAndRender();
-                });
-            }
-            
-            // Toggle Info Popup
-            if (elements.btnInfo) {
-                elements.btnInfo.addEventListener('click', () => {
-                    elements.fileInfoOverlay.classList.toggle('hidden');
-                });
-            }
-
-            elements.btnHardReset.addEventListener('click', () => {
-                if (confirm("WARNING: Permanently wipe ALL saved memory?")) {
-                    localStorage.removeItem('dynamicMediaSorterRatings');
-                    state.ratings = {};
-                    state.allFiles = [];
-                    resetFiltersToDefault();
-                    applyFilterAndSort(); 
-                    showToast("Memory wiped.");
-                    elements.settingsModal.classList.remove('active');
-                }
-            });
-
-            elements.btnAppFullscreen.addEventListener('click', () => {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().catch(() => showToast("Fullscreen unsupported."));
-                } else {
-                    if (document.exitFullscreen) document.exitFullscreen();
-                }
-            });
-
-            document.addEventListener('fullscreenchange', () => {
-                const icon = elements.btnAppFullscreen.querySelector('i');
-                if (icon) {
-                    if (document.fullscreenElement) {
-                        icon.className = 'fa-solid fa-compress';
-                    } else {
-                        icon.className = 'fa-solid fa-expand';
-                    }
-                }
-            });
-
-            elements.btnMediaFullscreen.addEventListener('click', () => {
-                const media = document.getElementById('active-media-node');
-                if (media) {
-                    if (media.requestFullscreen) {
-                        media.requestFullscreen();
-                    } else if (media.webkitRequestFullscreen) {
-                        media.webkitRequestFullscreen();
-                    }
-                }
-            });
-
-            elements.btnCloseViewer.addEventListener('click', () => {
-                elements.fullscreenViewer.classList.remove('active');
-                elements.fullscreenViewerContent.innerHTML = '';
-            });
-            
-            // Zoom Controls
-            elements.btnZoomIn.addEventListener('click', () => { currentScale += 0.5; updateViewerTransform(); });
-            elements.btnZoomOut.addEventListener('click', () => { currentScale = Math.max(0.5, currentScale - 0.5); updateViewerTransform(); });
-            elements.btnZoomReset.addEventListener('click', () => { currentScale = 1; updateViewerTransform(); });
-            
-            // Slider events
-            const showHeatmap = () => elements.heatmapContainer && elements.heatmapContainer.classList.add('visible');
-            const hideHeatmap = () => elements.heatmapContainer && elements.heatmapContainer.classList.remove('visible');
-            
-            let heatmapTimeout;
-
-            elements.slider.addEventListener('input', () => {
-                showHeatmap();
-                updateSliderVisuals(true);
-                clearTimeout(heatmapTimeout);
-                // Fallback to hide in case the release event is swallowed by the browser
-                heatmapTimeout = setTimeout(hideHeatmap, 4000); 
-            });
-            
-            elements.slider.addEventListener('change', () => { 
-                // Push to history ONLY on release
-                if (state.currentIndex >= 0 && state.currentIndex < state.filteredFiles.length) {
-                    const file = state.filteredFiles[state.currentIndex];
-                    const id = getFileId(file);
-                    const finalVal = parseFloat(elements.slider.value);
-                    if (!state.ratings[id].scoreHistory) state.ratings[id].scoreHistory = [];
-                    if (state.ratings[id].scoreHistory.length === 0 || state.ratings[id].scoreHistory[state.ratings[id].scoreHistory.length - 1] !== finalVal) {
-                        state.ratings[id].scoreHistory.push(finalVal);
-                        saveRatingsToStorage();
-                    }
-                }
-                renderHeatmap();
-                updateFilterCountsAndPercentages();
-                navigate(1); 
-                setTimeout(hideHeatmap, 800); // Hide smoothly after navigating
-            });
-            
-            elements.btnPrev.addEventListener('click', () => navigate(-1));
-            elements.btnNext.addEventListener('click', () => navigate(1));
-            
-            // Modal events
-            elements.btnPurge.addEventListener('click', () => {
-                elements.purgeModal.classList.add('active');
-                renderStagedList();
-            });
-            elements.closePurgeModal.addEventListener('click', () => {
-                elements.purgeModal.classList.remove('active');
-            });
-            elements.btnStageFiles.addEventListener('click', stageFilesFromDB);
-            elements.btnClearStaged.addEventListener('click', () => {
-                state.stagedFilesMap.clear();
-                renderStagedList();
-            });
-            
-            elements.btnGenerateScript.addEventListener('click', generateScripts);
-            
-            elements.tabs.forEach(tab => {
-                tab.addEventListener('click', (e) => {
-                    currentScriptType = e.target.dataset.target;
-                    updateScriptView();
-                });
-            });
-
-            elements.btnCopyScript.addEventListener('click', () => {
-                elements.scriptOutput.select();
-                document.execCommand('copy');
-                showToast("Script copied!");
-            });
-
-            // Clickable Score History (Edit)
-            elements.displaySurvival.style.cursor = 'pointer';
-            elements.displaySurvival.title = "Click to manually edit score history";
-            elements.displaySurvival.addEventListener('click', () => {
-                if (state.filteredFiles.length === 0 || state.currentIndex < 0) return;
-                const file = state.filteredFiles[state.currentIndex];
-                const id = getFileId(file);
-                
-                let currentStr = "";
-                if (state.ratings[id] && state.ratings[id].scoreHistory && state.ratings[id].scoreHistory.length > 0) {
-                    currentStr = state.ratings[id].scoreHistory.join(', ');
-                } else if (state.ratings[id]) {
-                    currentStr = state.ratings[id].score.toString();
-                }
-                
-                const newStr = prompt("Edit Score History (comma separated decimals, e.g. '0.5, -0.2'):", currentStr);
-                if (newStr !== null && newStr.trim() !== '') {
-                    try {
-                        const parts = newStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-                        if (parts.length > 0) {
-                            state.ratings[id].scoreHistory = parts;
-                            state.ratings[id].score = parts[parts.length - 1]; // Main score matches newest entry
-                            saveRatingsToStorage();
-                            
-                            // Re-render UI without advancing
-                            elements.slider.value = state.ratings[id].score;
-                            updateSliderVisuals(false); 
-                            renderCurrentMedia(); 
-                            renderHeatmap(); 
-                            updateFilterCountsAndPercentages(); 
-                        }
-                    } catch (e) {
-                        alert("Invalid format. Please use comma separated decimals.");
-                    }
-                }
-            });
-
-            const btnJumpQueue = document.getElementById('btn-jump-queue');
-            if (btnJumpQueue) {
-                btnJumpQueue.addEventListener('click', () => {
-                    if (state.filteredFiles.length === 0) return;
-                    const jumpTo = prompt(`Jump to queue position (1 - ${state.filteredFiles.length}):`);
-                    if (jumpTo !== null && jumpTo.trim() !== '') {
-                        const num = parseInt(jumpTo, 10);
-                        if (!isNaN(num) && num >= 1 && num <= state.filteredFiles.length) {
-                            state.currentIndex = num - 1;
-                            renderCurrentMedia();
-                        } else {
-                            alert(`Please enter a valid number between 1 and ${state.filteredFiles.length}.`);
-                        }
-                    }
-                });
-            }
-
-            window.addEventListener('keydown', (e) => {
-                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-                if (e.key === 'ArrowLeft') navigate(-1);
-                else if (e.key === 'ArrowRight') navigate(1);
-                else if (e.key === '0') {
-                    elements.slider.value = 0;
-                    updateSliderVisuals(true);
-                }
-            });
-        }
-
-        init();
-
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (isMobile) {
-            const folderBtn = document.getElementById('btn-load-folder');
-            if (folderBtn) folderBtn.style.display = 'none';
-        }
-    </script>
+</script>
 </body>
 </html>
