@@ -72,11 +72,11 @@ body {
     background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
     border: none; color: #fff; font-weight: 600;
 }
-header .btn { padding: 8px 10px; }
+header .btn { padding: 4px 8px; }
 
 header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 12px; z-index: 10;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+    padding: 4px 8px; z-index: 10;
 }
 .header-left, .header-right { display: flex; gap: 8px; align-items: center; }
 
@@ -206,11 +206,16 @@ footer { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; z
     touch-action: none; /* Disable browser scrolling on these elements for swipe detection */
     position: relative;
     overflow: hidden;
+    padding-bottom: 8px;
 }
 
 .btn-large.active-view {
     background: rgba(79, 172, 254, 0.1);
     border-color: var(--accent-blue);
+}
+
+.btn-large.voted {
+    justify-content: flex-end;
 }
 
 .winner-bg { background: rgba(0, 255, 0, 0.2) !important; border-color: var(--accent-green) !important; }
@@ -246,6 +251,7 @@ footer { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; z
 .modal-close { position: absolute; top: 20px; right: 20px; background: none; border: none; color: var(--text-secondary); font-size: 1.2rem; cursor: pointer; }
 .modal-body { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 15px; padding-bottom: 12px; }
 .modal-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; }
+@media (max-width: 600px) { .modal-grid-2 { grid-template-columns: 1fr; } }
 
 textarea { width: 100%; height: 200px; background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border); border-radius: 8px; color: #a5d6ff; font-family: monospace; padding: 12px; resize: vertical; }
 select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: var(--text-primary); padding: 8px 12px; border-radius: 6px; width: 100%; }
@@ -311,6 +317,18 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         <div class="progress-circle hidden" id="loading-progress" title="Loading Media...">
             <span id="loading-percent">0%</span>
         </div>
+        
+        <!-- Circular Progress Bar for Matchup Pool -->
+        <div style="display: flex; align-items: center; gap: 8px; margin-right: 10px;" id="matchup-progress-container" class="hidden">
+            <span id="matchup-pool-level" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Pool 0</span>
+            <div class="progress-circle" style="position: relative; width: 32px; height: 32px;" title="Matchup Pool Progress">
+                <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-90deg);">
+                    <path style="fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3;" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path id="matchup-circle" style="fill: none; stroke: var(--accent-blue); stroke-width: 3; stroke-linecap: round; transition: stroke-dasharray 0.3s ease;" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                </svg>
+                <span id="matchup-percent" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65rem; font-weight: bold;">0%</span>
+            </div>
+        </div>
 
         <button class="btn btn-primary" id="btn-open-leaderboard" title="Leaderboard"><i class="fa-solid fa-ranking-star"></i></button>
         <button class="btn btn-danger" id="btn-purge" title="The Executioner"><i class="fa-solid fa-skull"></i></button>
@@ -350,33 +368,35 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 
 <!-- Footer Controls -->
 <footer class="glass-panel">
-    <div style="display: flex; justify-content: center; align-items: center; padding: 0 10px; position: relative; min-height: 44px;">
-        <div style="position: absolute; left: 10px; display: flex; gap: 8px;">
-            <button class="btn btn-secondary" id="btn-undo" title="Undo Last Match"><i class="fa-solid fa-rotate-left"></i> Undo</button>
-        <button class="btn btn-secondary" id="btn-skip" title="Skip Match"><i class="fa-solid fa-forward-step"></i> Skip</button>
-        <button class="btn btn-secondary" id="btn-info" title="Toggle Info"><i class="fa-solid fa-circle-info"></i> Info</button>
-        </div>
-        <button class="btn" id="btn-toggle-fit" title="Cycle Media Fit" style="position: absolute; right: 10px; width: 44px;"><i class="fa-solid fa-compress"></i></button>
-    </div>
-    
     <div class="gesture-controls" id="gesture-controls">
         <button class="btn-large" id="btn-a">
-            <span>A</span>
             <div class="score-diff" id="float-a"></div>
+            <span>A</span>
         </button>
         <div id="vs-badge" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 80px; font-weight: bold; color: var(--text-secondary);">
             <span style="font-size: 0.8rem;">MATCHUP</span>
             <span id="vs-score-text" style="font-size: 1.1rem; color: var(--text-primary); margin-top: 4px;"></span>
         </div>
         <button class="btn-large" id="btn-b">
-            <span>B</span>
             <div class="score-diff" id="float-b"></div>
+            <span>B</span>
         </button>
+    </div>
+
+    <div style="display: flex; justify-content: center; align-items: center; padding: 0 10px; position: relative; min-height: 44px;">
+        <div style="position: absolute; left: 10px; display: flex; gap: 8px;">
+            <button class="btn btn-secondary" id="btn-undo" title="Undo Last Match"><i class="fa-solid fa-rotate-left"></i> Undo</button>
+            <button class="btn btn-secondary" id="btn-skip" title="Skip Match"><i class="fa-solid fa-forward-step"></i> Skip</button>
+            <button class="btn btn-secondary" id="btn-info" title="Toggle Info"><i class="fa-solid fa-circle-info"></i> Info</button>
+        </div>
+        <button class="btn" id="btn-toggle-fit" title="Cycle Media Fit" style="position: absolute; right: 10px; width: 44px;"><i class="fa-solid fa-compress"></i></button>
     </div>
 
     <!-- Timeline Controls (Hidden by Default) -->
     <div class="timeline-controls hidden" id="timeline-controls">
         <button class="btn" id="btn-prev-match"><i class="fa-solid fa-chevron-left"></i> Previous</button>
+        <button class="btn hidden" id="btn-stage-viewer"><i class="fa-solid fa-skull"></i> Stage to Executioner</button>
+        <button class="btn hidden" id="btn-history-viewer"><i class="fa-solid fa-clock-rotate-left"></i> View Match History</button>
         <button class="btn btn-danger" id="btn-exit-review">Exit Mode</button>
         <button class="btn" id="btn-next-match">Next <i class="fa-solid fa-chevron-right"></i></button>
     </div>
@@ -466,11 +486,17 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         <h2><i class="fa-solid fa-ranking-star"></i> Leaderboard</h2>
         <div class="modal-body" style="flex-direction: row; gap: 20px;">
             <div style="flex: 1; border-right: 1px solid var(--panel-border); padding-right: 10px; overflow-y:auto;">
-                <h3 style="margin-bottom: 10px; color: var(--accent-green);">Top Tier</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="margin: 0; color: var(--accent-green);">Top Tier</h3>
+                    <button class="btn btn-primary" id="btn-view-top-cont">View Top Continuously</button>
+                </div>
                 <div id="leaderboard-top-list"></div>
             </div>
             <div style="flex: 1; padding-left: 10px; overflow-y:auto;">
-                <h3 style="margin-bottom: 10px; color: var(--accent-red);">Bottom Tier</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="margin: 0; color: var(--accent-red);">Bottom Tier</h3>
+                    <button class="btn btn-danger" id="btn-view-bottom-cont">View Bottom Continuously</button>
+                </div>
                 <div id="leaderboard-bottom-list"></div>
             </div>
         </div>
@@ -503,6 +529,40 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 <div id="toast"></div>
 
 <script>
+window.onerror = function(msg, url, lineNo, columnNo, error) {
+    showErrorToast(`Error: ${msg}`);
+    return false;
+};
+window.onunhandledrejection = function(event) {
+    showErrorToast(`Unhandled Rejection: ${event.reason}`);
+};
+
+function showErrorToast(message) {
+    const errDiv = document.createElement('div');
+    errDiv.style.position = 'fixed';
+    errDiv.style.top = '20px';
+    errDiv.style.left = '50%';
+    errDiv.style.transform = 'translateX(-50%)';
+    errDiv.style.backgroundColor = '#ff0844';
+    errDiv.style.color = 'white';
+    errDiv.style.padding = '12px 24px';
+    errDiv.style.borderRadius = '8px';
+    errDiv.style.zIndex = '9999';
+    errDiv.style.fontWeight = 'bold';
+    errDiv.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
+    errDiv.style.cursor = 'pointer';
+    errDiv.style.maxWidth = '80%';
+    errDiv.style.wordWrap = 'break-word';
+    errDiv.innerText = message;
+    
+    errDiv.onclick = () => errDiv.remove();
+    document.body.appendChild(errDiv);
+    
+    setTimeout(() => {
+        if (errDiv.parentElement) errDiv.remove();
+    }, 8000);
+}
+
 const state = {
     images: [],
     videos: [],
@@ -522,13 +582,20 @@ const state = {
     // Executioner Review State
     executionerQueue: [], // Array of staged file objects
     executionerIndex: 0,
+
+    // Leaderboard Viewer State
+    leaderboardQueue: [],
+    leaderboardIndex: 0,
+
     isAnimating: false,
     infoVisible: false,
     fitMode: 'contain',
     hasSeenA: false,
     hasSeenB: false,
     undoStack: [],
-    priorityQueue: []
+    priorityQueue: [],
+    lastSkippedPair: null,
+    loadedIds: new Set()
 };
 
 let appSettings = {
@@ -546,9 +613,9 @@ let autoBackupIntervalId = null;
 let objectUrlA = null;
 let objectUrlB = null;
 
-function init() {
+async function init() {
     bindElements();
-    loadRatingsFromStorage();
+    await loadRatingsFromStorage();
     loadSettingsFromStorage();
     setupEventListeners();
     updateFilterCountsAndPercentages();
@@ -592,6 +659,8 @@ function bindElements() {
         btnPrevMatch: document.getElementById('btn-prev-match'),
         btnNextMatch: document.getElementById('btn-next-match'),
         btnExitReview: document.getElementById('btn-exit-review'),
+        btnStageViewer: document.getElementById('btn-stage-viewer'),
+        btnHistoryViewer: document.getElementById('btn-history-viewer'),
         
         executionerCheckContainer: document.getElementById('executioner-check-container'),
         executionerCheckbox: document.getElementById('executioner-checkbox'),
@@ -618,6 +687,8 @@ function bindElements() {
         btnOpenLeaderboard: document.getElementById('btn-open-leaderboard'),
         leaderboardTopList: document.getElementById('leaderboard-top-list'),
         leaderboardBottomList: document.getElementById('leaderboard-bottom-list'),
+        btnViewTopCont: document.getElementById('btn-view-top-cont'),
+        btnViewBottomCont: document.getElementById('btn-view-bottom-cont'),
         
         toggleImage: document.getElementById('toggle-image'),
         toggleVideo: document.getElementById('toggle-video'),
@@ -662,13 +733,17 @@ function loadSettingsFromStorage() {
 
 function saveSettingsToStorage() {
     try {
-        appSettings.autoBackupInterval = parseInt(document.getElementById('setting-auto-backup').value) || 0;
-        appSettings.heatmapMin = parseInt(document.getElementById('setting-heatmap-min').value) || 400;
-        appSettings.heatmapMax = parseInt(document.getElementById('setting-heatmap-max').value) || 1200;
-        appSettings.heatmapBucketWidth = parseInt(document.getElementById('setting-heatmap-width').value) || 50;
+        const parseSetting = (id, fallback) => {
+            const val = parseInt(document.getElementById(id).value, 10);
+            return isNaN(val) ? fallback : val;
+        };
+        appSettings.autoBackupInterval = parseSetting('setting-auto-backup', 0);
+        appSettings.heatmapMin = parseSetting('setting-heatmap-min', 400);
+        appSettings.heatmapMax = parseSetting('setting-heatmap-max', 1200);
+        appSettings.heatmapBucketWidth = parseSetting('setting-heatmap-width', 50);
         appSettings.defaultFitMode = document.getElementById('setting-default-fit').value;
         appSettings.startMuted = document.getElementById('setting-start-muted').checked;
-        appSettings.leaderboardSize = parseInt(document.getElementById('setting-leaderboard-size').value) || 32;
+        appSettings.leaderboardSize = parseSetting('setting-leaderboard-size', 32);
         localStorage.setItem('eloSorterSettings', JSON.stringify(appSettings));
         
         state.fitMode = appSettings.defaultFitMode;
@@ -690,13 +765,65 @@ function saveSettingsToStorage() {
     }
 }
 
-function loadRatingsFromStorage() {
-    try {
-        const stored = localStorage.getItem('eloSorterRatings');
-        if (stored) state.ratings = JSON.parse(stored);
-    } catch (e) { console.error(e); }
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open('MediaSorterDB', 1);
+        request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('ratings')) {
+                db.createObjectStore('ratings', { keyPath: 'id' });
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
 }
-function saveRatingsToStorage() { localStorage.setItem('eloSorterRatings', JSON.stringify(state.ratings)); }
+
+async function loadRatingsFromStorage() {
+    try {
+        const db = await openDB();
+        const tx = db.transaction('ratings', 'readonly');
+        const store = tx.objectStore('ratings');
+        const request = store.getAll();
+        
+        return new Promise((resolve) => {
+            request.onsuccess = () => {
+                state.ratings = {};
+                const result = request.result;
+                if (result && Array.isArray(result)) {
+                    result.forEach(item => {
+                        if (item && item.id && item.data && typeof item.data.elo === 'number') {
+                            state.ratings[item.id] = item.data;
+                        }
+                    });
+                }
+                resolve();
+            };
+            request.onerror = () => resolve();
+        });
+    } catch (e) {
+        console.error("IndexedDB load error:", e);
+    }
+}
+
+async function saveRatingsToStorage() {
+    try {
+        const db = await openDB();
+        const tx = db.transaction('ratings', 'readwrite');
+        const store = tx.objectStore('ratings');
+        
+        for (const [id, data] of Object.entries(state.ratings)) {
+            store.put({ id, data });
+        }
+        
+        return new Promise((resolve, reject) => {
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    } catch (e) {
+        console.error("IndexedDB save error:", e);
+    }
+}
 
 // Background Loading Logic
 let loadingQueue = [];
@@ -728,11 +855,11 @@ function handleFilesSelected(event) {
     setTimeout(processLoadingQueue, 0);
 }
 
-function processLoadingQueue() {
+async function processLoadingQueue() {
     if (loadingQueue.length === 0) {
         isProcessRunning = false;
         elements.loadingProgress.classList.add('hidden');
-        saveRatingsToStorage();
+        await saveRatingsToStorage();
         updatePercentileFilters();
         
         const seconds = Math.round((Date.now() - loadingStartTime) / 1000);
@@ -755,9 +882,9 @@ function processLoadingQueue() {
 
         const id = getFileId(f);
         if (isImage) {
-            if(!state.images.find(img => getFileId(img) === id)) { state.images.push(f); didAdd = true; }
+            if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.images.push(f); didAdd = true; }
         } else if (isVideo) {
-            if(!state.videos.find(vid => getFileId(vid) === id)) { state.videos.push(f); didAdd = true; }
+            if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.videos.push(f); didAdd = true; }
         }
 
         if (didAdd && !state.ratings[id]) {
@@ -771,7 +898,8 @@ function processLoadingQueue() {
     elements.loadingProgress.style.background = `conic-gradient(var(--accent-green) ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
 
     if (didAdd && !state.currentPair && state.appMode === 'matchmaking') {
-        pickNextPair();
+        const list = getActiveList();
+        if (list.length >= 2) pickNextPair();
     }
     
     setTimeout(processLoadingQueue, 0);
@@ -817,37 +945,29 @@ function pickNextPair() {
     if (list.length < 2) {
         state.currentPair = null;
         renderCurrentMedia();
+        updateMatchupProgress();
         return;
     }
 
-    if (!state.priorityQueue) state.priorityQueue = [];
-    state.priorityQueue = state.priorityQueue.filter(id => list.some(f => getFileId(f) === id));
-
-    const candidates = [...list];
-    for (let i = candidates.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
-    }
-    candidates.sort((a, b) => state.ratings[getFileId(a)].matches - state.ratings[getFileId(b)].matches);
-    
-    let itemA = null;
-    let itemB = null;
-    let ratingA = null;
-
-    let searchPool = candidates;
-    if (state.priorityQueue.length > 0) {
-        const priorityCandidates = candidates.filter(f => state.priorityQueue.includes(getFileId(f)));
-        const otherCandidates = candidates.filter(f => !state.priorityQueue.includes(getFileId(f)));
-        searchPool = [...priorityCandidates, ...otherCandidates];
-    }
+    let itemA = null, itemB = null, ratingA = null;
+    let searchPool = [...list];
+    searchPool.sort(() => Math.random() - 0.5);
+    searchPool.sort((a, b) => state.ratings[getFileId(a)].matches - state.ratings[getFileId(b)].matches);
 
     for (const candidateA of searchPool) {
         const idA = getFileId(candidateA);
         const rA = state.ratings[idA];
         
-        const others = candidates.filter(f => {
+        const others = list.filter(f => {
             const id = getFileId(f);
-            return id !== idA && !rA.history.some(h => h.opponentId === id);
+            if (id === idA) return false;
+            if (rA.history.some(h => h.opponentId === id)) return false;
+            if (state.lastSkippedPair && 
+                ((idA === state.lastSkippedPair.a && id === state.lastSkippedPair.b) || 
+                 (idA === state.lastSkippedPair.b && id === state.lastSkippedPair.a))) {
+                return false;
+            }
+            return true;
         });
         
         if (others.length > 0) {
@@ -871,6 +991,9 @@ function pickNextPair() {
 
     if (!itemA || !itemB) {
         state.currentPair = null;
+        if (objectUrlA) URL.revokeObjectURL(objectUrlA);
+        if (objectUrlB) URL.revokeObjectURL(objectUrlB);
+        elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); });
         elements.mediaContainer.innerHTML = `<div class="empty-state glass-panel" style="padding: 40px;"><i class="fa-solid fa-flag-checkered"></i><h2>Matchups Complete!</h2><p>All possible pairs for these files have been evaluated.</p></div>`;
         elements.fileInfoOverlay.classList.add('hidden');
         elements.btnA.classList.add('hidden'); elements.btnB.classList.add('hidden');
@@ -892,14 +1015,52 @@ function pickNextPair() {
     state.hasSeenA = true;
     state.hasSeenB = false;
     renderCurrentMedia();
+    updateMatchupProgress();
+}
+
+function updateMatchupProgress() {
+    const list = getActiveList();
+    const container = document.getElementById('matchup-progress-container');
+    if (list.length === 0 || state.appMode !== 'matchmaking') {
+        container.classList.add('hidden');
+        return;
+    }
+    
+    container.classList.remove('hidden');
+
+    if (!state.currentPair || list.length < 2) {
+        document.getElementById('matchup-percent').textContent = `100%`;
+        document.getElementById('matchup-circle').setAttribute('stroke-dasharray', `100, 100`);
+        return;
+    }
+
+    let minMatches = Infinity;
+    for (const f of list) {
+        const m = state.ratings[getFileId(f)].matches;
+        if (m < minMatches) minMatches = m;
+    }
+    
+    let countMin = 0;
+    for (const f of list) {
+        if (state.ratings[getFileId(f)].matches === minMatches) countMin++;
+    }
+    
+    const total = list.length;
+    const completed = total - countMin;
+    const percentage = Math.round((completed / total) * 100);
+    
+    document.getElementById('matchup-pool-level').textContent = `P ${minMatches}`;
+    document.getElementById('matchup-percent').textContent = `${percentage}%`;
+    document.getElementById('matchup-circle').setAttribute('stroke-dasharray', `${percentage}, 100`);
 }
 
 function calculateElo(ratingA, ratingB, sA, sB) {
-    const kA = ratingA.matches < 5 ? 128 : 32;
-    const kB = ratingB.matches < 5 ? 128 : 32;
+    const kA = ratingA.matches < 5 ? 64 : 32;
+    const kB = ratingB.matches < 5 ? 64 : 32;
+    const matchK = (kA + kB) / 2;
     const eA = 1 / (1 + Math.pow(10, (ratingB.elo - ratingA.elo) / 400));
     const eB = 1 / (1 + Math.pow(10, (ratingA.elo - ratingB.elo) / 400));
-    return { newEloA: ratingA.elo + kA * (sA - eA), newEloB: ratingB.elo + kB * (sB - eB) };
+    return { newEloA: ratingA.elo + matchK * (sA - eA), newEloB: ratingB.elo + matchK * (sB - eB) };
 }
 
 function triggerAnimation(winner, changeA, changeB) {
@@ -911,6 +1072,9 @@ function triggerAnimation(winner, changeA, changeB) {
     elements.floatA.style.opacity = '1';
     elements.floatB.style.opacity = '1';
     
+    elements.btnA.classList.add('voted');
+    elements.btnB.classList.add('voted');
+
     if (winner === 'A') {
         elements.btnA.classList.add('winner-bg');
         elements.btnB.classList.add('loser-bg');
@@ -923,13 +1087,70 @@ function triggerAnimation(winner, changeA, changeB) {
         state.isAnimating = false;
         elements.floatA.style.opacity = '0';
         elements.floatB.style.opacity = '0';
-        elements.btnA.classList.remove('winner-bg', 'loser-bg');
-        elements.btnB.classList.remove('winner-bg', 'loser-bg');
-        pickNextPair();
+        elements.btnA.classList.remove('winner-bg', 'loser-bg', 'voted');
+        elements.btnB.classList.remove('winner-bg', 'loser-bg', 'voted');
+        if (state.appMode === 'matchmaking') {
+            pickNextPair();
+        }
     }, 800);
 }
+function replaceSingleMedia(btnId) {
+    if (!state.currentPair) return;
+    
+    const keptFile = btnId === 'A' ? state.currentPair.b : state.currentPair.a;
+    const stagedFile = btnId === 'A' ? state.currentPair.a : state.currentPair.b;
+    const keptId = getFileId(keptFile);
+    const stagedId = getFileId(stagedFile);
+    const keptRating = state.ratings[keptId];
 
-function castVote(winner) {
+    const list = getActiveList();
+    const candidates = list.filter(f => {
+        const id = getFileId(f);
+        if (id === keptId) return false;
+        if (id === stagedId) return false;
+        if (keptRating.history.some(h => h.opponentId === id)) return false;
+        return true;
+    });
+
+    if (candidates.length === 0) {
+        state.hasSeenA = true;
+        state.hasSeenB = true;
+        castVote('Skip');
+        return;
+    }
+
+    let newCandidate = null;
+    if (keptRating.matches < 5) {
+        newCandidate = candidates[Math.floor(Math.random() * candidates.length)];
+    } else {
+        const validOthers = candidates.map(f => {
+            return { file: f, diff: Math.abs(state.ratings[getFileId(f)].elo - keptRating.elo) };
+        });
+        validOthers.sort((a, b) => a.diff - b.diff);
+        const topN = Math.min(validOthers.length, 10);
+        newCandidate = validOthers[Math.floor(Math.random() * topN)].file;
+    }
+
+    if (newCandidate) {
+        if (btnId === 'A') {
+            state.currentPair.a = newCandidate;
+            state.hasSeenA = false;
+        } else {
+            state.currentPair.b = newCandidate;
+            state.hasSeenB = false;
+        }
+        
+        state.activeView = btnId;
+        renderCurrentMedia();
+        updateMatchupProgress();
+    } else {
+        state.hasSeenA = true;
+        state.hasSeenB = true;
+        castVote('Skip');
+    }
+}
+
+async function castVote(winner) {
     if (!state.currentPair || state.appMode !== 'matchmaking' || state.isAnimating) return;
     
     if (!state.hasSeenB || !state.hasSeenA) {
@@ -949,44 +1170,42 @@ function castVote(winner) {
         idA: idA, idB: idB,
         eloA: rA.elo, eloB: rB.elo,
         matchesA: rA.matches, matchesB: rB.matches,
+        wasSkip: winner === 'Skip',
         priorityQueueSnapshot: [...(state.priorityQueue || [])]
     });
     
-    if (!state.priorityQueue) state.priorityQueue = [];
-    
     if (winner === 'Skip') {
-        if (!state.priorityQueue.includes(idA)) state.priorityQueue.push(idA);
-        if (!state.priorityQueue.includes(idB)) state.priorityQueue.push(idB);
+        state.lastSkippedPair = { a: idA, b: idB };
+        triggerAnimation('Skip', 0, 0);
+        return;
     } else {
-        state.priorityQueue = state.priorityQueue.filter(id => id !== idA && id !== idB);
+        state.lastSkippedPair = null;
     }
 
-    const sA = winner === 'A' ? 1 : 0;
-    const sB = winner === 'B' ? 1 : 0;
+    let resA = 'draw', resB = 'draw';
+    let sA = 0.5, sB = 0.5;
+
+    if (winner === 'A') { sA = 1; sB = 0; resA = 'won'; resB = 'lost'; }
+    else if (winner === 'B') { sA = 0; sB = 1; resA = 'lost'; resB = 'won'; }
+
     const preEloA = rA.elo;
     const preEloB = rB.elo;
     
     let diffA = 0, diffB = 0;
     
-    if (winner !== 'Skip') {
-        const { newEloA, newEloB } = calculateElo(rA, rB, sA, sB);
-        diffA = newEloA - rA.elo;
-        diffB = newEloB - rB.elo;
-        rA.elo = newEloA; rB.elo = newEloB;
-    }
+    const { newEloA, newEloB } = calculateElo(rA, rB, sA, sB);
+    diffA = newEloA - rA.elo;
+    diffB = newEloB - rB.elo;
+    rA.elo = newEloA; rB.elo = newEloB;
 
     rA.matches++; rB.matches++;
 
     const t = Date.now();
-    let resA = 'draw', resB = 'draw';
-    if (winner === 'A') { resA = 'won'; resB = 'lost'; }
-    else if (winner === 'B') { resA = 'lost'; resB = 'won'; }
-    else if (winner === 'Skip') { resA = 'skip'; resB = 'skip'; }
 
     rA.history.unshift({ opponentId: idB, opponentName: state.currentPair.b.name, result: resA, eloChange: diffA > 0 ? `+${diffA.toFixed(0)}` : diffA.toFixed(0), historicalEloA: Math.round(preEloA), historicalEloB: Math.round(preEloB), timestamp: t });
     rB.history.unshift({ opponentId: idA, opponentName: state.currentPair.a.name, result: resB, eloChange: diffB > 0 ? `+${diffB.toFixed(0)}` : diffB.toFixed(0), historicalEloA: Math.round(preEloB), historicalEloB: Math.round(preEloA), timestamp: t });
     
-    saveRatingsToStorage();
+    await saveRatingsToStorage();
     triggerAnimation(winner, Math.round(diffA), Math.round(diffB));
 }
 
@@ -1000,6 +1219,7 @@ function formatSize(bytes) {
 function renderCurrentMedia() {
     if (objectUrlA) URL.revokeObjectURL(objectUrlA);
     if (objectUrlB) URL.revokeObjectURL(objectUrlB);
+    elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); });
     elements.mediaContainer.innerHTML = '';
     elements.executionerCheckContainer.classList.add('hidden');
     elements.matchStatusIndicator.classList.add('hidden');
@@ -1064,7 +1284,7 @@ function renderCurrentMedia() {
         elements.mediaContainer.innerHTML = `<img src="${objUrl}" class="${fitClass}">`;
     } else {
         const mutedAttr = appSettings.startMuted ? 'muted' : '';
-        elements.mediaContainer.innerHTML = `<video src="${objUrl}" class="${fitClass}" autoplay loop controls ${mutedAttr}></video>`;
+        elements.mediaContainer.innerHTML = `<video src="${objUrl}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr}></video>`;
     }
     
     if (state.activeView === 'A') {
@@ -1162,6 +1382,7 @@ function loadHistoryMatch() {
     if (!opponent) {
         if (objectUrlA) URL.revokeObjectURL(objectUrlA);
         if (objectUrlB) URL.revokeObjectURL(objectUrlB);
+        elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); });
         elements.mediaContainer.innerHTML = `<div class="empty-state glass-panel" style="padding: 40px;"><i class="fa-solid fa-file-circle-xmark" style="color:var(--accent-red)"></i><h2>File Missing</h2><p>${hist.opponentName} is no longer loaded.</p></div>`;
         elements.matchStatusIndicator.classList.remove('hidden');
         elements.matchStatusIndicator.textContent = `Historical Match ${state.historyIndex + 1} of ${state.historyQueue.length}`;
@@ -1200,6 +1421,7 @@ function startExecutionerReview() {
 
 function renderExecutionerMedia() {
     if (objectUrlA) URL.revokeObjectURL(objectUrlA);
+    if (objectUrlB) URL.revokeObjectURL(objectUrlB);
     const file = state.executionerQueue[state.executionerIndex];
     const id = getFileId(file);
     objectUrlA = URL.createObjectURL(file);
@@ -1211,10 +1433,11 @@ function renderExecutionerMedia() {
     elements.executionerCheckContainer.classList.remove('hidden');
     elements.executionerCheckbox.checked = state.stagedFilesMap.has(id);
     
+    elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); });
     if (state.leaderboardType === 'image') {
         elements.mediaContainer.innerHTML = `<img src="${objectUrlA}">`;
     } else {
-        elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" autoplay loop controls muted></video>`;
+        elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" autoplay loop controls playsinline muted></video>`;
     }
     
     elements.displayFilename.textContent = `${file.name} (${formatSize(file.size)})`;
@@ -1224,6 +1447,74 @@ function renderExecutionerMedia() {
         if (e.target.checked) state.stagedFilesMap.set(id, file);
         else state.stagedFilesMap.delete(id);
     };
+}
+
+// --- Continuous Leaderboard Viewer ---
+function startLeaderboardViewer(reverse) {
+    const list = state.leaderboardType === 'image' ? state.images : state.videos;
+    const sorted = [...list].sort((a,b) => (state.ratings[getFileId(b)]?.elo || 800) - (state.ratings[getFileId(a)]?.elo || 800));
+    
+    state.leaderboardReverse = reverse;
+
+    if (reverse) {
+        state.leaderboardQueue = sorted.reverse();
+    } else {
+        state.leaderboardQueue = sorted;
+    }
+    
+    if (state.leaderboardQueue.length === 0) {
+        showToast("No media to view.");
+        return;
+    }
+    
+    state.leaderboardIndex = 0;
+    state.appMode = 'leaderboard_viewer';
+    elements.leaderboardModal.classList.remove('active');
+    
+    elements.gestureControls.classList.add('hidden');
+    elements.timelineControls.classList.remove('hidden');
+    
+    elements.btnStageViewer.classList.remove('hidden');
+    elements.btnHistoryViewer.classList.remove('hidden');
+    elements.btnExitReview.innerHTML = 'Exit Viewer';
+    
+    renderLeaderboardViewerMedia();
+}
+
+function renderLeaderboardViewerMedia() {
+    if (objectUrlA) URL.revokeObjectURL(objectUrlA);
+    if (objectUrlB) URL.revokeObjectURL(objectUrlB);
+    
+    const file = state.leaderboardQueue[state.leaderboardIndex];
+    const id = getFileId(file);
+    const rating = state.ratings[id];
+    objectUrlA = URL.createObjectURL(file);
+    
+    let rank = state.leaderboardReverse ? state.leaderboardQueue.length - state.leaderboardIndex : state.leaderboardIndex + 1;
+    
+    elements.matchStatusIndicator.classList.remove('hidden');
+    elements.matchStatusIndicator.textContent = `Elo: ${Math.round(rating.elo)} (Rank ${rank} of ${state.leaderboardQueue.length})`;
+    elements.matchStatusIndicator.className = 'placement';
+    
+    elements.executionerCheckContainer.classList.add('hidden');
+    
+    elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); });
+    
+    let fitClass = '';
+    if (state.fitMode === 'contain') fitClass = 'media-fit-contain';
+    else if (state.fitMode === 'cover') fitClass = 'media-fit-cover';
+    else if (state.fitMode === 'stretch') fitClass = 'media-fit-stretch';
+    else if (state.fitMode === 'original') fitClass = 'media-fit-original';
+    
+    if (state.leaderboardType === 'image') {
+        elements.mediaContainer.innerHTML = `<img src="${objectUrlA}" class="${fitClass}">`;
+    } else {
+        const mutedAttr = appSettings.startMuted ? 'muted' : '';
+        elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr}></video>`;
+    }
+    
+    elements.displayFilename.textContent = `${file.name} (${formatSize(file.size)})`;
+    elements.fileInfoOverlay.classList.remove('hidden');
 }
 
 
@@ -1247,34 +1538,67 @@ function setupEventListeners() {
 
     // Swipe and Tap logic for A and B buttons
     let startY = 0;
+    let startX = 0;
     const swipeThreshold = 30; // pixels to trigger vote
     
-    const handleTouchStart = (e) => { startY = e.touches[0].clientY; };
-    const handleTouchEnd = (btnId, e) => {
+    const handleTouchStart = (btnElement, e) => { 
+        startY = e.touches[0].clientY; 
+        startX = e.touches[0].clientX;
+    };
+    const handleTouchEnd = (btnElement, btnId, e) => {
+        if (startY === 0 && startX === 0) return;
         const endY = e.changedTouches[0].clientY;
-        const diff = startY - endY; // positive if swiped up
-        if (diff > swipeThreshold) {
-            // It's a swipe
-            if (state.appMode === 'matchmaking') castVote(btnId);
+        const endX = e.changedTouches[0].clientX;
+        const diffY = startY - endY; // positive if swiped up
+        const diffX = startX - endX;
+        
+        if (Math.abs(diffY) > Math.abs(diffX)) {
+            if (diffY > swipeThreshold) {
+                // It's a swipe up
+                if (state.appMode === 'matchmaking') castVote(btnId);
+            } else if (diffY < -swipeThreshold) {
+                // It's a swipe down
+                if (state.appMode === 'matchmaking') {
+                    const fileToStage = btnId === 'A' ? state.currentPair.a : state.currentPair.b;
+                    state.stagedFilesMap.set(getFileId(fileToStage), fileToStage);
+                    showToast(`Staged for purge: ${fileToStage.name}`);
+                    replaceSingleMedia(btnId);
+                }
+            } else {
+                // It's a tap
+                if (state.activeView !== btnId) {
+                    state.activeView = btnId;
+                    renderCurrentMedia();
+                }
+            }
         } else {
-            // It's a tap
-            if (state.activeView !== btnId) {
-                state.activeView = btnId;
-                renderCurrentMedia();
+            // It's a tap or horizontal swipe, treat as tap if small movement
+            if (Math.abs(diffX) < swipeThreshold && Math.abs(diffY) < swipeThreshold) {
+                if (state.activeView !== btnId) {
+                    state.activeView = btnId;
+                    renderCurrentMedia();
+                }
             }
         }
+        startY = 0; startX = 0;
     };
+    const handleTouchCancel = () => { startY = 0; startX = 0; };
     
     // Also allow click to tap if not touching
     elements.btnA.addEventListener('click', (e) => { if(!e.pointerType || e.pointerType==='mouse'){ if(state.activeView !== 'A'){ state.activeView='A'; renderCurrentMedia(); } } });
     elements.btnB.addEventListener('click', (e) => { if(!e.pointerType || e.pointerType==='mouse'){ if(state.activeView !== 'B'){ state.activeView='B'; renderCurrentMedia(); } } });
 
-    elements.btnA.addEventListener('touchstart', handleTouchStart, {passive: true});
-    elements.btnA.addEventListener('touchend', (e) => handleTouchEnd('A', e));
-    elements.btnB.addEventListener('touchstart', handleTouchStart, {passive: true});
-    elements.btnB.addEventListener('touchend', (e) => handleTouchEnd('B', e));
+    elements.btnA.addEventListener('touchstart', (e) => handleTouchStart(elements.btnA, e), {passive: true});
+    elements.btnA.addEventListener('touchend', (e) => handleTouchEnd(elements.btnA, 'A', e));
+    elements.btnA.addEventListener('touchcancel', handleTouchCancel);
+    elements.btnB.addEventListener('touchstart', (e) => handleTouchStart(elements.btnB, e), {passive: true});
+    elements.btnB.addEventListener('touchend', (e) => handleTouchEnd(elements.btnB, 'B', e));
+    elements.btnB.addEventListener('touchcancel', handleTouchCancel);
 
-    elements.btnUndo.addEventListener('click', () => {
+    elements.btnA.addEventListener('contextmenu', e => e.preventDefault());
+    elements.btnB.addEventListener('contextmenu', e => e.preventDefault());
+
+    elements.btnUndo.addEventListener('click', async () => {
         if (state.isAnimating) return;
         if (state.undoStack.length === 0) { showToast("Nothing to undo."); return; }
         const last = state.undoStack.pop();
@@ -1288,14 +1612,17 @@ function setupEventListeners() {
         
         rA.elo = last.eloA; rB.elo = last.eloB;
         rA.matches = last.matchesA; rB.matches = last.matchesB;
-        rA.history.shift(); rB.history.shift();
+        if (!last.wasSkip) {
+            rA.history.shift(); rB.history.shift();
+        }
         
-        saveRatingsToStorage();
+        await saveRatingsToStorage();
         state.currentPair = last.pair;
         state.activeView = 'A';
         state.hasSeenA = true;
         state.hasSeenB = false;
         renderCurrentMedia();
+        updateMatchupProgress();
         showToast("Match reverted!");
     });
     
@@ -1314,6 +1641,7 @@ function setupEventListeners() {
         const icons = { 'contain': 'fa-compress', 'cover': 'fa-crop-simple', 'stretch': 'fa-expand', 'original': 'fa-maximize' };
         let idx = modes.indexOf(state.fitMode);
         state.fitMode = modes[(idx + 1) % modes.length];
+        showToast(`Fit Mode: ${state.fitMode.charAt(0).toUpperCase() + state.fitMode.slice(1)}`);
         elements.btnToggleFit.innerHTML = `<i class="fa-solid ${icons[state.fitMode]}"></i>`;
         renderCurrentMedia();
     });
@@ -1324,6 +1652,8 @@ function setupEventListeners() {
             if (state.historyIndex > 0) { state.historyIndex--; loadHistoryMatch(); }
         } else if (state.appMode === 'executioner') {
             if (state.executionerIndex > 0) { state.executionerIndex--; renderCurrentMedia(); }
+        } else if (state.appMode === 'leaderboard_viewer') {
+            if (state.leaderboardIndex > 0) { state.leaderboardIndex--; renderLeaderboardViewerMedia(); }
         }
     });
     elements.btnNextMatch.addEventListener('click', () => {
@@ -1331,6 +1661,8 @@ function setupEventListeners() {
             if (state.historyIndex < state.historyQueue.length - 1) { state.historyIndex++; loadHistoryMatch(); }
         } else if (state.appMode === 'executioner') {
             if (state.executionerIndex < state.executionerQueue.length - 1) { state.executionerIndex++; renderCurrentMedia(); }
+        } else if (state.appMode === 'leaderboard_viewer') {
+            if (state.leaderboardIndex < state.leaderboardQueue.length - 1) { state.leaderboardIndex++; renderLeaderboardViewerMedia(); }
         }
     });
     elements.btnExitReview.addEventListener('click', () => {
@@ -1341,7 +1673,24 @@ function setupEventListeners() {
         elements.timelineControls.classList.add('hidden');
         elements.gestureControls.classList.remove('hidden');
         elements.executionerCheckContainer.classList.add('hidden');
+        elements.btnStageViewer.classList.add('hidden');
+        elements.btnHistoryViewer.classList.add('hidden');
         pickNextPair();
+    });
+    elements.btnStageViewer.addEventListener('click', () => {
+        if (state.appMode === 'leaderboard_viewer') {
+            const currentMedia = state.leaderboardQueue[state.leaderboardIndex];
+            state.stagedFilesMap.set(getFileId(currentMedia), currentMedia);
+            showToast(`Staged for execution: ${currentMedia.name}`);
+        }
+    });
+    elements.btnHistoryViewer.addEventListener('click', () => {
+        if (state.appMode === 'leaderboard_viewer') {
+            const currentMedia = state.leaderboardQueue[state.leaderboardIndex];
+            elements.btnStageViewer.classList.add('hidden');
+            elements.btnHistoryViewer.classList.add('hidden');
+            startHistoryReview(getFileId(currentMedia));
+        }
     });
 
     // Modals
@@ -1367,7 +1716,8 @@ function setupEventListeners() {
     elements.btnStageFiles.addEventListener('click', () => {
         const threshold = parseInt(elements.purgeThreshold.value);
         let added = 0;
-        getActiveList().forEach(f => {
+        const listToStage = state.leaderboardType === 'image' ? state.images : state.videos;
+        listToStage.forEach(f => {
             const id = getFileId(f);
             if (state.ratings[id] && state.ratings[id].elo < threshold) {
                 if (!state.stagedFilesMap.has(id)) { state.stagedFilesMap.set(id, f); added++; }
@@ -1381,11 +1731,18 @@ function setupEventListeners() {
 
     elements.btnCopyScript.addEventListener('click', () => { elements.scriptOutput.select(); document.execCommand('copy'); showToast("Copied!"); });
 
-    elements.btnHardReset.addEventListener('click', () => {
+    elements.btnHardReset.addEventListener('click', async () => {
         if (!confirm("Are you sure? This will wipe all ratings completely!")) return;
         state.appMode = 'matchmaking';
         localStorage.removeItem('eloSorterRatings');
+        try {
+            const db = await openDB();
+            const tx = db.transaction('ratings', 'readwrite');
+            tx.objectStore('ratings').clear();
+        } catch (e) { console.error("Error clearing IndexedDB", e); }
         state.ratings = {}; state.images = []; state.videos = []; state.priorityQueue = [];
+        state.stagedFilesMap.clear();
+        state.loadedIds.clear(); loadingQueue = []; totalLoading = 0; loadedCount = 0;
         pickNextPair(); elements.settingsModal.classList.remove('active');
     });
     
@@ -1403,6 +1760,9 @@ function setupEventListeners() {
     });
     elements.closeLeaderboardModal.addEventListener('click', () => elements.leaderboardModal.classList.remove('active'));
     
+    elements.btnViewTopCont.addEventListener('click', () => startLeaderboardViewer(false));
+    elements.btnViewBottomCont.addEventListener('click', () => startLeaderboardViewer(true));
+    
     // Keyboard Shortcuts
     window.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -1411,7 +1771,7 @@ function setupEventListeners() {
             if (e.key === 'ArrowRight') { state.activeView = 'B'; renderCurrentMedia(); }
             if (e.key === 'ArrowUp') castVote(state.activeView);
             if (e.key === 'ArrowDown') elements.btnUndo.click();
-        } else if (state.appMode === 'history' || state.appMode === 'executioner') {
+        } else if (state.appMode === 'history' || state.appMode === 'executioner' || state.appMode === 'leaderboard_viewer') {
             if (e.key === 'ArrowLeft') elements.btnPrevMatch.click();
             if (e.key === 'ArrowRight') elements.btnNextMatch.click();
         }
@@ -1419,22 +1779,26 @@ function setupEventListeners() {
 }
 
 function exportRatings(isAuto = false) {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.ratings, null, 2));
+    const jsonData = JSON.stringify(state.ratings, null, 2);
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
     const node = document.createElement('a');
-    node.setAttribute("href", dataStr);
+    node.setAttribute("href", url);
     const dt = new Date().toISOString().replace(/[:.]/g, '-');
     node.setAttribute("download", `dms_elo_${isAuto?'autobackup':'backup'}_${dt}.json`);
     document.body.appendChild(node); node.click(); node.remove();
+    URL.revokeObjectURL(url);
     if(!isAuto) showToast("Exported Backup!");
 }
 function importRatings(event) {
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         try {
             state.ratings = { ...state.ratings, ...JSON.parse(e.target.result) };
-            saveRatingsToStorage(); showToast("Restored!");
+            await saveRatingsToStorage(); 
+            showToast("Restored!");
             updatePercentileFilters();
             pickNextPair(); renderHeatmap();
         } catch (err) { alert("Invalid JSON."); }
@@ -1448,8 +1812,8 @@ function generateScripts() {
         return;
     }
     elements.purgeModal.classList.add('active');
-    const names = Array.from(state.stagedFilesMap.values()).map(f => f.name);
-    const py = `import os\nfiles = [\n${names.map(n=>`  "${n}"`).join(',\n')}\n]\nfor f in files:\n  if os.path.exists(f): os.remove(f)`;
+    const names = Array.from(state.stagedFilesMap.values()).map(f => f.webkitRelativePath || f.name);
+    const py = `import os\nfiles = [\n${names.map(n=>`  ${JSON.stringify(n)}`).join(',\n')}\n]\nfor f in files:\n  if os.path.exists(f): os.remove(f)`;
     elements.scriptOutput.value = py;
     elements.scriptContainer.classList.remove('hidden');
     elements.purgeStats.textContent = `Script ready for ${state.stagedFilesMap.size} files.`;

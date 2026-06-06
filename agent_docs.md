@@ -22,7 +22,7 @@ const state = {
     leaderboardType: 'image', // 'image' or 'video'
     filter: 'all',          // 'all', 'unrated', 'rated', 'positive', 'negative'
     activeView: 'A',        // 'A' or 'B' focuses the active media
-    appMode: 'matchmaking', // Modes: 'matchmaking', 'history', 'executioner'
+    appMode: 'matchmaking', // Modes: 'matchmaking', 'history', 'executioner', 'leaderboard_viewer'
     
     // History & Timelines
     historyQueue: [], 
@@ -47,8 +47,8 @@ const state = {
 ```
 
 ### Storage Mechanisms
-- **Ratings DB (`eloSorterRatings`)**: Persisted as a stringified JSON object in `localStorage`.
-- **Settings DB (`eloSorterSettings`)**: Keeps track of user preferences like Heatmap configuration, Auto-backup intervals, Start Muted preferences, and Default Fit mode.
+- **Ratings DB (`eloSorterRatings`)**: Persisted asynchronously in **IndexedDB** to support unlimited history and remove the strict 5MB quota limits. This guarantees zero data loss for 5000+ files.
+- **Settings DB (`eloSorterSettings`)**: Keeps track of user preferences like Heatmap configuration, Auto-backup intervals, Start Muted preferences, and Default Fit mode. This remains in `localStorage` as it is lightweight.
 
 ### Ratings Schema
 A single rating entry in `state.ratings` looks like this:
@@ -73,22 +73,28 @@ A single rating entry in `state.ratings` looks like this:
 
 ## 🧮 Elo & Matchmaking Logic
 - **Initialization**: New files default to `800` Elo.
-- **K-Factor**: Uses a dynamic K-factor to handle variance. Files with `< 5` matches have `K = 128` to quickly stratify them. Once they reach `5` matches, `K = 32` for stable tweaking.
+- **K-Factor**: Uses a dynamic K-factor to handle variance. Files with `< 5` matches have an initial calibration `K = 64` to prevent massive rating swings. Once they reach `5` matches, `K = 32` for stable tweaking. The actual applied K-Factor is a balanced average `(kA + kB) / 2` to maintain a zero-sum system.
 - **Pairing Algorithm**:
-  1. Checks the `priorityQueue` first (populated when a user hits "Skip").
-  2. If the priority queue is empty, shuffles the candidate pool and prioritizes files with the lowest match counts.
+  1. Uses ephemeral dynamic priority queue generation inside matchmaking, so skipped files naturally rise to the top by match-count priority.
+  2. Shuffles the `searchPool` and sorts ascending by matches to fix the "First-Item Bias" (preventing the same image from appearing on the left consecutively), prioritizing files with the lowest match counts.
   3. Finds an opponent that it hasn't fought before. If `matches < 5`, opponent is purely random. If `matches >= 5`, it picks from a group of opponents with the closest Elo scores to keep matchups competitive.
 
 ## 🖼 UI Rendering & Memory Management
 
 ### Render Loop (`renderCurrentMedia`)
 - Renders the currently focused item (`state.activeView`) into the `#media-container`.
-- **Memory Leak Patch**: Calling `URL.createObjectURL()` allocates memory. The latest patch ensures `URL.revokeObjectURL(objectUrlA)` and `objectUrlB` are explicitly called before reassignment.
+- **Memory Leak Patch**: Calling `URL.createObjectURL()` allocates memory. The latest patch ensures `URL.revokeObjectURL(objectUrlA)` and `objectUrlB` are explicitly called before reassignment. Additionally, empty matchmaking states explicitly revoke blobs. Before rendering, existing `<video>` tags are explicitly paused and their `src` attributes are cleared so browsers stop buffering them in the background.
 
 ### UI Changes
-- **No Top-Bar Voting**: The old A/B voting UI in the header has been removed. All voting happens via the large A/B buttons in the footer gesture controls (`#gesture-controls`).
-- **Swipe Gestures**: The A/B buttons detect touch events. Swiping up > 30px casts a vote. Tapping without swiping just changes the `activeView` (toggles preview).
+- **No Top-Bar Voting**: The old A/B voting UI in the header has been removed. All voting happens via the large A/B buttons in the footer gesture controls (`#gesture-controls`). When a vote is cast, a `.voted` class is applied to the button, shifting the text to the bottom and fading in the Elo score difference above it.
+- **Swipe Gestures**: The A/B buttons detect touch events. 
+  - **Swipe Up**: Swiping up > 30px casts a vote. 
+  - **Swipe Down**: Swiping down stages that specific media into the Executioner and calls `replaceSingleMedia(btnId)` to find a new opponent for the remaining media. If no valid opponent exists, it falls back to a standard pair skip.
+  - **Tap**: Tapping without swiping changes the `activeView` (toggles preview).
 - **Video Elements**: Videos are now spawned with `controls`, `autoplay`, and `loop`. Pointer events are set to `auto` allowing users to scrub the timeline or adjust native volume independently.
+
+### Continuous Leaderboard Viewer
+An immersive mode (`state.appMode = 'leaderboard_viewer'`) that allows users to seamlessly iterate through the leaderboard array. In this mode, standard A/B buttons are hidden and replaced with specialized footer controls (Previous, Next, Stage to Executioner, View Match History, Exit). Jumping into match history smoothly transitions into chronological review mode.
 
 ### Undo Mechanics
 When a vote is cast, a complete snapshot of the state (Elo scores, matches, exact priorityQueue array, and history array length) is pushed to `state.undoStack`. When `Undo` is clicked, this data is popped and exactly restored, dropping the most recent history entries.
