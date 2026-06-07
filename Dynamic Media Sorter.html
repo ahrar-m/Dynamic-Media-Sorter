@@ -3,11 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Media Sorter - Elo Edition</title>
+    <title>Dynamic Media Sorter - Openskill Edition</title>
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module">
+import { rate, rating, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@4.1.1/+esm';
+window.openskill = { rate, rating, ordinal };
+</script>
     <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -64,6 +68,7 @@ body {
     background: rgba(255, 255, 255, 0.1);
     transform: translateY(-1px);
 }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-primary {
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     border: none; color: #000; font-weight: 600;
@@ -190,44 +195,7 @@ footer { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; z
     position: relative;
 }
 
-.btn-large {
-    flex: 1;
-    height: 68px;
-    font-size: 1.5rem;
-    font-weight: bold;
-    border-radius: 20px;
-    background: var(--panel-bg);
-    border: 2px solid var(--panel-border);
-    color: var(--text-primary);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    touch-action: none; /* Disable browser scrolling on these elements for swipe detection */
-    position: relative;
-    overflow: hidden;
-    padding-bottom: 8px;
-}
 
-.btn-large.active-view {
-    background: rgba(79, 172, 254, 0.1);
-    border-color: var(--accent-blue);
-}
-
-.btn-large.voted {
-    justify-content: flex-end;
-}
-
-.winner-bg { background: rgba(0, 255, 0, 0.2) !important; border-color: var(--accent-green) !important; }
-.loser-bg { background: rgba(255, 0, 0, 0.2) !important; border-color: var(--accent-red) !important; }
-
-.score-diff {
-    font-size: 1rem;
-    font-weight: normal;
-    height: 20px;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
 
 /* Timeline Controls */
 .timeline-controls {
@@ -255,19 +223,6 @@ footer { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; z
 
 textarea { width: 100%; height: 200px; background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border); border-radius: 8px; color: #a5d6ff; font-family: monospace; padding: 12px; resize: vertical; }
 select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: var(--text-primary); padding: 8px 12px; border-radius: 6px; width: 100%; }
-
-/* Heatmap inside settings */
-#heatmap-container {
-    display: flex; align-items: flex-end; justify-content: space-between; 
-    width: 100%; padding: 0; overflow: hidden; 
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    height: 40px; margin-top: 5px;
-}
-.heatmap-bar {
-    flex: 1; margin: 0 1px; min-height: 2px;
-    transition: height 0.3s, background-color 0.3s;
-    border-top-left-radius: 2px; border-top-right-radius: 2px;
-}
 
 .hidden { display: none !important; }
 
@@ -304,7 +259,6 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         <button class="btn btn-primary" id="btn-load-menu" onclick="document.getElementById('load-dropdown').classList.toggle('hidden')">
             <i class="fa-solid fa-folder-plus"></i>
         </button>
-        <button class="btn" id="btn-open-filters" title="Filters"><i class="fa-solid fa-filter"></i></button>
         <button class="btn" id="btn-app-fullscreen" title="Toggle Fullscreen"><i class="fa-solid fa-expand"></i></button>
         
         <div style="display: flex; gap: 4px;">
@@ -357,7 +311,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         <div class="empty-state glass-panel" style="padding: 40px;">
             <i class="fa-solid fa-photo-film"></i>
             <h2>No Media Loaded</h2>
-            <p>Select a folder to begin Elo matchmaking.</p>
+            <p>Select a folder to begin Openskill matchmaking.</p>
         </div>
     </div>
     
@@ -367,60 +321,78 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 </main>
 
 <!-- Footer Controls -->
-<footer class="glass-panel">
-    <div class="gesture-controls" id="gesture-controls">
-        <button class="btn-large" id="btn-a">
-            <div class="score-diff" id="float-a"></div>
-            <span>A</span>
-        </button>
-        <div id="vs-badge" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 80px; font-weight: bold; color: var(--text-secondary);">
-            <span style="font-size: 0.8rem;">MATCHUP</span>
-            <span id="vs-score-text" style="font-size: 1.1rem; color: var(--text-primary); margin-top: 4px;"></span>
+<footer class="glass-panel" style="padding: 12px 16px; display: flex; flex-direction: column; gap: 16px; z-index: 10; background: var(--bg-color); border-top: 1px solid var(--panel-border); flex-shrink: 0;">
+    <div class="matchup-controls" id="matchup-controls" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <button class="btn" id="btn-prev-media" style="font-size: 1.2rem; padding: 10px 15px;"><i class="fa-solid fa-chevron-left"></i></button>
+        
+        <div class="ranking-checkboxes" style="display: flex; gap: 15px; align-items: center;">
+            <label style="display: flex; flex-direction: column; align-items: center; font-weight: bold; cursor: pointer;">
+                <input type="radio" name="rank" value="1" style="width: 24px; height: 24px; margin-bottom: 5px;">
+                [1]
+            </label>
+            <label style="display: flex; flex-direction: column; align-items: center; font-weight: bold; cursor: pointer;">
+                <input type="radio" name="rank" value="2" style="width: 24px; height: 24px; margin-bottom: 5px;">
+                [2]
+            </label>
+            <label style="display: flex; flex-direction: column; align-items: center; font-weight: bold; cursor: pointer;">
+                <input type="radio" name="rank" value="3" style="width: 24px; height: 24px; margin-bottom: 5px;">
+                [3]
+            </label>
+            <label style="display: flex; flex-direction: column; align-items: center; font-weight: bold; cursor: pointer;">
+                <input type="radio" name="rank" value="4" style="width: 24px; height: 24px; margin-bottom: 5px;">
+                [4]
+            </label>
         </div>
-        <button class="btn-large" id="btn-b">
-            <div class="score-diff" id="float-b"></div>
-            <span>B</span>
-        </button>
+        
+        <button class="btn" id="btn-next-media" style="font-size: 1.2rem; padding: 10px 15px;"><i class="fa-solid fa-chevron-right"></i></button>
     </div>
 
-    <div style="display: flex; justify-content: center; align-items: center; padding: 0 10px; position: relative; min-height: 44px;">
-        <div style="position: absolute; left: 10px; display: flex; gap: 8px;">
-            <button class="btn btn-secondary" id="btn-undo" title="Undo Last Match"><i class="fa-solid fa-rotate-left"></i> Undo</button>
-            <button class="btn btn-secondary" id="btn-skip" title="Skip Match"><i class="fa-solid fa-forward-step"></i> Skip</button>
-            <button class="btn btn-secondary" id="btn-info" title="Toggle Info"><i class="fa-solid fa-circle-info"></i> Info</button>
+    <style>
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 10px;
+            width: 100%;
+            align-items: center;
+        }
+        .footer-left { display: flex; gap: 8px; justify-content: flex-start; }
+        .footer-center { display: flex; justify-content: center; }
+        .footer-right { display: flex; gap: 8px; justify-content: flex-end; }
+        @media (max-width: 500px) {
+            .footer-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .footer-left { grid-column: 1 / 2; grid-row: 1 / 2; }
+            .footer-right { grid-column: 2 / 3; grid-row: 1 / 2; }
+            .footer-center { grid-column: 1 / 3; grid-row: 2 / 3; }
+            .footer-center .btn { width: 100%; }
+        }
+    </style>
+    <div class="footer-grid">
+        <div class="footer-left">
+            <button class="btn btn-secondary" id="btn-undo" title="Undo Last Match"><i class="fa-solid fa-rotate-left"></i></button>
+            <button class="btn btn-secondary" id="btn-skip" title="Skip Match"><i class="fa-solid fa-forward-step"></i></button>
+            <button class="btn btn-secondary" id="btn-info" title="Toggle Info"><i class="fa-solid fa-circle-info"></i></button>
         </div>
-        <button class="btn" id="btn-toggle-fit" title="Cycle Media Fit" style="position: absolute; right: 10px; width: 44px;"><i class="fa-solid fa-compress"></i></button>
+        <div class="footer-center">
+            <button class="btn btn-primary" id="btn-submit-match" disabled style="font-size: 1.1rem; padding: 10px 20px; border-radius: 20px; justify-content: center;">Submit Match</button>
+        </div>
+        <div class="footer-right">
+            <button class="btn btn-danger" id="btn-stage-current" title="Stage Current Media to Executioner"><i class="fa-solid fa-skull"></i></button>
+            <button class="btn" id="btn-toggle-fit" title="Cycle Media Fit" style="width: 44px; height: 44px;"><i class="fa-solid fa-compress"></i></button>
+        </div>
     </div>
 
     <!-- Timeline Controls (Hidden by Default) -->
     <div class="timeline-controls hidden" id="timeline-controls">
         <button class="btn" id="btn-prev-match" title="Previous"><i class="fa-solid fa-chevron-left"></i></button>
         <button class="btn hidden" id="btn-stage-viewer" title="Stage to Executioner"><i class="fa-solid fa-skull"></i></button>
-        <button class="btn hidden" id="btn-history-viewer" title="View Match History"><i class="fa-solid fa-clock-rotate-left"></i></button>
         <button class="btn btn-danger" id="btn-exit-review" title="Exit Mode"><i class="fa-solid fa-right-from-bracket"></i></button>
         <button class="btn" id="btn-next-match" title="Next"><i class="fa-solid fa-chevron-right"></i></button>
     </div>
 </footer>
 
 <!-- Modals -->
-<div class="modal-overlay" id="filter-modal">
-    <div class="modal glass-panel" style="width: 75%; max-width: 500px;">
-        <button class="modal-close" id="close-filter-modal"><i class="fa-solid fa-xmark"></i></button>
-        <h2><i class="fa-solid fa-filter"></i> Filters</h2>
-        <div class="modal-body">
-            <label>Search Filename</label>
-            <input type="text" id="search-input" class="form-input" placeholder="e.g. IMG_2023...">
-            <label>Status Filter (Dynamic Percentiles)</label>
-            <select id="filter-select" class="form-input">
-                <option value="all">Show All</option>
-                <option value="unrated">Unrated (Matches = 0)</option>
-                <option value="rated">Rated (Matches > 0)</option>
-                <option value="positive" id="opt-positive">Top Tier (Top 25%)</option>
-                <option value="negative" id="opt-negative">Trash (Bottom 25%)</option>
-            </select>
-        </div>
-    </div>
-</div>
 
 <div class="modal-overlay" id="settings-modal">
     <div class="modal glass-panel" style="width: 75%; max-width: 600px;">
@@ -443,22 +415,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
                 </div>
             </div>
             
-            <label style="margin-top:10px;">Elo Heatmap</label>
-            <div id="heatmap-container"></div>
-            
             <div class="modal-grid-2" style="margin-top:5px;">
-                <div>
-                    <label>Heatmap Min Elo</label>
-                    <input type="number" id="setting-heatmap-min" class="form-input" value="400">
-                </div>
-                <div>
-                    <label>Heatmap Max Elo</label>
-                    <input type="number" id="setting-heatmap-max" class="form-input" value="1200">
-                </div>
-                <div>
-                    <label>Heatmap Bucket Size</label>
-                    <input type="number" id="setting-heatmap-width" class="form-input" value="50">
-                </div>
                 <div>
                     <label>Default Media Fit</label>
                     <select id="setting-default-fit" class="form-input">
@@ -513,7 +470,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         <h2><i class="fa-solid fa-skull"></i> The Executioner</h2>
         <div class="modal-body">
             <div style="display: flex; gap: 10px; align-items: center;">
-                <label>Stage files with Elo < </label>
+                <label>Stage files with Ordinal < </label>
                 <input type="number" id="purge-threshold" class="form-input" value="700" style="width: 100px; margin:0;">
                 <button class="btn btn-primary" id="btn-stage-files">Stage Files</button>
             </div>
@@ -570,18 +527,13 @@ function showErrorToast(message) {
 const state = {
     images: [],
     videos: [],
-    ratings: {}, // key: id -> { elo: 800, matches: 0, history: [] }
+    ratings: {}, // key: id -> { mu: 25.0, sigma: 8.333, matches: 0, history: [] }
     stagedFilesMap: new Map(), // id -> file object
-    currentPair: null, // { a: file, b: file }
+    currentMatchup: [], // Array of file objects
     leaderboardType: 'image', // 'image' or 'video'
     filter: 'all',
-    activeView: 'A', // 'A' or 'B'
-    appMode: 'matchmaking', // 'matchmaking', 'history', 'executioner'
-    
-    // History Simulation State
-    historyQueue: [], // Array of history objects for the selected file
-    historyIndex: 0,
-    historyFile: null, // The file whose history we are viewing
+    activeViewIndex: 0, // integer index
+    appMode: 'matchmaking', // 'matchmaking', 'executioner'
     
     // Executioner Review State
     executionerQueue: [], // Array of staged file objects
@@ -594,20 +546,19 @@ const state = {
     isAnimating: false,
     infoVisible: false,
     fitMode: 'contain',
-    hasSeenA: false,
-    hasSeenB: false,
-    undoStack: [],
-    priorityQueue: [],
-    lastSkippedPair: null,
+    hasSeen: new Set(),
+    currentRankings: {}, // id -> rank
+    undoStack: [], // { matchup: [...files], prevStats: {id: {mu, sigma, matches}} }
     loadedIds: new Set()
 };
 
+function getOrdinal(rating) {
+    return rating.mu - 3 * rating.sigma;
+}
+
+
 let appSettings = {
-    heatmapMin: 400,
-    heatmapMax: 1200,
-    heatmapBucketWidth: 50,
     autoBackupInterval: 0,
-    leaderboardSize: 32,
     defaultFitMode: 'contain',
     startMuted: true,
     hideSkip: false
@@ -616,15 +567,16 @@ let appSettings = {
 let elements = {};
 let autoBackupIntervalId = null;
 let objectUrlA = null;
-let objectUrlB = null;
 
 async function init() {
-    bindElements();
-    await loadRatingsFromStorage();
-    loadSettingsFromStorage();
-    setupEventListeners();
-    updateFilterCountsAndPercentages();
-    renderHeatmap();
+    try {
+        bindElements();
+        await loadRatingsFromStorage();
+        loadSettingsFromStorage();
+        setupEventListeners();
+    } catch (e) {
+        alert("Failed to initialize database: " + e.message);
+    }
 }
 
 function bindElements() {
@@ -634,38 +586,29 @@ function bindElements() {
         mediaContainer: document.getElementById('media-container'),
         fileInfoOverlay: document.getElementById('file-info-overlay'),
         displayFilename: document.getElementById('display-filename'),
-        searchInput: document.getElementById('search-input'),
-        filterSelect: document.getElementById('filter-select'),
-        optPositive: document.getElementById('opt-positive'),
-        optNegative: document.getElementById('opt-negative'),
-        heatmapContainer: document.getElementById('heatmap-container'),
         btnOpenSettings: document.getElementById('btn-open-settings'),
         settingsModal: document.getElementById('settings-modal'),
         closeSettingsModal: document.getElementById('close-settings-modal'),
-        filterModal: document.getElementById('filter-modal'),
-        btnOpenFilters: document.getElementById('btn-open-filters'),
-        closeFilterModal: document.getElementById('close-filter-modal'),
         
-        btnA: document.getElementById('btn-a'),
-        btnB: document.getElementById('btn-b'),
-        vsScoreText: document.getElementById('vs-score-text'),
-        floatA: document.getElementById('float-a'),
-        floatB: document.getElementById('float-b'),
+        btnPrevMedia: document.getElementById('btn-prev-media'),
+        btnNextMedia: document.getElementById('btn-next-media'),
+        radioRanks: document.querySelectorAll('input[name="rank"]'),
+        btnSubmitMatch: document.getElementById('btn-submit-match'),
         btnUndo: document.getElementById('btn-undo'),
         btnSkip: document.getElementById('btn-skip'),
         btnInfo: document.getElementById('btn-info'),
+        btnStageCurrent: document.getElementById('btn-stage-current'),
         btnToggleFit: document.getElementById('btn-toggle-fit'),
         
 
         matchStatusIndicator: document.getElementById('match-status-indicator'),
         
-        gestureControls: document.getElementById('gesture-controls'),
+        matchupControls: document.getElementById('matchup-controls'),
         timelineControls: document.getElementById('timeline-controls'),
         btnPrevMatch: document.getElementById('btn-prev-match'),
         btnNextMatch: document.getElementById('btn-next-match'),
         btnExitReview: document.getElementById('btn-exit-review'),
         btnStageViewer: document.getElementById('btn-stage-viewer'),
-        btnHistoryViewer: document.getElementById('btn-history-viewer'),
         
         executionerCheckContainer: document.getElementById('executioner-check-container'),
         executionerCheckbox: document.getElementById('executioner-checkbox'),
@@ -717,12 +660,8 @@ function loadSettingsFromStorage() {
         if (stored) appSettings = { ...appSettings, ...JSON.parse(stored) };
         
         document.getElementById('setting-auto-backup').value = appSettings.autoBackupInterval;
-        document.getElementById('setting-heatmap-min').value = appSettings.heatmapMin;
-        document.getElementById('setting-heatmap-max').value = appSettings.heatmapMax;
-        document.getElementById('setting-heatmap-width').value = appSettings.heatmapBucketWidth;
         document.getElementById('setting-default-fit').value = appSettings.defaultFitMode || 'contain';
         document.getElementById('setting-start-muted').checked = appSettings.startMuted !== false;
-        document.getElementById('setting-leaderboard-size').value = appSettings.leaderboardSize || 32;
         document.getElementById('setting-hide-skip').checked = appSettings.hideSkip === true;
         if (appSettings.hideSkip) {
             elements.btnSkip.classList.add('hidden');
@@ -749,13 +688,9 @@ function saveSettingsToStorage() {
             return isNaN(val) ? fallback : val;
         };
         appSettings.autoBackupInterval = parseSetting('setting-auto-backup', 0);
-        appSettings.heatmapMin = parseSetting('setting-heatmap-min', 400);
-        appSettings.heatmapMax = parseSetting('setting-heatmap-max', 1200);
-        appSettings.heatmapBucketWidth = parseSetting('setting-heatmap-width', 50);
         appSettings.defaultFitMode = document.getElementById('setting-default-fit').value;
         appSettings.startMuted = document.getElementById('setting-start-muted').checked;
         appSettings.hideSkip = document.getElementById('setting-hide-skip').checked;
-        appSettings.leaderboardSize = parseSetting('setting-leaderboard-size', 32);
         if (appSettings.hideSkip) {
             elements.btnSkip.classList.add('hidden');
         } else {
@@ -766,7 +701,7 @@ function saveSettingsToStorage() {
         state.fitMode = appSettings.defaultFitMode;
         const icons = { 'contain': 'fa-compress', 'cover': 'fa-crop-simple', 'stretch': 'fa-expand', 'original': 'fa-maximize' };
         elements.btnToggleFit.innerHTML = `<i class="fa-solid ${icons[state.fitMode] || 'fa-compress'}"></i>`;
-        if (state.currentPair) renderCurrentMedia();
+        if (state.currentMatchup.length > 0) renderCurrentMedia();
         
         if (autoBackupIntervalId) clearInterval(autoBackupIntervalId);
         if (appSettings.autoBackupInterval > 0) {
@@ -774,7 +709,6 @@ function saveSettingsToStorage() {
                 if (Object.keys(state.ratings).length > 0) exportRatings(true);
             }, appSettings.autoBackupInterval * 60 * 1000);
         }
-        renderHeatmap();
         showToast("Settings saved.");
     } catch (e) {
         alert("Error saving settings: " + e.message + "\n" + e.stack);
@@ -809,7 +743,7 @@ async function loadRatingsFromStorage() {
                 const result = request.result;
                 if (result && Array.isArray(result)) {
                     result.forEach(item => {
-                        if (item && item.id && item.data && typeof item.data.elo === 'number') {
+                        if (item && item.id && item.data && typeof item.data.mu === 'number') {
                             state.ratings[item.id] = item.data;
                         }
                     });
@@ -823,14 +757,20 @@ async function loadRatingsFromStorage() {
     }
 }
 
-async function saveRatingsToStorage() {
+async function saveRatingsToStorage(updatedIds = null) {
     try {
         const db = await openDB();
         const tx = db.transaction('ratings', 'readwrite');
         const store = tx.objectStore('ratings');
         
-        for (const [id, data] of Object.entries(state.ratings)) {
-            store.put({ id, data });
+        if (updatedIds) {
+            for (const id of updatedIds) {
+                if (state.ratings[id]) store.put({ id, data: state.ratings[id] });
+            }
+        } else {
+            for (const [id, data] of Object.entries(state.ratings)) {
+                store.put({ id, data });
+            }
         }
         
         return new Promise((resolve, reject) => {
@@ -877,7 +817,6 @@ async function processLoadingQueue() {
         isProcessRunning = false;
         elements.loadingProgress.classList.add('hidden');
         await saveRatingsToStorage();
-        updatePercentileFilters();
         
         const seconds = Math.round((Date.now() - loadingStartTime) / 1000);
         showToast(`Loaded ${totalLoading} files in ${seconds}s.`);
@@ -905,7 +844,7 @@ async function processLoadingQueue() {
         }
 
         if (didAdd && !state.ratings[id]) {
-            state.ratings[id] = { elo: 800, matches: 0, history: [] };
+            state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
         }
     });
 
@@ -914,144 +853,68 @@ async function processLoadingQueue() {
     elements.loadingPercent.textContent = `${pct}%`;
     elements.loadingProgress.style.background = `conic-gradient(var(--accent-green) ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
 
-    if (didAdd && !state.currentPair && state.appMode === 'matchmaking') {
+    if (didAdd && state.currentMatchup.length === 0 && state.appMode === 'matchmaking') {
         const list = getActiveList();
-        if (list.length >= 2) pickNextPair();
+        if (list.length >= 2) pickNextMatchup();
     }
     
     setTimeout(processLoadingQueue, 0);
 }
 
-function updatePercentileFilters() {
-    const list = state.leaderboardType === 'image' ? state.images : state.videos;
-    const elos = list.map(f => state.ratings[getFileId(f)]?.elo || 800).sort((a,b) => a - b);
-    if (elos.length === 0) return;
-    
-    const p25 = elos[Math.floor(elos.length * 0.25)];
-    const p75 = elos[Math.floor(elos.length * 0.75)];
-    
-    elements.optPositive.textContent = `Top Tier (> ${Math.round(p75)})`;
-    elements.optNegative.textContent = `Trash (< ${Math.round(p25)})`;
-    
-    // Store dynamically for filter use
-    state.p25 = p25;
-    state.p75 = p75;
-    updateFilterCountsAndPercentages();
-}
-
 function getActiveList() {
     let baseList = state.leaderboardType === 'image' ? state.images : state.videos;
-    const searchStr = elements.searchInput.value.toLowerCase().trim();
-    
-    return baseList.filter(file => {
-        if (searchStr && !file.name.toLowerCase().includes(searchStr)) return false;
-        const id = getFileId(file);
-        const rating = state.ratings[id];
-        
-        if (state.filter === 'unrated' && rating.matches > 0) return false;
-        if (state.filter === 'rated' && rating.matches === 0) return false;
-        if (state.filter === 'positive' && rating.elo <= (state.p75 || 1200)) return false; 
-        if (state.filter === 'negative' && rating.elo >= (state.p25 || 800)) return false; 
-        return true;
-    });
+    return baseList.filter(file => !state.stagedFilesMap.has(getFileId(file)));
 }
 
 
-function pickNextPair() {
+function pickNextMatchup() {
     const list = getActiveList();
     if (list.length < 2) {
-        state.currentPair = null;
+        state.currentMatchup = [];
         renderCurrentMedia();
         updateMatchupProgress();
         return;
     }
 
-    let itemA = null, itemB = null, ratingA = null;
-
+    const matchupSize = Math.min(4, list.length);
     let minMatches = Infinity;
     list.forEach(f => {
         const matches = state.ratings[getFileId(f)].matches;
         if (matches < minMatches) minMatches = matches;
     });
 
-    let primaryCandidates = list.filter(f => state.ratings[getFileId(f)].matches === minMatches);
-    primaryCandidates.sort(() => Math.random() - 0.5);
-
-    for (const candidateA of primaryCandidates) {
-        const idA = getFileId(candidateA);
-        const rA = state.ratings[idA];
-        
-        let validOpponents = primaryCandidates.filter(f => {
-            const id = getFileId(f);
-            if (id === idA) return false;
-            if (rA.history.some(h => h.opponentId === id)) return false;
-            if (state.lastSkippedPair && 
-                ((idA === state.lastSkippedPair.a && id === state.lastSkippedPair.b) || 
-                 (idA === state.lastSkippedPair.b && id === state.lastSkippedPair.a))) {
-                return false;
-            }
-            return true;
-        });
-
-        if (validOpponents.length === 0) {
-            const secondaryCandidates = list.filter(f => state.ratings[getFileId(f)].matches === minMatches + 1);
-            validOpponents = secondaryCandidates.filter(f => {
-                const id = getFileId(f);
-                if (id === idA) return false;
-                if (rA.history.some(h => h.opponentId === id)) return false;
-                if (state.lastSkippedPair && 
-                    ((idA === state.lastSkippedPair.a && id === state.lastSkippedPair.b) || 
-                     (idA === state.lastSkippedPair.b && id === state.lastSkippedPair.a))) {
-                    return false;
-                }
-                return true;
-            });
+    let pool = [];
+    let currentMatchTarget = minMatches;
+    
+    while(pool.length < matchupSize && currentMatchTarget <= minMatches + 10) {
+        let candidates = list.filter(f => state.ratings[getFileId(f)].matches === currentMatchTarget && !pool.includes(f));
+        if(candidates.length > 0) {
+            candidates.sort((a,b) => getOrdinal(state.ratings[getFileId(a)]) - getOrdinal(state.ratings[getFileId(b)]));
+            pool.push(...candidates);
         }
-
-        if (validOpponents.length > 0) {
-            itemA = candidateA;
-            ratingA = rA;
-            
-            if (rA.matches < 5) {
-                const pool = validOpponents.slice(0, Math.min(validOpponents.length, 50));
-                itemB = pool[Math.floor(Math.random() * pool.length)];
-            } else {
-                const validOthers = validOpponents.map(f => {
-                    return { file: f, diff: Math.abs(state.ratings[getFileId(f)].elo - rA.elo) };
-                });
-                validOthers.sort((a, b) => a.diff - b.diff);
-                const topN = Math.min(validOthers.length, 10);
-                itemB = validOthers[Math.floor(Math.random() * topN)].file;
-            }
-            break;
-        }
-    }
-
-    if (!itemA || !itemB) {
-        state.currentPair = null;
-        if (objectUrlA) URL.revokeObjectURL(objectUrlA);
-        if (objectUrlB) URL.revokeObjectURL(objectUrlB);
-        elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); });
-        elements.mediaContainer.innerHTML = `<div class="empty-state glass-panel" style="padding: 40px;"><i class="fa-solid fa-flag-checkered"></i><h2>Matchups Complete!</h2><p>All possible pairs for these files have been evaluated.</p></div>`;
-        elements.fileInfoOverlay.classList.add('hidden');
-        elements.btnA.classList.add('hidden'); elements.btnB.classList.add('hidden');
-        if (elements.vsScoreText) elements.vsScoreText.textContent = '';
-        return;
-    }
-
-    const idB = getFileId(itemB);
-    const eloA = ratingA.elo;
-    const eloB = state.ratings[idB].elo;
-
-    if (eloA > eloB) {
-        state.currentPair = { a: itemB, b: itemA };
-    } else {
-        state.currentPair = { a: itemA, b: itemB };
+        currentMatchTarget++;
     }
     
-    state.activeView = 'A';
-    state.hasSeenA = true;
-    state.hasSeenB = false;
+    // Pick the first one randomly from the pool's lowest tier
+    let tierCandidates = pool.filter(f => state.ratings[getFileId(f)].matches === minMatches);
+    let anchor = tierCandidates[Math.floor(Math.random() * tierCandidates.length)];
+    let anchorIdx = pool.indexOf(anchor);
+    
+    // Select neighbors in the sorted pool
+    let startIdx = Math.max(0, anchorIdx - Math.floor(matchupSize/2));
+    let endIdx = startIdx + matchupSize;
+    if(endIdx > pool.length) {
+        endIdx = pool.length;
+        startIdx = Math.max(0, endIdx - matchupSize);
+    }
+    
+    state.currentMatchup = pool.slice(startIdx, endIdx);
+    state.currentMatchup.sort(() => Math.random() - 0.5); // Shuffle
+    
+    state.activeViewIndex = 0;
+    state.hasSeen.clear();
+    state.currentRankings = {};
+    
     renderCurrentMedia();
     updateMatchupProgress();
 }
@@ -1066,7 +929,7 @@ function updateMatchupProgress() {
     
     container.classList.remove('hidden');
 
-    if (!state.currentPair || list.length < 2) {
+    if (state.currentMatchup.length === 0 || list.length < 2) {
         document.getElementById('matchup-percent').textContent = `100%`;
         document.getElementById('matchup-circle').setAttribute('stroke-dasharray', `100, 100`);
         return;
@@ -1074,13 +937,14 @@ function updateMatchupProgress() {
 
     let minMatches = Infinity;
     for (const f of list) {
-        const m = state.ratings[getFileId(f)].matches;
+        const m = state.ratings[getFileId(f)]?.matches ?? 0;
         if (m < minMatches) minMatches = m;
     }
     
     let countMin = 0;
     for (const f of list) {
-        if (state.ratings[getFileId(f)].matches === minMatches) countMin++;
+        const m = state.ratings[getFileId(f)]?.matches ?? 0;
+        if (m === minMatches) countMin++;
     }
     
     const total = list.length;
@@ -1092,188 +956,84 @@ function updateMatchupProgress() {
     document.getElementById('matchup-circle').setAttribute('stroke-dasharray', `${percentage}, 100`);
 }
 
-function calculateElo(ratingA, ratingB, sA, sB) {
-    const matchK = 64;
-    const eA = 1 / (1 + Math.pow(10, (ratingB.elo - ratingA.elo) / 400));
-    const eB = 1 / (1 + Math.pow(10, (ratingA.elo - ratingB.elo) / 400));
-    return { newEloA: ratingA.elo + matchK * (sA - eA), newEloB: ratingB.elo + matchK * (sB - eB) };
-}
-
-function triggerAnimation(winner, changeA, changeB) {
-    elements.floatA.textContent = changeA >= 0 ? `+${changeA}` : `${changeA}`;
-    elements.floatA.style.color = changeA >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
-    elements.floatB.textContent = changeB >= 0 ? `+${changeB}` : `${changeB}`;
-    elements.floatB.style.color = changeB >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+async function submitMatch() {
+    if (state.currentMatchup.length === 0 || state.appMode !== 'matchmaking' || state.isAnimating) return;
     
-    elements.floatA.style.opacity = '1';
-    elements.floatB.style.opacity = '1';
-    
-    elements.btnA.classList.add('voted');
-    elements.btnB.classList.add('voted');
-
-    if (winner === 'A') {
-        elements.btnA.classList.add('winner-bg');
-        elements.btnB.classList.add('loser-bg');
-    } else if (winner === 'B') {
-        elements.btnB.classList.add('winner-bg');
-        elements.btnA.classList.add('loser-bg');
-    }
-
-    setTimeout(() => {
-        state.isAnimating = false;
-        elements.floatA.style.opacity = '0';
-        elements.floatB.style.opacity = '0';
-        elements.btnA.classList.remove('winner-bg', 'loser-bg', 'voted');
-        elements.btnB.classList.remove('winner-bg', 'loser-bg', 'voted');
-        if (state.appMode === 'matchmaking') {
-            pickNextPair();
-        }
-    }, 1500);
-}
-function replaceSingleMedia(btnId) {
-    if (!state.currentPair) return;
-    
-    const keptFile = btnId === 'A' ? state.currentPair.b : state.currentPair.a;
-    const stagedFile = btnId === 'A' ? state.currentPair.a : state.currentPair.b;
-    const keptId = getFileId(keptFile);
-    const stagedId = getFileId(stagedFile);
-    const keptRating = state.ratings[keptId];
-
-    const list = getActiveList();
-    let minMatches = Infinity;
-    list.forEach(f => {
-        const m = state.ratings[getFileId(f)].matches;
-        if (m < minMatches) minMatches = m;
-    });
-
-    let candidates = list.filter(f => {
-        const id = getFileId(f);
-        if (id === keptId) return false;
-        if (id === stagedId) return false;
-        if (keptRating.history.some(h => h.opponentId === id)) return false;
-        if (state.ratings[id].matches !== minMatches) return false;
-        return true;
-    });
-
-    if (candidates.length === 0) {
-        candidates = list.filter(f => {
-            const id = getFileId(f);
-            if (id === keptId) return false;
-            if (id === stagedId) return false;
-            if (keptRating.history.some(h => h.opponentId === id)) return false;
-            if (state.ratings[id].matches !== minMatches + 1) return false;
-            return true;
-        });
-    }
-    
-    if (candidates.length === 0) {
-        candidates = list.filter(f => {
-            const id = getFileId(f);
-            if (id === keptId) return false;
-            if (id === stagedId) return false;
-            if (keptRating.history.some(h => h.opponentId === id)) return false;
-            return true;
-        });
-    }
-
-    if (candidates.length === 0) {
-        state.hasSeenA = true;
-        state.hasSeenB = true;
-        castVote('Skip');
-        return;
-    }
-
-    let newCandidate = null;
-    if (keptRating.matches < 5) {
-        newCandidate = candidates[Math.floor(Math.random() * candidates.length)];
-    } else {
-        const validOthers = candidates.map(f => {
-            return { file: f, diff: Math.abs(state.ratings[getFileId(f)].elo - keptRating.elo) };
-        });
-        validOthers.sort((a, b) => a.diff - b.diff);
-        const topN = Math.min(validOthers.length, 10);
-        newCandidate = validOthers[Math.floor(Math.random() * topN)].file;
-    }
-
-    if (newCandidate) {
-        if (btnId === 'A') {
-            state.currentPair.a = newCandidate;
-            state.hasSeenA = false;
-        } else {
-            state.currentPair.b = newCandidate;
-            state.hasSeenB = false;
-        }
-        
-        state.activeView = btnId;
-        renderCurrentMedia();
-        updateMatchupProgress();
-    } else {
-        state.hasSeenA = true;
-        state.hasSeenB = true;
-        castVote('Skip');
-    }
-}
-
-async function castVote(winner) {
-    if (!state.currentPair || state.appMode !== 'matchmaking' || state.isAnimating) return;
-    
-    if (!state.hasSeenB || !state.hasSeenA) {
-        showToast("Please view both media before voting!");
+    if (state.hasSeen.size < state.currentMatchup.length || Object.keys(state.currentRankings).length < state.currentMatchup.length) {
+        showToast("Please view all media and rank them before submitting!");
         return;
     }
     
     state.isAnimating = true;
     
-    const idA = getFileId(state.currentPair.a);
-    const idB = getFileId(state.currentPair.b);
-    const rA = state.ratings[idA];
-    const rB = state.ratings[idB];
-
+    // Snapshot for undo
+    let prevStats = {};
+    state.currentMatchup.forEach(f => {
+        const id = getFileId(f);
+        prevStats[id] = JSON.parse(JSON.stringify(state.ratings[id]));
+    });
     state.undoStack.push({
-        pair: { a: state.currentPair.a, b: state.currentPair.b },
-        idA: idA, idB: idB,
-        eloA: rA.elo, eloB: rB.elo,
-        matchesA: rA.matches, matchesB: rB.matches,
-        wasSkip: winner === 'Skip',
-        priorityQueueSnapshot: [...(state.priorityQueue || [])]
+        matchup: [...state.currentMatchup],
+        prevStats: prevStats
     });
     
-    if (winner === 'Skip') {
-        state.lastSkippedPair = { a: idA, b: idB };
-        triggerAnimation('Skip', 0, 0);
-        return;
-    } else {
-        state.lastSkippedPair = null;
-    }
-
-    let resA = 'draw', resB = 'draw';
-    let sA = 0.5, sB = 0.5;
-
-    if (winner === 'A') { sA = 1; sB = 0; resA = 'won'; resB = 'lost'; }
-    else if (winner === 'B') { sA = 0; sB = 1; resA = 'lost'; resB = 'won'; }
-
-    const preEloA = rA.elo;
-    const preEloB = rB.elo;
+    let teams = [];
+    let teamIds = [];
+    let fileRanks = [];
     
-    let diffA = 0, diffB = 0;
+    state.currentMatchup.forEach(f => {
+        const id = getFileId(f);
+        const rank = parseInt(state.currentRankings[id]);
+        fileRanks.push({file: f, id: id, rank: rank, rating: state.ratings[id]});
+    });
     
-    const { newEloA, newEloB } = calculateElo(rA, rB, sA, sB);
-    diffA = newEloA - rA.elo;
-    diffB = newEloB - rB.elo;
-    rA.elo = newEloA; rB.elo = newEloB;
-
-    rA.matches++; rB.matches++;
-
+    fileRanks.sort((a,b) => a.rank - b.rank);
+    
+    let ranksForOpenskill = [];
+    
+    fileRanks.forEach(item => {
+        teams.push([item.rating]);
+        teamIds.push(item.id);
+        ranksForOpenskill.push(item.rank);
+    });
+    
+    const newRatings = openskill.rate(teams, { rank: ranksForOpenskill });
     const t = Date.now();
-
-    rA.history.unshift({ opponentId: idB, opponentName: state.currentPair.b.name, result: resA, eloChange: diffA > 0 ? `+${diffA.toFixed(0)}` : diffA.toFixed(0), historicalEloA: Math.round(preEloA), historicalEloB: Math.round(preEloB), timestamp: t });
-    rB.history.unshift({ opponentId: idA, opponentName: state.currentPair.a.name, result: resB, eloChange: diffB > 0 ? `+${diffB.toFixed(0)}` : diffB.toFixed(0), historicalEloA: Math.round(preEloB), historicalEloB: Math.round(preEloA), timestamp: t });
     
-    await saveRatingsToStorage();
-    if (elements.vsScoreText) elements.vsScoreText.textContent = `${Math.round(rA.elo)} - ${Math.round(rB.elo)}`;
-    triggerAnimation(winner, Math.round(diffA), Math.round(diffB));
+    fileRanks.forEach((item, idx) => {
+        const newRating = newRatings[idx][0];
+        const oldOrdinal = getOrdinal(item.rating);
+        const newOrdinal = getOrdinal(newRating);
+        const diff = newOrdinal - oldOrdinal;
+        
+        item.rating.mu = newRating.mu;
+        item.rating.sigma = newRating.sigma;
+        item.rating.matches++;
+        
+        let oppIds = teamIds.filter(id => id !== item.id);
+        item.rating.history.unshift({ 
+            opponentIds: oppIds, 
+            rank: item.rank,
+            ordinalChange: diff,
+            timestamp: t 
+        });
+    });
+    
+    await saveRatingsToStorage(fileRanks.map(item => item.id));
+    
+    state.isAnimating = false;
+    pickNextMatchup();
 }
 
+function checkSubmitUnlock() {
+    if (elements.btnSubmitMatch) {
+        if (state.hasSeen.size === state.currentMatchup.length && Object.keys(state.currentRankings).length === state.currentMatchup.length) {
+            elements.btnSubmitMatch.disabled = false;
+        } else {
+            elements.btnSubmitMatch.disabled = true;
+        }
+    }
+}
 function formatSize(bytes) {
     if (bytes === 0) return '0 B';
     const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
@@ -1282,11 +1042,11 @@ function formatSize(bytes) {
 }
 
 function renderCurrentMedia() {
-    if (objectUrlA) URL.revokeObjectURL(objectUrlA);
-    if (objectUrlB) URL.revokeObjectURL(objectUrlB);
+    elements.btnUndo.disabled = state.undoStack.length === 0;
+    if (objectUrlA) { URL.revokeObjectURL(objectUrlA); objectUrlA = null; }
     elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); });
     elements.mediaContainer.innerHTML = '';
-    elements.executionerCheckContainer.classList.add('hidden');
+    if (elements.executionerCheckContainer) elements.executionerCheckContainer.classList.add('hidden');
     elements.matchStatusIndicator.classList.add('hidden');
     
     if (state.appMode === 'executioner') {
@@ -1294,50 +1054,22 @@ function renderCurrentMedia() {
         return;
     }
 
-    if (!state.currentPair) {
-        elements.mediaContainer.innerHTML = `<div class="empty-state glass-panel" style="padding: 40px;"><i class="fa-solid fa-circle-check"></i><h2>Queue Empty</h2><p>No valid pairs found.</p></div>`;
+    if (state.currentMatchup.length === 0) {
+        elements.mediaContainer.innerHTML = `<div class="empty-state glass-panel" style="padding: 40px;"><i class="fa-solid fa-circle-check"></i><h2>Queue Empty</h2><p>No valid matches found.</p></div>`;
         elements.fileInfoOverlay.classList.add('hidden');
+        if (elements.matchupControls) elements.matchupControls.classList.add('hidden');
         return;
     }
 
-    const fileA = state.currentPair.a;
-    const fileB = state.currentPair.b;
-    const rA = state.ratings[getFileId(fileA)];
-    const rB = state.ratings[getFileId(fileB)];
+    if (elements.matchupControls) elements.matchupControls.classList.remove('hidden');
 
-    if (state.appMode === 'matchmaking') {
-        if (elements.vsScoreText) elements.vsScoreText.textContent = '';
-        elements.btnA.classList.remove('hidden');
-        elements.btnB.classList.remove('hidden');
-    } else if (state.appMode === 'history') {
-        elements.matchStatusIndicator.classList.remove('hidden');
-        elements.matchStatusIndicator.textContent = `Historical Match ${state.historyIndex + 1} of ${state.historyQueue.length}`;
-        elements.matchStatusIndicator.className = "historical";
-        const currentHist = state.historyQueue[state.historyIndex];
-        
-        let hEloA, hEloB;
-        if (getFileId(fileA) === getFileId(state.historyFile)) {
-            hEloA = currentHist.historicalEloA;
-            hEloB = currentHist.historicalEloB;
-        } else {
-            hEloA = currentHist.historicalEloB;
-            hEloB = currentHist.historicalEloA;
-        }
-        
-        let resultText = '';
-        if (currentHist.result === 'won') resultText = `<span style="color:var(--accent-green)">Winner</span>`;
-        else if (currentHist.result === 'lost') resultText = `<span style="color:var(--accent-red)">Loser</span>`;
-        else resultText = `<span style="color:var(--text-secondary)">Skipped</span>`;
-        
-        if (elements.vsScoreText) elements.vsScoreText.innerHTML = `${hEloA} - ${hEloB} <br><small>${resultText}</small>`;
-    }
+    const activeFile = state.currentMatchup[state.activeViewIndex];
+    const activeId = getFileId(activeFile);
+    
+    state.hasSeen.add(activeId);
+    checkSubmitUnlock();
 
-    const activeFile = state.activeView === 'A' ? fileA : fileB;
-    const objUrl = URL.createObjectURL(activeFile);
-    if (state.activeView === 'A') objectUrlA = objUrl; else objectUrlB = objUrl;
-
-    if (state.activeView === 'A') state.hasSeenA = true;
-    else state.hasSeenB = true;
+    objectUrlA = URL.createObjectURL(activeFile);
 
     let fitClass = '';
     if (state.fitMode === 'contain') fitClass = 'media-fit-contain';
@@ -1346,32 +1078,35 @@ function renderCurrentMedia() {
     else if (state.fitMode === 'original') fitClass = 'media-fit-original';
 
     if (state.leaderboardType === 'image') {
-        elements.mediaContainer.innerHTML = `<img src="${objUrl}" class="${fitClass}">`;
+        elements.mediaContainer.innerHTML = `<img src="${objectUrlA}" class="${fitClass}">`;
     } else {
         const mutedAttr = appSettings.startMuted ? 'muted' : '';
-        elements.mediaContainer.innerHTML = `<video src="${objUrl}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr}></video>`;
+        elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr}></video>`;
     }
     
-    if (state.activeView === 'A') {
-        elements.btnA.classList.add('active-view');
-        elements.btnB.classList.remove('active-view');
-    } else {
-        elements.btnB.classList.add('active-view');
-        elements.btnA.classList.remove('active-view');
-    }
-    
-    elements.displayFilename.textContent = `${activeFile.name} (${formatSize(activeFile.size)})`;
+    elements.displayFilename.textContent = `${activeFile.name} (${formatSize(activeFile.size)}) [${state.activeViewIndex + 1}/${state.currentMatchup.length}]`;
     if (state.infoVisible) {
         elements.fileInfoOverlay.classList.remove('hidden');
     } else {
         elements.fileInfoOverlay.classList.add('hidden');
     }
-    updateFilterCountsAndPercentages();
-}
-
-function updateFilterCountsAndPercentages() {
-    if (state.appMode !== 'matchmaking') return;
-    const list = getActiveList();
+    
+    // Update checkboxes
+    elements.radioRanks.forEach(radio => {
+        radio.checked = state.currentRankings[activeId] === radio.value;
+        radio.onchange = (e) => {
+            if (e.target.checked) {
+                // Clear any other file that might have this rank to prevent invisible ties
+                for (const id in state.currentRankings) {
+                    if (state.currentRankings[id] === e.target.value) {
+                        delete state.currentRankings[id];
+                    }
+                }
+                state.currentRankings[activeId] = e.target.value;
+                checkSubmitUnlock();
+            }
+        };
+    });
 }
 
 
@@ -1379,8 +1114,8 @@ function updateFilterCountsAndPercentages() {
 
 function renderLeaderboard() {
     const list = state.leaderboardType === 'image' ? state.images : state.videos;
-    const sorted = [...list].sort((a,b) => (state.ratings[getFileId(b)]?.elo || 800) - (state.ratings[getFileId(a)]?.elo || 800));
-    const size = appSettings.leaderboardSize || 32;
+    const sorted = [...list].sort((a,b) => (getOrdinal(state.ratings[getFileId(b)]) || 0) - (getOrdinal(state.ratings[getFileId(a)]) || 0));
+    const size = 6;
     
     elements.leaderboardTopList.innerHTML = '';
     elements.leaderboardBottomList.innerHTML = '';
@@ -1400,8 +1135,8 @@ function renderLeaderboard() {
         div.className = 'leaderboard-item';
         div.innerHTML = `
             <div class="filename" title=""></div>
-            <div style="font-family:monospace; font-weight:bold; width:60px; text-align:right;">${Math.round(r.elo)}</div>
-            <button class="btn btn-sm btn-history" data-id="${getFileId(file)}" style="padding: 4px 8px;"><i class="fa-solid fa-clock-rotate-left"></i></button>
+            <div style="font-size:0.8rem; color:var(--text-color); opacity:0.7; margin-right:10px;">(μ: ${r.mu.toFixed(1)}, σ: ${r.sigma.toFixed(1)})</div>
+            <div style="font-family:monospace; font-weight:bold; width:60px; text-align:right; color:var(--accent-blue);">${Math.round(getOrdinal(r))}</div>
         `;
         div.querySelector('.filename').textContent = `#${rank} ${file.name}`;
         div.querySelector('.filename').title = file.name;
@@ -1410,61 +1145,8 @@ function renderLeaderboard() {
     
     topItems.forEach((f, i) => elements.leaderboardTopList.appendChild(createItemHTML(f, i+1)));
     bottomItems.forEach((f, i) => elements.leaderboardBottomList.appendChild(createItemHTML(f, sorted.length - i)));
-    
-    document.querySelectorAll('.btn-history').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            elements.leaderboardModal.classList.remove('active');
-            startHistoryReview(e.currentTarget.dataset.id);
-        });
-    });
 }
 
-function startHistoryReview(id) {
-    const file = (state.leaderboardType === 'image' ? state.images : state.videos).find(f => getFileId(f) === id);
-    if (!file) return;
-    
-    const r = state.ratings[id];
-    if (!r || r.history.length === 0) {
-        showToast("No match history for this file.");
-        return;
-    }
-    
-    state.historyFile = file;
-    state.historyQueue = [...r.history].reverse(); // Chronological order
-    state.historyIndex = 0;
-    state.appMode = 'history';
-    
-    elements.gestureControls.classList.remove('hidden');
-    elements.timelineControls.classList.remove('hidden');
-    elements.btnExitReview.title = 'Exit Mode';
-    loadHistoryMatch();
-}
-
-function loadHistoryMatch() {
-    const hist = state.historyQueue[state.historyIndex];
-    const opponent = (state.leaderboardType === 'image' ? state.images : state.videos).find(f => getFileId(f) === hist.opponentId);
-    
-    if (!opponent) {
-        if (objectUrlA) URL.revokeObjectURL(objectUrlA);
-        if (objectUrlB) URL.revokeObjectURL(objectUrlB);
-        elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); });
-        elements.mediaContainer.innerHTML = `<div class="empty-state glass-panel" style="padding: 40px;"><i class="fa-solid fa-file-circle-xmark" style="color:var(--accent-red)"></i><h2>File Missing</h2><p>${hist.opponentName} is no longer loaded.</p></div>`;
-        elements.matchStatusIndicator.classList.remove('hidden');
-        elements.matchStatusIndicator.textContent = `Historical Match ${state.historyIndex + 1} of ${state.historyQueue.length}`;
-        return;
-    }
-    
-    // Randomize A and B position for the simulation to avoid always being on one side
-    const hash = hist.timestamp % 2;
-    state.currentPair = {
-        a: hash === 0 ? state.historyFile : opponent,
-        b: hash === 0 ? opponent : state.historyFile
-    };
-    state.activeView = 'A';
-    renderCurrentMedia();
-}
-
-// --- Executioner Immersive Review ---
 function startExecutionerReview() {
     if (state.stagedFilesMap.size === 0) {
         showToast("No files staged.");
@@ -1475,7 +1157,7 @@ function startExecutionerReview() {
     state.executionerIndex = 0;
     
     elements.purgeModal.classList.remove('active');
-    elements.gestureControls.classList.add('hidden');
+    if (elements.matchupControls) elements.matchupControls.classList.add('hidden');
     elements.timelineControls.classList.remove('hidden');
     elements.btnExitReview.title = 'Generate Script & Exit';
     
@@ -1484,7 +1166,7 @@ function startExecutionerReview() {
 
 function renderExecutionerMedia() {
     if (objectUrlA) URL.revokeObjectURL(objectUrlA);
-    if (objectUrlB) URL.revokeObjectURL(objectUrlB);
+    elements.mediaContainer.innerHTML = '';
     const file = state.executionerQueue[state.executionerIndex];
     const id = getFileId(file);
     objectUrlA = URL.createObjectURL(file);
@@ -1515,7 +1197,7 @@ function renderExecutionerMedia() {
 // --- Continuous Leaderboard Viewer ---
 function startLeaderboardViewer(reverse) {
     const list = state.leaderboardType === 'image' ? state.images : state.videos;
-    const sorted = [...list].sort((a,b) => (state.ratings[getFileId(b)]?.elo || 800) - (state.ratings[getFileId(a)]?.elo || 800));
+    const sorted = [...list].sort((a,b) => (getOrdinal(state.ratings[getFileId(b)]) || 0) - (getOrdinal(state.ratings[getFileId(a)]) || 0));
     
     state.leaderboardReverse = reverse;
 
@@ -1534,11 +1216,10 @@ function startLeaderboardViewer(reverse) {
     state.appMode = 'leaderboard_viewer';
     elements.leaderboardModal.classList.remove('active');
     
-    elements.gestureControls.classList.add('hidden');
+    if (elements.matchupControls) elements.matchupControls.classList.add('hidden');
     elements.timelineControls.classList.remove('hidden');
     
     elements.btnStageViewer.classList.remove('hidden');
-    elements.btnHistoryViewer.classList.remove('hidden');
     elements.btnExitReview.title = 'Exit Viewer';
     
     renderLeaderboardViewerMedia();
@@ -1546,7 +1227,6 @@ function startLeaderboardViewer(reverse) {
 
 function renderLeaderboardViewerMedia() {
     if (objectUrlA) URL.revokeObjectURL(objectUrlA);
-    if (objectUrlB) URL.revokeObjectURL(objectUrlB);
     
     const file = state.leaderboardQueue[state.leaderboardIndex];
     const id = getFileId(file);
@@ -1556,7 +1236,7 @@ function renderLeaderboardViewerMedia() {
     let rank = state.leaderboardReverse ? state.leaderboardQueue.length - state.leaderboardIndex : state.leaderboardIndex + 1;
     
     elements.matchStatusIndicator.classList.remove('hidden');
-    elements.matchStatusIndicator.textContent = `Elo: ${Math.round(rating.elo)} (Rank ${rank} of ${state.leaderboardQueue.length}) | Matches: ${rating.matches}`;
+    elements.matchStatusIndicator.textContent = `Ordinal: ${Math.round(getOrdinal(rating))} (Rank ${rank} of ${state.leaderboardQueue.length}) | Matches: ${rating.matches}`;
     elements.matchStatusIndicator.className = 'placement';
     
     elements.executionerCheckContainer.classList.add('hidden');
@@ -1614,104 +1294,78 @@ function setupEventListeners() {
         elements.toggleVideo.style.background = state.leaderboardType === 'video' ? 'rgba(79, 172, 254, 0.4)' : 'transparent';
         const list = getActiveList();
         showToast(`Switched to ${state.leaderboardType}s (Pool: ${list.length})`);
-        updatePercentileFilters();
-        pickNextPair();
+        pickNextMatchup();
     };
     elements.toggleImage.addEventListener('click', () => { state.appMode = 'matchmaking'; state.leaderboardType = 'image'; applyToggle(); });
     elements.toggleVideo.addEventListener('click', () => { state.appMode = 'matchmaking'; state.leaderboardType = 'video'; applyToggle(); });
 
-    // Swipe and Tap logic for A and B buttons
-    let startY = 0;
-    let startX = 0;
-    const swipeThreshold = 30; // pixels to trigger vote
-    
-    const handleTouchStart = (btnElement, e) => { 
-        startY = e.touches[0].clientY; 
-        startX = e.touches[0].clientX;
-    };
-    const handleTouchEnd = (btnElement, btnId, e) => {
-        if (startY === 0 && startX === 0) return;
-        const endY = e.changedTouches[0].clientY;
-        const endX = e.changedTouches[0].clientX;
-        const diffY = startY - endY; // positive if swiped up
-        const diffX = startX - endX;
-        
-        if (Math.abs(diffY) > Math.abs(diffX)) {
-            if (diffY > swipeThreshold) {
-                // It's a swipe up
-                if (state.appMode === 'matchmaking') castVote(btnId);
-            } else if (diffY < -swipeThreshold) {
-                // It's a swipe down
-                if (state.appMode === 'matchmaking') {
-                    const fileToStage = btnId === 'A' ? state.currentPair.a : state.currentPair.b;
-                    state.stagedFilesMap.set(getFileId(fileToStage), fileToStage);
-                    showToast(`Staged for purge: ${fileToStage.name}`);
-                    replaceSingleMedia(btnId);
-                }
-            } else {
-                // It's a tap
-                if (state.activeView !== btnId) {
-                    state.activeView = btnId;
-                    renderCurrentMedia();
-                }
-            }
-        } else {
-            // It's a tap or horizontal swipe, treat as tap if small movement
-            if (Math.abs(diffX) < swipeThreshold && Math.abs(diffY) < swipeThreshold) {
-                if (state.activeView !== btnId) {
-                    state.activeView = btnId;
-                    renderCurrentMedia();
-                }
-            }
+    if (elements.btnPrevMedia) elements.btnPrevMedia.addEventListener('click', () => {
+        if (state.currentMatchup.length > 0) {
+            state.activeViewIndex = (state.activeViewIndex - 1 + state.currentMatchup.length) % state.currentMatchup.length;
+            renderCurrentMedia();
         }
-        startY = 0; startX = 0;
-    };
-    const handleTouchCancel = () => { startY = 0; startX = 0; };
+    });
     
-    // Also allow click to tap if not touching
-    elements.btnA.addEventListener('click', (e) => { if(!e.pointerType || e.pointerType==='mouse'){ if(state.activeView !== 'A'){ state.activeView='A'; renderCurrentMedia(); } } });
-    elements.btnB.addEventListener('click', (e) => { if(!e.pointerType || e.pointerType==='mouse'){ if(state.activeView !== 'B'){ state.activeView='B'; renderCurrentMedia(); } } });
+    if (elements.btnNextMedia) elements.btnNextMedia.addEventListener('click', () => {
+        if (state.currentMatchup.length > 0) {
+            state.activeViewIndex = (state.activeViewIndex + 1) % state.currentMatchup.length;
+            renderCurrentMedia();
+        }
+    });
 
-    elements.btnA.addEventListener('touchstart', (e) => handleTouchStart(elements.btnA, e), {passive: true});
-    elements.btnA.addEventListener('touchend', (e) => handleTouchEnd(elements.btnA, 'A', e));
-    elements.btnA.addEventListener('touchcancel', handleTouchCancel);
-    elements.btnB.addEventListener('touchstart', (e) => handleTouchStart(elements.btnB, e), {passive: true});
-    elements.btnB.addEventListener('touchend', (e) => handleTouchEnd(elements.btnB, 'B', e));
-    elements.btnB.addEventListener('touchcancel', handleTouchCancel);
-
-    elements.btnA.addEventListener('contextmenu', e => e.preventDefault());
-    elements.btnB.addEventListener('contextmenu', e => e.preventDefault());
+    if (elements.btnSubmitMatch) elements.btnSubmitMatch.addEventListener('click', submitMatch);
 
     elements.btnUndo.addEventListener('click', async () => {
         if (state.isAnimating) return;
         if (state.undoStack.length === 0) { showToast("Nothing to undo."); return; }
         const last = state.undoStack.pop();
         
-        if (last.priorityQueueSnapshot) {
-            state.priorityQueue = last.priorityQueueSnapshot;
-        }
-        
-        const rA = state.ratings[last.idA];
-        const rB = state.ratings[last.idB];
-        
-        rA.elo = last.eloA; rB.elo = last.eloB;
-        rA.matches = last.matchesA; rB.matches = last.matchesB;
-        if (!last.wasSkip) {
-            rA.history.shift(); rB.history.shift();
+        state.currentMatchup = last.matchup;
+        for (const id in last.prevStats) {
+            state.ratings[id] = last.prevStats[id];
         }
         
         await saveRatingsToStorage();
-        state.currentPair = last.pair;
-        state.activeView = 'A';
-        state.hasSeenA = true;
-        state.hasSeenB = false;
+        state.activeViewIndex = 0;
+        state.hasSeen.clear();
+        state.currentRankings = {};
         renderCurrentMedia();
         updateMatchupProgress();
         showToast("Match reverted!");
     });
     
     elements.btnSkip.addEventListener('click', () => {
-        if (!state.isAnimating) castVote('Skip');
+        if (!state.isAnimating) {
+            pickNextMatchup();
+        }
+    });
+
+    elements.btnStageCurrent.addEventListener('click', () => {
+        if(state.currentMatchup.length === 0 || state.appMode !== 'matchmaking') return;
+        const activeId = getFileId(state.currentMatchup[state.activeViewIndex]);
+        
+        state.stagedFilesMap.set(activeId, state.currentMatchup[state.activeViewIndex]);
+        elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
+        showToast("Staged Current Media to Executioner");
+        
+        const list = getActiveList();
+        const pool = state.currentMatchup.map(f => getFileId(f));
+        const currentMatches = state.ratings[activeId].matches;
+        
+        let replacement = list.find(f => !pool.includes(getFileId(f)) && state.ratings[getFileId(f)].matches === currentMatches);
+        if (!replacement) replacement = list.find(f => !pool.includes(getFileId(f)));
+        
+        if (replacement) {
+            state.currentMatchup[state.activeViewIndex] = replacement;
+            delete state.currentRankings[activeId];
+            state.hasSeen.delete(activeId);
+            state.hasSeen.add(getFileId(replacement));
+            checkSubmitUnlock();
+            renderCurrentMedia();
+        } else {
+            showToast("No replacement found, skipping match.");
+            pickNextMatchup();
+        }
     });
 
     elements.btnInfo.addEventListener('click', () => {
@@ -1725,6 +1379,8 @@ function setupEventListeners() {
         const icons = { 'contain': 'fa-compress', 'cover': 'fa-crop-simple', 'stretch': 'fa-expand', 'original': 'fa-maximize' };
         let idx = modes.indexOf(state.fitMode);
         state.fitMode = modes[(idx + 1) % modes.length];
+        appSettings.defaultFitMode = state.fitMode;
+        saveSettingsToStorage();
         showToast(`Fit Mode: ${state.fitMode.charAt(0).toUpperCase() + state.fitMode.slice(1)}`);
         elements.btnToggleFit.innerHTML = `<i class="fa-solid ${icons[state.fitMode]}"></i>`;
         renderCurrentMedia();
@@ -1732,18 +1388,14 @@ function setupEventListeners() {
     
     // Timeline / Nav Buttons
     elements.btnPrevMatch.addEventListener('click', () => {
-        if (state.appMode === 'history') {
-            if (state.historyIndex > 0) { state.historyIndex--; loadHistoryMatch(); }
-        } else if (state.appMode === 'executioner') {
+        if (state.appMode === 'executioner') {
             if (state.executionerIndex > 0) { state.executionerIndex--; renderCurrentMedia(); }
         } else if (state.appMode === 'leaderboard_viewer') {
             if (state.leaderboardIndex > 0) { state.leaderboardIndex--; renderLeaderboardViewerMedia(); }
         }
     });
     elements.btnNextMatch.addEventListener('click', () => {
-        if (state.appMode === 'history') {
-            if (state.historyIndex < state.historyQueue.length - 1) { state.historyIndex++; loadHistoryMatch(); }
-        } else if (state.appMode === 'executioner') {
+        if (state.appMode === 'executioner') {
             if (state.executionerIndex < state.executionerQueue.length - 1) { state.executionerIndex++; renderCurrentMedia(); }
         } else if (state.appMode === 'leaderboard_viewer') {
             if (state.leaderboardIndex < state.leaderboardQueue.length - 1) { state.leaderboardIndex++; renderLeaderboardViewerMedia(); }
@@ -1755,11 +1407,9 @@ function setupEventListeners() {
         }
         state.appMode = 'matchmaking';
         elements.timelineControls.classList.add('hidden');
-        elements.gestureControls.classList.remove('hidden');
-        elements.executionerCheckContainer.classList.add('hidden');
-        elements.btnStageViewer.classList.add('hidden');
-        elements.btnHistoryViewer.classList.add('hidden');
-        pickNextPair();
+        if (elements.matchupControls) elements.matchupControls.classList.remove('hidden');
+        if (elements.executionerCheckContainer) elements.executionerCheckContainer.classList.add('hidden');
+        pickNextMatchup();
     });
     elements.btnStageViewer.addEventListener('click', () => {
         if (state.appMode === 'leaderboard_viewer') {
@@ -1768,27 +1418,10 @@ function setupEventListeners() {
             showToast(`Staged for execution: ${currentMedia.name}`);
         }
     });
-    elements.btnHistoryViewer.addEventListener('click', () => {
-        if (state.appMode === 'leaderboard_viewer') {
-            const currentMedia = state.leaderboardQueue[state.leaderboardIndex];
-            elements.btnStageViewer.classList.add('hidden');
-            elements.btnHistoryViewer.classList.add('hidden');
-            startHistoryReview(getFileId(currentMedia));
-        }
-    });
 
     // Modals
     elements.btnOpenSettings.addEventListener('click', () => elements.settingsModal.classList.add('active'));
     elements.closeSettingsModal.addEventListener('click', () => { saveSettingsToStorage(); elements.settingsModal.classList.remove('active'); });
-    
-    elements.btnOpenFilters.addEventListener('click', () => elements.filterModal.classList.add('active'));
-    elements.closeFilterModal.addEventListener('click', () => {
-        state.filter = elements.filterSelect.value;
-        elements.filterModal.classList.remove('active');
-        if (!state.isAnimating) pickNextPair();
-    });
-    elements.searchInput.addEventListener('input', () => { if (!state.isAnimating) pickNextPair(); });
-
 
 
     elements.btnPurge.addEventListener('click', () => { 
@@ -1803,7 +1436,7 @@ function setupEventListeners() {
         const listToStage = state.leaderboardType === 'image' ? state.images : state.videos;
         listToStage.forEach(f => {
             const id = getFileId(f);
-            if (state.ratings[id] && state.ratings[id].elo < threshold) {
+            if (state.ratings[id] && getOrdinal(state.ratings[id]) < threshold) {
                 if (!state.stagedFilesMap.has(id)) { state.stagedFilesMap.set(id, f); added++; }
             }
         });
@@ -1824,10 +1457,10 @@ function setupEventListeners() {
             const tx = db.transaction('ratings', 'readwrite');
             tx.objectStore('ratings').clear();
         } catch (e) { console.error("Error clearing IndexedDB", e); }
-        state.ratings = {}; state.images = []; state.videos = []; state.priorityQueue = [];
+        state.ratings = {}; state.images = []; state.videos = [];
         state.stagedFilesMap.clear();
         state.loadedIds.clear(); loadingQueue = []; totalLoading = 0; loadedCount = 0;
-        pickNextPair(); elements.settingsModal.classList.remove('active');
+        pickNextMatchup(); elements.settingsModal.classList.remove('active');
     });
     
     elements.btnExport.addEventListener('click', () => exportRatings(false));
@@ -1851,17 +1484,16 @@ function setupEventListeners() {
     window.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
         if (state.appMode === 'matchmaking') {
-            if (e.key === 'ArrowLeft') { state.activeView = 'A'; renderCurrentMedia(); }
-            if (e.key === 'ArrowRight') { state.activeView = 'B'; renderCurrentMedia(); }
-            if (e.key === 'ArrowUp') castVote(state.activeView);
+            if (e.key === 'ArrowLeft') { elements.btnPrevMedia?.click(); }
+            if (e.key === 'ArrowRight') { elements.btnNextMedia?.click(); }
+            if (e.key === 'Enter') submitMatch();
             if (e.key === 'ArrowDown') elements.btnUndo.click();
-        } else if (state.appMode === 'history' || state.appMode === 'executioner' || state.appMode === 'leaderboard_viewer') {
+        } else if (state.appMode === 'executioner' || state.appMode === 'leaderboard_viewer') {
             if (e.key === 'ArrowLeft') elements.btnPrevMatch.click();
             if (e.key === 'ArrowRight') elements.btnNextMatch.click();
         }
     });
 }
-
 function exportRatings(isAuto = false) {
     const jsonData = JSON.stringify(state.ratings, null, 2);
     const blob = new Blob([jsonData], { type: 'application/json' });
@@ -1880,11 +1512,14 @@ function importRatings(event) {
     const reader = new FileReader();
     reader.onload = async function(e) {
         try {
-            state.ratings = { ...state.ratings, ...JSON.parse(e.target.result) };
+            const parsed = JSON.parse(e.target.result);
+            const firstKey = Object.keys(parsed)[0];
+            if (firstKey && typeof parsed[firstKey].mu !== 'number') throw new Error("Invalid schema");
+            state.ratings = { ...state.ratings, ...parsed };
             await saveRatingsToStorage(); 
             showToast("Restored!");
-            updatePercentileFilters();
-            pickNextPair(); renderHeatmap();
+            event.target.value = '';
+            pickNextMatchup();
         } catch (err) { alert("Invalid JSON."); }
     };
     reader.readAsText(file);
@@ -1897,52 +1532,26 @@ function generateScripts() {
     }
     elements.purgeModal.classList.add('active');
     const names = Array.from(state.stagedFilesMap.values()).map(f => f.webkitRelativePath || f.name);
-    const py = `import os\ndeleted_count = 0\nfiles = [\n${names.map(n=>`  ${JSON.stringify(n)}`).join(',\n')}\n]\nfor f in files:\n  if os.path.exists(f):\n    os.remove(f)\n    deleted_count += 1\nprint(f"Successfully deleted {deleted_count} files.")`;
+    const py = `import os
+# WARNING: If file paths lack directories, you MUST run this script inside the target folder!
+deleted_count = 0
+files = [
+${names.map(n=>`  ${JSON.stringify(n)}`).join('\\n')}
+]
+for f in files:
+  if os.path.exists(f):
+    os.remove(f)
+    deleted_count += 1
+print(f"Successfully deleted {deleted_count} files.")`;
     elements.scriptOutput.value = py;
     elements.scriptContainer.classList.remove('hidden');
     elements.purgeStats.textContent = `Script ready for ${state.stagedFilesMap.size} files.`;
 }
 
-// Rendering heatmap
-function renderHeatmap() {
-    const container = elements.heatmapContainer;
-    if (!container) return;
-    const list = getActiveList();
-    const min = appSettings.heatmapMin;
-    const max = appSettings.heatmapMax;
-    const w = appSettings.heatmapBucketWidth;
-    
-    const numBuckets = Math.ceil((max - min) / w);
-    if(numBuckets <= 0) return;
-    const buckets = new Array(numBuckets).fill(0);
-    let maxCount = 0;
-    
-    list.forEach(f => {
-        const rating = state.ratings[getFileId(f)];
-        if (rating && rating.matches > 0) {
-            let idx = Math.floor((rating.elo - min) / w);
-            if (idx < 0) idx = 0;
-            if (idx >= numBuckets) idx = numBuckets - 1;
-            buckets[idx]++;
-            if (buckets[idx] > maxCount) maxCount = buckets[idx];
-        }
-    });
 
-    container.innerHTML = '';
-    buckets.forEach((count, idx) => {
-        const bar = document.createElement('div');
-        bar.className = 'heatmap-bar';
-        const heightPct = maxCount > 0 ? (count / maxCount) * 100 : 0;
-        bar.style.height = `${Math.max(5, heightPct)}%`;
-        const hue = (idx / (numBuckets - 1)) * 120;
-        bar.style.backgroundColor = `hsl(${hue}, 80%, 50%)`;
-        bar.style.opacity = count === 0 ? '0.1' : '0.8';
-        bar.title = `Elo: ${min + (idx * w)} | Files: ${count}`;
-        container.appendChild(bar);
-    });
-}
 
 window.onload = init;
+
 
 </script>
 </body>
