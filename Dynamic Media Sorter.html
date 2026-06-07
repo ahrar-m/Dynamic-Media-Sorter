@@ -1140,13 +1140,41 @@ function replaceSingleMedia(btnId) {
     const keptRating = state.ratings[keptId];
 
     const list = getActiveList();
-    const candidates = list.filter(f => {
+    let minMatches = Infinity;
+    list.forEach(f => {
+        const m = state.ratings[getFileId(f)].matches;
+        if (m < minMatches) minMatches = m;
+    });
+
+    let candidates = list.filter(f => {
         const id = getFileId(f);
         if (id === keptId) return false;
         if (id === stagedId) return false;
         if (keptRating.history.some(h => h.opponentId === id)) return false;
+        if (state.ratings[id].matches !== minMatches) return false;
         return true;
     });
+
+    if (candidates.length === 0) {
+        candidates = list.filter(f => {
+            const id = getFileId(f);
+            if (id === keptId) return false;
+            if (id === stagedId) return false;
+            if (keptRating.history.some(h => h.opponentId === id)) return false;
+            if (state.ratings[id].matches !== minMatches + 1) return false;
+            return true;
+        });
+    }
+    
+    if (candidates.length === 0) {
+        candidates = list.filter(f => {
+            const id = getFileId(f);
+            if (id === keptId) return false;
+            if (id === stagedId) return false;
+            if (keptRating.history.some(h => h.opponentId === id)) return false;
+            return true;
+        });
+    }
 
     if (candidates.length === 0) {
         state.hasSeenA = true;
