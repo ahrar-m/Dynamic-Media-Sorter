@@ -37,6 +37,13 @@ This document serves as a persistent brain-dump and architectural history of the
 * **Surgical Swipe-Down Replacements:** Previously, swiping down skipped the entire match. This was upgraded to explicitly purge *only* the targeted media while dynamically filtering the `searchPool` to retain the remaining media against a fresh opponent, avoiding redundant re-evaluations.
 * **UI/Padding Polish:** Shrank the header and `.btn` padding for maximum real-estate, and shifted the primary gesture controls (A/B buttons) physically above the secondary row in the footer to improve mobile thumb ergonomics and prevent screen-edge misfires.
 
+### 5. Matchmaking Stability & UI Tweaks
+* **Matchmaking Zone Isolation:** Completely rewrote the pairing selection algorithm to enforce strict zone isolation. The algorithm now groups media by their exact match count (finding the global minimum). Files exclusively pair against other files in the exact same tier (e.g., files with 0 matches only play against files with 0 matches), completely eliminating cross-tier contamination until the entire tier graduates.
+* **Universal K-Factor:** Standardized the Elo K-factor to `64` for all media, eliminating the conditional logic for new (0-5 matches) versus established (5+ matches) media. This ensures rating volatility remains consistent across the board.
+* **Leaderboard Viewer Enhancements:** Replaced text labels on footer controls with compact icons to prevent overflow on mobile devices, and appended the total matches count directly to the top status indicator (e.g., `Elo: 800 (Rank X of Y) | Matches: 5`).
+* **Optional Skip Button:** Introduced a "Hide Skip Button" toggle in the Settings Modal to allow users to hide the Skip button for a cleaner interface.
+* **Swipe-Up Evaluation Delay:** Added a visually distinct delay when casting votes (via swipe or button click) that reveals the updated Elo score alongside floating score animations.
+
 ---
 
 ## 🐛 Critical Bugs Patched (Do Not Re-introduce)

@@ -4,13 +4,13 @@ A powerful, entirely local, Elo-based media ranking tool built in a single HTML 
 
 ## ✨ Key Features
 
-- **Elo-Based Matchmaking**: Ranks your media using a chess-style Elo algorithm. Files start at an Elo of 800 and adjust based on face-offs. Early matches have a higher K-factor (64) for faster initial sorting, then settle down (32) for precise tiering.
+- **Elo-Based Matchmaking & Strict Isolation**: Ranks your media using a chess-style Elo algorithm. Files start at an Elo of 800 and adjust based on face-offs. Uses a universal K-factor of 64 for consistent rating volatility. The system strictly isolates matchmaking zones, ensuring files only match with others that have the exact same number of matches, completely eliminating cross-tier contamination.
 - **Privacy First & Fully Local**: No server required. The tool runs directly in your browser. All media logic uses local `blob:` URLs, and your ratings database is saved directly to a limitless `IndexedDB` backend (replacing the 5MB `localStorage` limit). It also features new on-screen error diagnostics to immediately catch and alert you of any issues.
 - **Gesture Controls & Native Video**: Clean, mobile-friendly interface with improved memory management and robust mobile gesture handling. Tap "A" or "B" to preview, and **swipe up** to cast your vote! Video media comes with native playback controls, `autoplay`, `loop`, and a customizable "Start Muted" toggle.
-- **Priority Queue & Skip**: Can't decide? Hit **Skip**. Skipped items are immediately pushed to a background *Priority Queue* so they get re-matched quickly, ensuring no file is left behind.
+- **Priority Queue & Skip**: Can't decide? Hit **Skip**. Skipped items are immediately pushed to a background *Priority Queue* so they get re-matched quickly, ensuring no file is left behind. Prefer forced choices? You can toggle the Skip button off in Settings.
 - **Undo & Match History**: Made a mistake? Use the **Undo** button to revert the last match. You can also view a file's complete head-to-head match history in an immersive timeline replay.
 - **Dynamic Leaderboards & Heatmaps**: View your absolute best (Top Tier) and worst (Bottom Tier) media. The settings menu features a dynamic heatmap visualizing your Elo distribution.
-- **Continuous Leaderboard Viewer**: Dive into your top or bottom ranked media with an immersive continuous viewer. Seamlessly iterate through the leaderboard, review match histories on the fly, and stage items for deletion without leaving the view.
+- **Continuous Leaderboard Viewer**: Dive into your top or bottom ranked media with an immersive continuous viewer. Seamlessly iterate through the leaderboard, review match histories on the fly, and stage items for deletion without leaving the view. The UI features clean, icon-based controls and clearly displays both the Elo and total matches played for each item.
 - **Swipe Down Single Swap**: Don't like one side of the match? **Swipe down** on a media button to instantly stage that specific file to The Executioner and immediately replace it with a new opponent, leaving the other media in place!
 - **The Executioner**: Time to clean house. Set an Elo threshold, stage the worst-rated files, and perform an immersive review. Once finalized, generate a simple Python script to automatically delete the losing files from your hard drive!
 

@@ -73,11 +73,13 @@ A single rating entry in `state.ratings` looks like this:
 
 ## 🧮 Elo & Matchmaking Logic
 - **Initialization**: New files default to `800` Elo.
-- **K-Factor**: Uses a dynamic K-factor to handle variance. Files with `< 5` matches have an initial calibration `K = 64` to prevent massive rating swings. Once they reach `5` matches, `K = 32` for stable tweaking. The actual applied K-Factor is a balanced average `(kA + kB) / 2` to maintain a zero-sum system.
-- **Pairing Algorithm**:
-  1. Uses ephemeral dynamic priority queue generation inside matchmaking, so skipped files naturally rise to the top by match-count priority.
-  2. Shuffles the `searchPool` and sorts ascending by matches to fix the "First-Item Bias" (preventing the same image from appearing on the left consecutively), prioritizing files with the lowest match counts.
-  3. Finds an opponent that it hasn't fought before. If `matches < 5`, opponent is purely random. If `matches >= 5`, it picks from a group of opponents with the closest Elo scores to keep matchups competitive.
+- **K-Factor**: Uses a universal constant of `K = 64` for all files regardless of match count, ensuring consistent rating volatility across the entire ecosystem. The conditional logic checking if matches are `< 5` was removed from `calculateElo()`. The actual applied K-Factor is a balanced average `(kA + kB) / 2` to maintain a zero-sum system.
+- **Matchmaking Zone Isolation (`pickNextPair()`)**:
+  The pairing algorithm now enforces strict tier isolation to eliminate cross-tier contamination:
+  1. Identifies the absolute minimum number of matches across the active pool (`minMatches`).
+  2. Filters the active list to only those items where `matches === minMatches`.
+  3. Pairs items exclusively within this sub-pool, guaranteeing all files graduate from N matches to N+1 matches together.
+  4. If there is an odd number of items (1 item left in the sub-pool), it is allowed to pair against an item from the `minMatches + 1` pool to unblock tier progression.
 
 ## 🖼 UI Rendering & Memory Management
 
@@ -92,9 +94,13 @@ A single rating entry in `state.ratings` looks like this:
   - **Swipe Down**: Swiping down stages that specific media into the Executioner and calls `replaceSingleMedia(btnId)` to find a new opponent for the remaining media. If no valid opponent exists, it falls back to a standard pair skip.
   - **Tap**: Tapping without swiping changes the `activeView` (toggles preview).
 - **Video Elements**: Videos are now spawned with `controls`, `autoplay`, and `loop`. Pointer events are set to `auto` allowing users to scrub the timeline or adjust native volume independently.
+- **Skip Button Toggle**: Added a "Hide Skip Button" option to the Settings. When active, it completely hides the skip functionality to force voting.
 
 ### Continuous Leaderboard Viewer
-An immersive mode (`state.appMode = 'leaderboard_viewer'`) that allows users to seamlessly iterate through the leaderboard array. In this mode, standard A/B buttons are hidden and replaced with specialized footer controls (Previous, Next, Stage to Executioner, View Match History, Exit). Jumping into match history smoothly transitions into chronological review mode.
+An immersive mode (`state.appMode = 'leaderboard_viewer'`) that allows users to seamlessly iterate through the leaderboard array. In this mode, standard A/B buttons are hidden and replaced with specialized footer controls. 
+- **Icon-Based Navigation**: The text labels for footer controls (Previous, Next, View Match History, Stage to Executioner) are replaced with purely icon-based buttons to prevent text overflow on mobile viewports.
+- **Matches Count Display**: The status indicator explicitly shows the number of matches alongside the Elo and Rank (e.g., `Elo: 800 (Rank X of Y) | Matches: 5`).
+Jumping into match history smoothly transitions into chronological review mode.
 
 ### Undo Mechanics
 When a vote is cast, a complete snapshot of the state (Elo scores, matches, exact priorityQueue array, and history array length) is pushed to `state.undoStack`. When `Undo` is clicked, this data is popped and exactly restored, dropping the most recent history entries.

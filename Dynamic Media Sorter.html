@@ -394,11 +394,11 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 
     <!-- Timeline Controls (Hidden by Default) -->
     <div class="timeline-controls hidden" id="timeline-controls">
-        <button class="btn" id="btn-prev-match"><i class="fa-solid fa-chevron-left"></i> Previous</button>
-        <button class="btn hidden" id="btn-stage-viewer"><i class="fa-solid fa-skull"></i> Stage to Executioner</button>
-        <button class="btn hidden" id="btn-history-viewer"><i class="fa-solid fa-clock-rotate-left"></i> View Match History</button>
-        <button class="btn btn-danger" id="btn-exit-review">Exit Mode</button>
-        <button class="btn" id="btn-next-match">Next <i class="fa-solid fa-chevron-right"></i></button>
+        <button class="btn" id="btn-prev-match" title="Previous"><i class="fa-solid fa-chevron-left"></i></button>
+        <button class="btn hidden" id="btn-stage-viewer" title="Stage to Executioner"><i class="fa-solid fa-skull"></i></button>
+        <button class="btn hidden" id="btn-history-viewer" title="View Match History"><i class="fa-solid fa-clock-rotate-left"></i></button>
+        <button class="btn btn-danger" id="btn-exit-review" title="Exit Mode"><i class="fa-solid fa-right-from-bracket"></i></button>
+        <button class="btn" id="btn-next-match" title="Next"><i class="fa-solid fa-chevron-right"></i></button>
     </div>
 </footer>
 
@@ -473,6 +473,10 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
                 <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
                     <input type="checkbox" id="setting-start-muted" style="width:18px;height:18px;">
                     Start Videos Muted
+                </label>
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer; margin-top:10px;">
+                    <input type="checkbox" id="setting-hide-skip" style="width:18px;height:18px;">
+                    Hide Skip Button
                 </label>
             </div>
             <button class="btn btn-danger" id="btn-hard-reset" style="margin-top: 15px;"><i class="fa-solid fa-bomb"></i> Hard Reset (Wipe All Data)</button>
@@ -605,7 +609,8 @@ let appSettings = {
     autoBackupInterval: 0,
     leaderboardSize: 32,
     defaultFitMode: 'contain',
-    startMuted: true
+    startMuted: true,
+    hideSkip: false
 };
 
 let elements = {};
@@ -718,6 +723,12 @@ function loadSettingsFromStorage() {
         document.getElementById('setting-default-fit').value = appSettings.defaultFitMode || 'contain';
         document.getElementById('setting-start-muted').checked = appSettings.startMuted !== false;
         document.getElementById('setting-leaderboard-size').value = appSettings.leaderboardSize || 32;
+        document.getElementById('setting-hide-skip').checked = appSettings.hideSkip === true;
+        if (appSettings.hideSkip) {
+            elements.btnSkip.classList.add('hidden');
+        } else {
+            elements.btnSkip.classList.remove('hidden');
+        }
         
         state.fitMode = appSettings.defaultFitMode || 'contain';
         const icons = { 'contain': 'fa-compress', 'cover': 'fa-crop-simple', 'stretch': 'fa-expand', 'original': 'fa-maximize' };
@@ -743,7 +754,13 @@ function saveSettingsToStorage() {
         appSettings.heatmapBucketWidth = parseSetting('setting-heatmap-width', 50);
         appSettings.defaultFitMode = document.getElementById('setting-default-fit').value;
         appSettings.startMuted = document.getElementById('setting-start-muted').checked;
+        appSettings.hideSkip = document.getElementById('setting-hide-skip').checked;
         appSettings.leaderboardSize = parseSetting('setting-leaderboard-size', 32);
+        if (appSettings.hideSkip) {
+            elements.btnSkip.classList.add('hidden');
+        } else {
+            elements.btnSkip.classList.remove('hidden');
+        }
         localStorage.setItem('eloSorterSettings', JSON.stringify(appSettings));
         
         state.fitMode = appSettings.defaultFitMode;
@@ -950,15 +967,21 @@ function pickNextPair() {
     }
 
     let itemA = null, itemB = null, ratingA = null;
-    let searchPool = [...list];
-    searchPool.sort(() => Math.random() - 0.5);
-    searchPool.sort((a, b) => state.ratings[getFileId(a)].matches - state.ratings[getFileId(b)].matches);
 
-    for (const candidateA of searchPool) {
+    let minMatches = Infinity;
+    list.forEach(f => {
+        const matches = state.ratings[getFileId(f)].matches;
+        if (matches < minMatches) minMatches = matches;
+    });
+
+    let primaryCandidates = list.filter(f => state.ratings[getFileId(f)].matches === minMatches);
+    primaryCandidates.sort(() => Math.random() - 0.5);
+
+    for (const candidateA of primaryCandidates) {
         const idA = getFileId(candidateA);
         const rA = state.ratings[idA];
         
-        const others = list.filter(f => {
+        let validOpponents = primaryCandidates.filter(f => {
             const id = getFileId(f);
             if (id === idA) return false;
             if (rA.history.some(h => h.opponentId === id)) return false;
@@ -969,16 +992,31 @@ function pickNextPair() {
             }
             return true;
         });
-        
-        if (others.length > 0) {
+
+        if (validOpponents.length === 0) {
+            const secondaryCandidates = list.filter(f => state.ratings[getFileId(f)].matches === minMatches + 1);
+            validOpponents = secondaryCandidates.filter(f => {
+                const id = getFileId(f);
+                if (id === idA) return false;
+                if (rA.history.some(h => h.opponentId === id)) return false;
+                if (state.lastSkippedPair && 
+                    ((idA === state.lastSkippedPair.a && id === state.lastSkippedPair.b) || 
+                     (idA === state.lastSkippedPair.b && id === state.lastSkippedPair.a))) {
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        if (validOpponents.length > 0) {
             itemA = candidateA;
             ratingA = rA;
             
             if (rA.matches < 5) {
-                const pool = others.slice(0, Math.min(others.length, 50));
+                const pool = validOpponents.slice(0, Math.min(validOpponents.length, 50));
                 itemB = pool[Math.floor(Math.random() * pool.length)];
             } else {
-                const validOthers = others.map(f => {
+                const validOthers = validOpponents.map(f => {
                     return { file: f, diff: Math.abs(state.ratings[getFileId(f)].elo - rA.elo) };
                 });
                 validOthers.sort((a, b) => a.diff - b.diff);
@@ -1055,9 +1093,7 @@ function updateMatchupProgress() {
 }
 
 function calculateElo(ratingA, ratingB, sA, sB) {
-    const kA = ratingA.matches < 5 ? 64 : 32;
-    const kB = ratingB.matches < 5 ? 64 : 32;
-    const matchK = (kA + kB) / 2;
+    const matchK = 64;
     const eA = 1 / (1 + Math.pow(10, (ratingB.elo - ratingA.elo) / 400));
     const eB = 1 / (1 + Math.pow(10, (ratingA.elo - ratingB.elo) / 400));
     return { newEloA: ratingA.elo + matchK * (sA - eA), newEloB: ratingB.elo + matchK * (sB - eB) };
@@ -1092,7 +1128,7 @@ function triggerAnimation(winner, changeA, changeB) {
         if (state.appMode === 'matchmaking') {
             pickNextPair();
         }
-    }, 800);
+    }, 1500);
 }
 function replaceSingleMedia(btnId) {
     if (!state.currentPair) return;
@@ -1206,6 +1242,7 @@ async function castVote(winner) {
     rB.history.unshift({ opponentId: idA, opponentName: state.currentPair.a.name, result: resB, eloChange: diffB > 0 ? `+${diffB.toFixed(0)}` : diffB.toFixed(0), historicalEloA: Math.round(preEloB), historicalEloB: Math.round(preEloA), timestamp: t });
     
     await saveRatingsToStorage();
+    if (elements.vsScoreText) elements.vsScoreText.textContent = `${Math.round(rA.elo)} - ${Math.round(rB.elo)}`;
     triggerAnimation(winner, Math.round(diffA), Math.round(diffB));
 }
 
@@ -1241,7 +1278,7 @@ function renderCurrentMedia() {
     const rB = state.ratings[getFileId(fileB)];
 
     if (state.appMode === 'matchmaking') {
-        if (elements.vsScoreText) elements.vsScoreText.textContent = `${Math.round(rA.elo)} - ${Math.round(rB.elo)}`;
+        if (elements.vsScoreText) elements.vsScoreText.textContent = '';
         elements.btnA.classList.remove('hidden');
         elements.btnB.classList.remove('hidden');
     } else if (state.appMode === 'history') {
@@ -1371,7 +1408,7 @@ function startHistoryReview(id) {
     
     elements.gestureControls.classList.remove('hidden');
     elements.timelineControls.classList.remove('hidden');
-    elements.btnExitReview.innerHTML = 'Exit Mode';
+    elements.btnExitReview.title = 'Exit Mode';
     loadHistoryMatch();
 }
 
@@ -1412,9 +1449,7 @@ function startExecutionerReview() {
     elements.purgeModal.classList.remove('active');
     elements.gestureControls.classList.add('hidden');
     elements.timelineControls.classList.remove('hidden');
-    elements.btnPrevMatch.innerHTML = '<i class="fa-solid fa-chevron-left"></i> Previous';
-    elements.btnNextMatch.innerHTML = 'Next <i class="fa-solid fa-chevron-right"></i>';
-    elements.btnExitReview.innerHTML = 'Generate Script & Exit';
+    elements.btnExitReview.title = 'Generate Script & Exit';
     
     renderCurrentMedia();
 }
@@ -1476,7 +1511,7 @@ function startLeaderboardViewer(reverse) {
     
     elements.btnStageViewer.classList.remove('hidden');
     elements.btnHistoryViewer.classList.remove('hidden');
-    elements.btnExitReview.innerHTML = 'Exit Viewer';
+    elements.btnExitReview.title = 'Exit Viewer';
     
     renderLeaderboardViewerMedia();
 }
@@ -1493,7 +1528,7 @@ function renderLeaderboardViewerMedia() {
     let rank = state.leaderboardReverse ? state.leaderboardQueue.length - state.leaderboardIndex : state.leaderboardIndex + 1;
     
     elements.matchStatusIndicator.classList.remove('hidden');
-    elements.matchStatusIndicator.textContent = `Elo: ${Math.round(rating.elo)} (Rank ${rank} of ${state.leaderboardQueue.length})`;
+    elements.matchStatusIndicator.textContent = `Elo: ${Math.round(rating.elo)} (Rank ${rank} of ${state.leaderboardQueue.length}) | Matches: ${rating.matches}`;
     elements.matchStatusIndicator.className = 'placement';
     
     elements.executionerCheckContainer.classList.add('hidden');
@@ -1521,6 +1556,27 @@ function renderLeaderboardViewerMedia() {
 // --- Setup & Listeners ---
 
 function setupEventListeners() {
+    document.getElementById('matchup-progress-container').addEventListener('click', () => {
+        const list = getActiveList();
+        if(list.length === 0) return;
+        
+        let minMatches = Infinity;
+        for (const file of list) {
+            const id = getFileId(file);
+            const m = state.ratings[id]?.matches || 0;
+            if (m < minMatches) minMatches = m;
+        }
+        
+        let count = 0;
+        for (const file of list) {
+            const id = getFileId(file);
+            const m = state.ratings[id]?.matches || 0;
+            if (m === minMatches) count++;
+        }
+        
+        showToast(`${count} files remaining in Pool ${minMatches}`);
+    });
+
     elements.folderInput.addEventListener('change', handleFilesSelected);
     elements.fileInput.addEventListener('change', handleFilesSelected);
     
@@ -1813,7 +1869,7 @@ function generateScripts() {
     }
     elements.purgeModal.classList.add('active');
     const names = Array.from(state.stagedFilesMap.values()).map(f => f.webkitRelativePath || f.name);
-    const py = `import os\nfiles = [\n${names.map(n=>`  ${JSON.stringify(n)}`).join(',\n')}\n]\nfor f in files:\n  if os.path.exists(f): os.remove(f)`;
+    const py = `import os\ndeleted_count = 0\nfiles = [\n${names.map(n=>`  ${JSON.stringify(n)}`).join(',\n')}\n]\nfor f in files:\n  if os.path.exists(f):\n    os.remove(f)\n    deleted_count += 1\nprint(f"Successfully deleted {deleted_count} files.")`;
     elements.scriptOutput.value = py;
     elements.scriptContainer.classList.remove('hidden');
     elements.purgeStats.textContent = `Script ready for ${state.stagedFilesMap.size} files.`;
