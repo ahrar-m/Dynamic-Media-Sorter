@@ -1495,7 +1495,11 @@ function setupEventListeners() {
     });
 }
 function exportRatings(isAuto = false) {
-    const jsonData = JSON.stringify(state.ratings, null, 2);
+    const exportData = {
+        ratings: state.ratings,
+        stagedFiles: Array.from(state.stagedFilesMap.keys())
+    };
+    const jsonData = JSON.stringify(exportData, null, 2);
     const blob = new Blob([jsonData], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const node = document.createElement('a');
@@ -1513,9 +1517,25 @@ function importRatings(event) {
     reader.onload = async function(e) {
         try {
             const parsed = JSON.parse(e.target.result);
-            const firstKey = Object.keys(parsed)[0];
-            if (firstKey && typeof parsed[firstKey].mu !== 'number') throw new Error("Invalid schema");
-            state.ratings = { ...state.ratings, ...parsed };
+            if (parsed.ratings) {
+                // New schema with staged files
+                state.ratings = { ...state.ratings, ...parsed.ratings };
+                if (parsed.stagedFiles && Array.isArray(parsed.stagedFiles)) {
+                    const allFiles = [...state.images, ...state.videos];
+                    for (const f of allFiles) {
+                        const id = getFileId(f);
+                        if (parsed.stagedFiles.includes(id)) {
+                            state.stagedFilesMap.set(id, f);
+                        }
+                    }
+                    if (elements.purgeStats) elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
+                }
+            } else {
+                // Legacy schema fallback
+                const firstKey = Object.keys(parsed)[0];
+                if (firstKey && typeof parsed[firstKey].mu !== 'number') throw new Error("Invalid schema");
+                state.ratings = { ...state.ratings, ...parsed };
+            }
             await saveRatingsToStorage(); 
             showToast("Restored!");
             event.target.value = '';
@@ -1536,7 +1556,7 @@ function generateScripts() {
 # WARNING: If file paths lack directories, you MUST run this script inside the target folder!
 deleted_count = 0
 files = [
-${names.map(n=>`  ${JSON.stringify(n)}`).join('\\n')}
+${names.map(n=>`  ${JSON.stringify(n)},`).join('\n')}
 ]
 for f in files:
   if os.path.exists(f):
