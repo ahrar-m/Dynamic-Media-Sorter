@@ -1063,9 +1063,9 @@ function renderCurrentMedia() {
 
     if (activeFile.type.startsWith('video/') || activeFile.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
         const mutedAttr = appSettings.startMuted ? 'muted' : '';
-        elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr}></video>`;
+        elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr} onerror="handleMediaError()"></video>`;
     } else {
-        elements.mediaContainer.innerHTML = `<img src="${objectUrlA}" class="${fitClass}">`;
+        elements.mediaContainer.innerHTML = `<img src="${objectUrlA}" class="${fitClass}" onerror="handleMediaError()">`;
     }
     
     elements.displayFilename.textContent = `${activeFile.name} (${formatSize(activeFile.size)}) [${state.activeViewIndex + 1}/${state.currentMatchup.length}]`;
@@ -1102,12 +1102,18 @@ function renderPlacementStrip() {
         btn.title = "Insert Here";
         btn.onclick = () => {
             const currentIndex = state.userRanking.indexOf(activeId);
-            if (currentIndex !== -1) {
+            const wasRanked = currentIndex !== -1;
+            if (wasRanked) {
                 state.userRanking.splice(currentIndex, 1);
                 if (currentIndex < index) index--;
             }
             state.userRanking.splice(index, 0, activeId);
             updateUserRankingState();
+            
+            // Auto-advance to the next media if this was the first time ranking it
+            if (!wasRanked) {
+                elements.btnNextMatch.click();
+            }
         };
         return btn;
     };
@@ -1219,6 +1225,7 @@ function startExecutionerReview() {
 }
 
 function renderExecutionerMedia() {
+    elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); });
     if (objectUrlA) URL.revokeObjectURL(objectUrlA);
     elements.mediaContainer.innerHTML = '';
     const file = state.executionerQueue[state.executionerIndex];
@@ -1231,12 +1238,17 @@ function renderExecutionerMedia() {
     
     elements.executionerCheckContainer.classList.remove('hidden');
     elements.executionerCheckbox.checked = state.stagedFilesMap.has(id);
-    
-    elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); });
+    let fitClass = '';
+    if (state.fitMode === 'contain') fitClass = 'media-fit-contain';
+    else if (state.fitMode === 'cover') fitClass = 'media-fit-cover';
+    else if (state.fitMode === 'stretch') fitClass = 'media-fit-stretch';
+    else if (state.fitMode === 'original') fitClass = 'media-fit-original';
+
+    const mutedAttr = appSettings.startMuted ? 'muted' : '';
     if (file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
-        elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" autoplay loop controls playsinline muted></video>`;
+        elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr} onerror="handleMediaError()"></video>`;
     } else {
-        elements.mediaContainer.innerHTML = `<img src="${objectUrlA}">`;
+        elements.mediaContainer.innerHTML = `<img src="${objectUrlA}" class="${fitClass}" onerror="handleMediaError()">`;
     }
     
     elements.displayFilename.textContent = `${file.name} (${formatSize(file.size)})`;
@@ -1305,9 +1317,9 @@ function renderLeaderboardViewerMedia() {
     
     if (file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
         const mutedAttr = appSettings.startMuted ? 'muted' : '';
-        elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr}></video>`;
+        elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr} onerror="handleMediaError()"></video>`;
     } else {
-        elements.mediaContainer.innerHTML = `<img src="${objectUrlA}" class="${fitClass}">`;
+        elements.mediaContainer.innerHTML = `<img src="${objectUrlA}" class="${fitClass}" onerror="handleMediaError()">`;
     }
     
     elements.displayFilename.textContent = `${file.name} (${formatSize(file.size)})`;
@@ -1437,7 +1449,21 @@ function setupEventListeners() {
         saveSettingsToStorage();
         showToast(`Fit Mode: ${state.fitMode.charAt(0).toUpperCase() + state.fitMode.slice(1)}`);
         elements.btnToggleFit.innerHTML = `<i class="fa-solid ${icons[state.fitMode]}"></i>`;
-        renderCurrentMedia();
+        
+        let fitClass = '';
+        if (state.fitMode === 'contain') fitClass = 'media-fit-contain';
+        else if (state.fitMode === 'cover') fitClass = 'media-fit-cover';
+        else if (state.fitMode === 'stretch') fitClass = 'media-fit-stretch';
+        else if (state.fitMode === 'original') fitClass = 'media-fit-original';
+        
+        const mediaEl = elements.mediaContainer.querySelector('video, img');
+        if (mediaEl) {
+            mediaEl.className = fitClass;
+        } else {
+            if (state.appMode === 'executioner') renderExecutionerMedia();
+            else if (state.appMode === 'leaderboard_viewer') renderLeaderboardViewerMedia();
+            else renderCurrentMedia();
+        }
     });
     
     // Timeline / Nav Buttons
@@ -1647,6 +1673,17 @@ print(f"Successfully deleted {deleted_count} files.")`;
 }
 
 
+
+window.handleMediaError = function() {
+    elements.mediaContainer.innerHTML = `
+        <div class="empty-state glass-panel" style="padding: 40px; border: 2px dashed rgba(255, 71, 87, 0.5);">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 48px; margin-bottom: 15px; color: var(--accent-red);"></i>
+            <h2 style="color: var(--accent-red);">Corrupted Media</h2>
+            <p>This file is corrupted or its format is unsupported by your browser.</p>
+            <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">Tip: You can use the Executioner tool to safely queue this broken file for deletion.</p>
+        </div>
+    `;
+};
 
 window.onload = init;
 
