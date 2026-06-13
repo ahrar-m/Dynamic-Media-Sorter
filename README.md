@@ -18,7 +18,7 @@ A powerful, entirely local media ranking tool built in a single HTML file. Stop 
 3. **Rank**: The app will present up to 4 pieces of media in a match. 
    - Use the **Prev** and **Next** buttons to cycle through the media in the current matchup.
    - Use the **Checkboxes (1, 2, 3, 4)** to assign a rank to the currently visible media.
-   - Once all media have a rank, click **Submit Match** to apply the TrueSkill updates.
+   - Once all media have a rank, click **Submit Match** to apply the TrueSkill updates. (You can also enable **"Auto-submit match once fully ranked"** in Settings to skip this click).
 4. **Manage Your Library**: Open the **Leaderboard** to review the best files. Use **The Executioner** (skull icon) to stage files for deletion. Click the "Executioner" icon during a match to instantly send the active media to The Executioner and pull a new opponent into the match!
 
 ## 💾 Backup & Restore

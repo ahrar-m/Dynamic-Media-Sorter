@@ -435,6 +435,12 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
                     Start Videos Muted
                 </label>
             </div>
+            <div style="margin-top: 15px;">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                    <input type="checkbox" id="setting-auto-submit" style="width:18px;height:18px;">
+                    Auto-submit match once fully ranked
+                </label>
+            </div>
             <button class="btn btn-danger" id="btn-hard-reset" style="margin-top: 15px;"><i class="fa-solid fa-bomb"></i> Hard Reset (Wipe All Data)</button>
         </div>
     </div>
@@ -561,7 +567,8 @@ function getOrdinal(rating) {
 let appSettings = {
     autoBackupInterval: 0,
     defaultFitMode: 'contain',
-    startMuted: true
+    startMuted: true,
+    autoSubmitMatch: false
 };
 
 let elements = {};
@@ -660,6 +667,7 @@ function loadSettingsFromStorage() {
         document.getElementById('setting-auto-backup').value = appSettings.autoBackupInterval;
         document.getElementById('setting-default-fit').value = appSettings.defaultFitMode || 'contain';
         document.getElementById('setting-start-muted').checked = appSettings.startMuted !== false;
+        document.getElementById('setting-auto-submit').checked = appSettings.autoSubmitMatch === true;
         
         state.fitMode = appSettings.defaultFitMode || 'contain';
         const icons = { 'contain': 'fa-compress', 'cover': 'fa-crop-simple', 'stretch': 'fa-expand', 'original': 'fa-maximize' };
@@ -682,6 +690,7 @@ function saveSettingsToStorage() {
         appSettings.autoBackupInterval = parseSetting('setting-auto-backup', 0);
         appSettings.defaultFitMode = document.getElementById('setting-default-fit').value;
         appSettings.startMuted = document.getElementById('setting-start-muted').checked;
+        appSettings.autoSubmitMatch = document.getElementById('setting-auto-submit').checked;
         localStorage.setItem('eloSorterSettings', JSON.stringify(appSettings));
         
         state.fitMode = appSettings.defaultFitMode;
@@ -1030,6 +1039,9 @@ function checkSubmitUnlock() {
         const allRanked = state.currentMatchup.every(f => state.currentRankings.hasOwnProperty(getFileId(f)));
         if (allSeen && allRanked) {
             elements.btnSubmitMatch.disabled = false;
+            if (appSettings.autoSubmitMatch && !state.isAnimating) {
+                submitMatch();
+            }
         } else {
             elements.btnSubmitMatch.disabled = true;
         }
