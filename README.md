@@ -2,6 +2,19 @@
 
 A powerful, entirely local media ranking tool built in a single HTML file. Stop struggling with manual sorting—let mathematical matchmaking figure out your favorite images and videos!
 
+## 🔒 Security & Privacy (100% Local & Safe)
+
+This application is fully sandboxed and verified to be entirely safe for hosting on platforms like GitHub Pages. 
+
+- **Zero Data Extraction:** An audit of the source code confirms there are absolutely no data-uploading functions (e.g., `fetch`, `XMLHttpRequest`, `axios`, `postMessage`). Your media, ratings, and filenames are never packaged or sent anywhere.
+- **Local Storage Only:** The application relies exclusively on your browser's local sandbox to save data. Settings are saved using `localStorage`, and all media ratings/history are saved using an `IndexedDB` database directly on your device.
+- **Minimal Network Fingerprint:** As a standalone HTML file, the app only makes four standard `GET` requests to public CDNs strictly to load aesthetics and the math library:
+  - `fonts.googleapis.com` & `fonts.gstatic.com` (Google Fonts: Inter)
+  - `cdnjs.cloudflare.com` (FontAwesome Icons)
+  - `cdn.jsdelivr.net` (OpenSkill TrueSkill math module)
+  
+  None of these requests transmit any personal data; they only pull static files into your browser so the UI renders correctly and the matchmaking math functions.
+
 ## ✨ Key Features
 
 - **TrueSkill Matchmaking**: Ranks your media using the `openskill` ES module algorithm (mu and sigma). The system natively supports N-way Battle Royale match-ups (sizing up to 4 items at once) to get through your media significantly faster than 1v1 duels!
