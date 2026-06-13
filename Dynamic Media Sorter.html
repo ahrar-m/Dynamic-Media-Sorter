@@ -73,9 +73,17 @@ body {
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     border: none; color: #000; font-weight: 600;
 }
+.btn-primary:hover {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    filter: brightness(1.1);
+}
 .btn-danger {
     background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
     border: none; color: #fff; font-weight: 600;
+}
+.btn-danger:hover {
+    background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
+    filter: brightness(1.1);
 }
 header .btn { padding: 4px 8px; }
 
@@ -322,7 +330,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 </main>
 
 <!-- Footer Controls -->
-<footer class="glass-panel" style="padding: 12px 16px; display: flex; flex-direction: column; gap: 16px; z-index: 10; background: var(--bg-color); border-top: 1px solid var(--panel-border); flex-shrink: 0;">
+<footer class="glass-panel" style="padding: 4px 16px 12px 16px; display: flex; flex-direction: column; gap: 16px; z-index: 10; background: var(--bg-color); border-top: 1px solid var(--panel-border); flex-shrink: 0;">
     <div class="matchup-controls" id="matchup-controls" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
         <button class="btn" id="btn-prev-media" style="font-size: 1.2rem; padding: 10px 15px;"><i class="fa-solid fa-chevron-left"></i></button>
         
@@ -344,6 +352,9 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         
         .placement-strip {
             display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: visible; align-items: center; justify-content: center; gap: 8px; padding: 5px 10px;
+            min-height: 80px;
+            background: linear-gradient(to right, rgba(0, 255, 100, 0.15), rgba(255, 8, 68, 0.15));
+            border-radius: 12px;
         }
         .placement-thumbnail {
             width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 2px solid var(--panel-border);
@@ -379,7 +390,6 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
     <!-- Timeline Controls (Hidden by Default) -->
     <div class="timeline-controls hidden" id="timeline-controls">
         <button class="btn" id="btn-prev-match" title="Previous"><i class="fa-solid fa-chevron-left"></i></button>
-        <button class="btn hidden" id="btn-stage-viewer" title="Stage to Executioner"><i class="fa-solid fa-skull"></i></button>
         <button class="btn btn-danger" id="btn-exit-review" title="Exit Mode"><i class="fa-solid fa-right-from-bracket"></i></button>
         <button class="btn" id="btn-next-match" title="Next"><i class="fa-solid fa-chevron-right"></i></button>
     </div>
@@ -597,7 +607,6 @@ function bindElements() {
         btnPrevMatch: document.getElementById('btn-prev-match'),
         btnNextMatch: document.getElementById('btn-next-match'),
         btnExitReview: document.getElementById('btn-exit-review'),
-        btnStageViewer: document.getElementById('btn-stage-viewer'),
         
         executionerCheckContainer: document.getElementById('executioner-check-container'),
         executionerCheckbox: document.getElementById('executioner-checkbox'),
@@ -795,8 +804,10 @@ async function processLoadingQueue() {
         elements.loadingProgress.classList.add('hidden');
         await saveRatingsToStorage();
         
-        const seconds = Math.round((Date.now() - loadingStartTime) / 1000);
-        showToast(`Loaded ${totalLoading} files in ${seconds}s.`);
+        const totalSecs = Math.round((Date.now() - loadingStartTime) / 1000);
+        const mm = String(Math.floor(totalSecs / 60)).padStart(2, '0');
+        const ss = String(totalSecs % 60).padStart(2, '0');
+        showToast(`Loaded ${totalLoading} files in ${mm}:${ss}.`);
         return;
     }
 
@@ -814,7 +825,11 @@ async function processLoadingQueue() {
         }
 
         const id = getFileId(f);
-        if (state.ratings[id] && state.ratings[id].blacklisted) return;
+        if (state.ratings[id] && state.ratings[id].blacklisted) {
+            state.stagedFilesMap.set(id, f);
+            if (elements.purgeStats) elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
+            return;
+        }
 
         if (isImage) {
             if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.images.push(f); didAdd = true; }
@@ -1011,7 +1026,9 @@ async function submitMatch() {
 
 function checkSubmitUnlock() {
     if (elements.btnSubmitMatch) {
-        if (state.hasSeen.size === state.currentMatchup.length && Object.keys(state.currentRankings).length === state.currentMatchup.length) {
+        const allSeen = state.currentMatchup.every(f => state.hasSeen.has(getFileId(f)));
+        const allRanked = state.currentMatchup.every(f => state.currentRankings.hasOwnProperty(getFileId(f)));
+        if (allSeen && allRanked) {
             elements.btnSubmitMatch.disabled = false;
         } else {
             elements.btnSubmitMatch.disabled = true;
@@ -1112,7 +1129,7 @@ function renderPlacementStrip() {
             
             // Auto-advance to the next media if this was the first time ranking it
             if (!wasRanked) {
-                elements.btnNextMatch.click();
+                elements.btnNextMedia.click();
             }
         };
         return btn;
@@ -1173,7 +1190,7 @@ function renderPlacementStrip() {
 
 function renderLeaderboard() {
     const list = state.leaderboardType === 'image' ? state.images : state.videos;
-    const sorted = [...list].sort((a,b) => (getOrdinal(state.ratings[getFileId(b)]) || 0) - (getOrdinal(state.ratings[getFileId(a)]) || 0));
+    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted).sort((a,b) => (getOrdinal(state.ratings[getFileId(b)]) || 0) - (getOrdinal(state.ratings[getFileId(a)]) || 0));
     const size = 6;
     
     elements.leaderboardTopList.innerHTML = '';
@@ -1263,7 +1280,7 @@ function renderExecutionerMedia() {
 // --- Continuous Leaderboard Viewer ---
 function startLeaderboardViewer(reverse) {
     const list = state.leaderboardType === 'image' ? state.images : state.videos;
-    const sorted = [...list].sort((a,b) => (getOrdinal(state.ratings[getFileId(b)]) || 0) - (getOrdinal(state.ratings[getFileId(a)]) || 0));
+    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted).sort((a,b) => (getOrdinal(state.ratings[getFileId(b)]) || 0) - (getOrdinal(state.ratings[getFileId(a)]) || 0));
     
     state.leaderboardReverse = reverse;
 
@@ -1285,7 +1302,7 @@ function startLeaderboardViewer(reverse) {
     if (elements.matchupControls) elements.matchupControls.classList.add('hidden');
     elements.timelineControls.classList.remove('hidden');
     
-    elements.btnStageViewer.classList.remove('hidden');
+
     elements.btnExitReview.title = 'Exit Viewer';
     
     renderLeaderboardViewerMedia();
@@ -1404,7 +1421,18 @@ function setupEventListeners() {
         showToast("Match reverted!");
     });
     
-    elements.btnStageCurrent.addEventListener('click', () => {
+    elements.btnStageCurrent.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (btn) btn.blur();
+
+        if (state.appMode === 'leaderboard_viewer') {
+            const currentMedia = state.leaderboardQueue[state.leaderboardIndex];
+            state.stagedFilesMap.set(getFileId(currentMedia), currentMedia);
+            if(elements.purgeStats) elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
+            showToast(`Staged for execution: ${currentMedia.name}`);
+            return;
+        }
+
         if(state.currentMatchup.length === 0 || state.appMode !== 'matchmaking') return;
         const activeId = getFileId(state.currentMatchup[state.activeViewIndex]);
         
@@ -1424,8 +1452,12 @@ function setupEventListeners() {
         if (replacement) {
             state.currentMatchup[state.activeViewIndex] = replacement;
             delete state.currentRankings[activeId];
+            const urIdx = state.userRanking.indexOf(activeId);
+            if (urIdx !== -1) {
+                state.userRanking.splice(urIdx, 1);
+                updateUserRankingState();
+            }
             state.hasSeen.delete(activeId);
-            state.hasSeen.add(getFileId(replacement));
             checkSubmitUnlock();
             renderCurrentMedia();
         } else {
@@ -1497,13 +1529,7 @@ function setupEventListeners() {
         if (elements.executionerCheckContainer) elements.executionerCheckContainer.classList.add('hidden');
         pickNextMatchup();
     });
-    elements.btnStageViewer.addEventListener('click', () => {
-        if (state.appMode === 'leaderboard_viewer') {
-            const currentMedia = state.leaderboardQueue[state.leaderboardIndex];
-            state.stagedFilesMap.set(getFileId(currentMedia), currentMedia);
-            showToast(`Staged for execution: ${currentMedia.name}`);
-        }
-    });
+
 
     // Modals
     elements.btnOpenSettings.addEventListener('click', () => elements.settingsModal.classList.add('active'));
@@ -1630,6 +1656,7 @@ function importRatings(event) {
             await saveRatingsToStorage(); 
             showToast("Restored!");
             event.target.value = '';
+            renderLeaderboard();
             pickNextMatchup();
         } catch (err) { alert("Invalid JSON."); }
     };
