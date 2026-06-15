@@ -404,7 +404,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         <div class="modal-body">
             <div class="modal-grid-2">
                 <button class="btn" id="btn-export"><i class="fa-solid fa-upload"></i> Export Backup</button>
-                <input type="file" id="import-input" class="hidden">
+                <input type="file" id="import-input" class="hidden" multiple>
                 <button class="btn" onclick="document.getElementById('import-input').click()"><i class="fa-solid fa-download"></i> Restore Backup</button>
             </div>
             <div class="modal-grid-2">
@@ -476,7 +476,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         <div class="modal-body">
             <div style="display: flex; gap: 10px; align-items: center;">
                 <label>Stage files with Ordinal < </label>
-                <input type="number" id="purge-threshold" class="form-input" value="700" style="width: 100px; margin:0;">
+                <input type="number" id="purge-threshold" class="form-input" value="0" style="width: 100px; margin:0;">
                 <button class="btn btn-primary" id="btn-stage-files">Stage Files</button>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
@@ -654,7 +654,7 @@ function bindElements() {
 function getFileId(file) { return `${file.name}_${file.size}`; }
 function showToast(msg) {
     if(!elements.toast) return;
-    elements.toast.textContent = msg;
+    elements.toast.innerHTML = msg;
     elements.toast.classList.add('show');
     setTimeout(() => elements.toast.classList.remove('show'), 3000);
 }
@@ -880,39 +880,14 @@ function pickNextMatchup() {
     }
 
     const matchupSize = Math.min(4, list.length);
-    let minMatches = Infinity;
-    list.forEach(f => {
-        const matches = state.ratings[getFileId(f)].matches;
-        if (matches < minMatches) minMatches = matches;
-    });
-
-    let pool = [];
-    let currentMatchTarget = minMatches;
     
-    while(pool.length < matchupSize && currentMatchTarget <= minMatches + 10) {
-        let candidates = list.filter(f => state.ratings[getFileId(f)].matches === currentMatchTarget && !pool.includes(f));
-        if(candidates.length > 0) {
-            candidates.sort((a,b) => getOrdinal(state.ratings[getFileId(a)]) - getOrdinal(state.ratings[getFileId(b)]));
-            pool.push(...candidates);
-        }
-        currentMatchTarget++;
+    const shuffledList = [...list];
+    for (let i = shuffledList.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledList[i], shuffledList[j]] = [shuffledList[j], shuffledList[i]];
     }
     
-    // Pick the first one randomly from the pool's lowest tier
-    let tierCandidates = pool.filter(f => state.ratings[getFileId(f)].matches === minMatches);
-    let anchor = tierCandidates[Math.floor(Math.random() * tierCandidates.length)];
-    let anchorIdx = pool.indexOf(anchor);
-    
-    // Select neighbors in the sorted pool
-    let startIdx = Math.max(0, anchorIdx - Math.floor(matchupSize/2));
-    let endIdx = startIdx + matchupSize;
-    if(endIdx > pool.length) {
-        endIdx = pool.length;
-        startIdx = Math.max(0, endIdx - matchupSize);
-    }
-    
-    state.currentMatchup = pool.slice(startIdx, endIdx);
-    state.currentMatchup.sort(() => Math.random() - 0.5); // Shuffle
+    state.currentMatchup = shuffledList.slice(0, matchupSize);
     
     state.activeViewIndex = 0;
     state.hasSeen.clear();
@@ -1367,21 +1342,17 @@ function setupEventListeners() {
         const list = getActiveList();
         if(list.length === 0) return;
         
-        let minMatches = Infinity;
+        const poolCounts = {};
         for (const file of list) {
             const id = getFileId(file);
             const m = state.ratings[id]?.matches || 0;
-            if (m < minMatches) minMatches = m;
+            poolCounts[m] = (poolCounts[m] || 0) + 1;
         }
         
-        let count = 0;
-        for (const file of list) {
-            const id = getFileId(file);
-            const m = state.ratings[id]?.matches || 0;
-            if (m === minMatches) count++;
-        }
+        const sortedPools = Object.keys(poolCounts).map(Number).sort((a,b) => a - b);
+        let message = sortedPools.map(p => `Pool ${p}: ${poolCounts[p]} files`).join('<br>');
         
-        showToast(`${count} files remaining in Pool ${minMatches}`);
+        showToast(message);
     });
 
     elements.folderInput.addEventListener('change', handleFilesSelected);
@@ -1634,45 +1605,77 @@ function exportRatings(isAuto = false) {
     URL.revokeObjectURL(url);
     if(!isAuto) showToast("Exported Backup!");
 }
-function importRatings(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        try {
-            const parsed = JSON.parse(e.target.result);
-            if (parsed.ratings) {
-                // New schema with staged files
-                const migratedRatings = {};
-                for (const key in parsed.ratings) migratedRatings[key.split('/').pop()] = parsed.ratings[key];
-                state.ratings = { ...state.ratings, ...migratedRatings };
-                if (parsed.stagedFiles && Array.isArray(parsed.stagedFiles)) {
-                    const migratedStaged = parsed.stagedFiles.map(id => id.split('/').pop());
-                    const allFiles = [...state.images, ...state.videos];
-                    for (const f of allFiles) {
-                        const id = getFileId(f);
-                        if (migratedStaged.includes(id)) {
-                            state.stagedFilesMap.set(id, f);
+async function importRatings(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    let processedFiles = 0;
+    
+    for (const file of files) {
+        await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    
+                    const mergeRatings = (newRatings) => {
+                        for (const key in newRatings) {
+                            const id = key.split('/').pop();
+                            const rating = newRatings[key];
+                            if (state.ratings[id]) {
+                                const m1 = rating.matches || 0;
+                                const m2 = state.ratings[id].matches || 0;
+                                if (m1 > m2) {
+                                    state.ratings[id] = rating;
+                                } else if (m1 === m2) {
+                                    if (getOrdinal(rating) > getOrdinal(state.ratings[id])) {
+                                        state.ratings[id] = rating;
+                                    }
+                                }
+                            } else {
+                                state.ratings[id] = rating;
+                            }
                         }
+                    };
+
+                    if (parsed.ratings) {
+                        // New schema with staged files
+                        mergeRatings(parsed.ratings);
+                        if (parsed.stagedFiles && Array.isArray(parsed.stagedFiles)) {
+                            const migratedStaged = parsed.stagedFiles.map(id => id.split('/').pop());
+                            const allFiles = [...state.images, ...state.videos];
+                            for (const f of allFiles) {
+                                const id = getFileId(f);
+                                if (migratedStaged.includes(id)) {
+                                    state.stagedFilesMap.set(id, f);
+                                }
+                            }
+                        }
+                    } else {
+                        // Legacy schema fallback
+                        const firstKey = Object.keys(parsed)[0];
+                        if (firstKey && typeof parsed[firstKey].mu !== 'number') throw new Error("Invalid schema");
+                        mergeRatings(parsed);
                     }
-                    if (elements.purgeStats) elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
+                    processedFiles++;
+                    resolve();
+                } catch (err) {
+                    showToast(`Invalid JSON in ${file.name}.`);
+                    resolve();
                 }
-            } else {
-                // Legacy schema fallback
-                const firstKey = Object.keys(parsed)[0];
-                if (firstKey && typeof parsed[firstKey].mu !== 'number') throw new Error("Invalid schema");
-                const migratedRatings = {};
-                for (const key in parsed) migratedRatings[key.split('/').pop()] = parsed[key];
-                state.ratings = { ...state.ratings, ...migratedRatings };
-            }
-            await saveRatingsToStorage(); 
-            showToast("Restored!");
-            event.target.value = '';
-            renderLeaderboard();
-            pickNextMatchup();
-        } catch (err) { alert("Invalid JSON."); }
-    };
-    reader.readAsText(file);
+            };
+            reader.readAsText(file);
+        });
+    }
+    
+    if (processedFiles > 0) {
+        if (elements.purgeStats) elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
+        await saveRatingsToStorage(); 
+        showToast(`Restored ${processedFiles} backup(s)!`);
+        event.target.value = '';
+        renderLeaderboard();
+        pickNextMatchup();
+    }
 }
 
 function generateScripts() {

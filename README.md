@@ -12,14 +12,14 @@ A powerful, entirely local media ranking tool built in a single HTML file. Stop 
    - Once all media have a rank, click **Submit Match** to apply the updates. (You can also enable **"Auto-submit match once fully ranked"** in Settings to skip this click).
 4. **Manage Your Library**: Open the **Leaderboard** to review the best files. 
 5. **Delete Bad Files**: Use **The Executioner** (skull icon) to manage files you want to delete. 
-   - Click the **Executioner icon** during a match to instantly send the active media to The Executioner and pull a new opponent into the match.
+   - Click the **Executioner icon** during a match to instantly send the active media to The Executioner and pull a new opponent into the match. **Note:** Only use this if the media is *absolutely not needed*. If a file has even slight positivity, retain it! The matchmaking math will naturally sort it to the bottom of your rankings over a few matches.
    - You can also stage poorly rated files in bulk directly from the Executioner menu by setting a rating threshold.
    - Once staged, start the **Executioner Review** to verify your condemned files. You can uncheck any files you want to save.
    - Finally, click **Generate Script & Exit** to download a standalone Python or Bash script. Running this script locally on your computer will permanently delete the staged files from your hard drive.
 
 ## ✨ Key Features
 
-- **TrueSkill Matchmaking**: Ranks your media using the algorithm behind competitive gaming (mu and sigma). The system natively supports N-way Battle Royale match-ups (sizing up to 4 items at once) to get through your media significantly faster than 1v1 duels!
+- **TrueSkill Matchmaking**: Ranks your media using the algorithm behind competitive gaming (mu and sigma). The system natively supports N-way Battle Royale match-ups (sizing up to 4 items at once) with completely random, chaotic matchmaking to get through your media significantly faster than 1v1 duels! Tap the circular **Pool Icon** at any time to see a breakdown of how many files have been matched at each tier.
 - **Privacy First & Fully Local**: No server required. The tool runs directly in your browser. All media logic uses local `blob:` URLs, and your ratings database is saved directly to a limitless local database.
 - **Mobile-Friendly UI**: Clean, mobile-friendly interface with native video playback controls, `autoplay`, `loop`, and a customizable "Start Muted" toggle. The footer features sequential navigation (`Prev` and `Next`) and checkbox ranking for active media.
 - **Undo Stack**: Made a mistake? Use the **Undo** button to revert the last match seamlessly.
@@ -29,6 +29,8 @@ A powerful, entirely local media ranking tool built in a single HTML file. Stop 
 
 Your data is safely stored in your browser's database, but it's always good to have a hard copy.
 Go to **Settings** (gear icon) to export your ratings to a JSON file.
+
+**Smart Merge:** You can select multiple backup `.json` files when clicking "Restore Backup". The system will intelligently merge them. If there is a conflict (the same file rated differently in multiple backups), the system will preserve the history with the most matches played. If the match counts are tied, it keeps the highest rating score.
 
 ---
 
@@ -46,7 +48,7 @@ This application is fully sandboxed and verified to be entirely safe for hosting
 
 ### Logic & Features Overview
 
-- **Matchmaking Algorithm**: Uses the `openskill.js` library (an implementation of TrueSkill) to calculate a `mu` (skill) and `sigma` (uncertainty) for each media file. Matches can be N-way (e.g., 1v1v1v1) which accelerates the sorting process.
+- **Matchmaking Algorithm**: Uses the `openskill.js` library (an implementation of TrueSkill) to calculate a `mu` (skill) and `sigma` (uncertainty) for each media file. Matches are completely randomized across all loaded files to ensure chaotic, unbiased match-ups. Matches can be N-way (e.g., 1v1v1v1) which accelerates the sorting process.
 - **File Management & Rendering**: The app uses the `FileReader` API and `URL.createObjectURL()` to display local files instantly via temporary `blob:` URLs without uploading them anywhere. 
 - **Storage System**:
   - **IndexedDB**: Used for storing the extensive media ratings database. This bypasses the 5MB limit of standard `localStorage`, allowing you to rank tens of thousands of files without issues.
