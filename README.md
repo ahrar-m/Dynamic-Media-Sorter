@@ -23,12 +23,14 @@ A powerful, entirely local media ranking tool built in a single HTML file. Stop 
 - **Privacy First & Fully Local**: No server required. The tool runs directly in your browser. All media logic uses local `blob:` URLs, and your ratings database is saved directly to a limitless local database.
 - **Mobile-Friendly UI**: Clean, mobile-friendly interface with native video playback controls, `autoplay`, `loop`, and a customizable "Start Muted" toggle. The footer features sequential navigation (`Prev` and `Next`) and checkbox ranking for active media.
 - **Undo Stack**: Made a mistake? Use the **Undo** button to revert the last match seamlessly.
-- **Dynamic Leaderboards**: View your absolute best and worst media. The leaderboard display is explicitly clamped to prevent UI lag.
+- **Dynamic Leaderboards**: View your absolute best and worst media. The leaderboard display is explicitly clamped to prevent UI lag. You can also toggle "Skip unmatched files" in Settings to keep unranked media off the leaderboard.
+- **Native File Sharing**: Share your favorite media directly to other apps using the native Web Share API (on supported browsers/devices).
+- **Import Randomization**: Folder imports are completely randomized up-front, and matchmaking instantly begins as soon as 4 items are loaded.
 
 ## 💾 Backup & Restore
 
 Your data is safely stored in your browser's database, but it's always good to have a hard copy.
-Go to **Settings** (gear icon) to export your ratings to a JSON file.
+Go to **Settings** (gear icon) to export your ratings to a JSON file. You can also configure a **Custom Backup Prefix** to label your exports exactly how you want them.
 
 **Smart Merge:** You can select multiple backup `.json` files when clicking "Restore Backup". The system will intelligently merge them. If there is a conflict (the same file rated differently in multiple backups), the system will preserve the history with the most matches played. If the match counts are tied, it keeps the highest rating score.
 

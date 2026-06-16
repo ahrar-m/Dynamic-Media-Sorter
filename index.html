@@ -383,6 +383,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
             <button class="btn btn-primary" id="btn-submit-match" disabled style="width: 44px; height: 44px; border-radius: 50%; padding: 0; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; transition: all 0.3s ease;"><i class="fa-solid fa-check"></i></button>
         </div>
         <div class="footer-right">
+            <button class="btn btn-primary" id="btn-share-current" title="Share Media" style="width: 44px; height: 44px; display: none; align-items: center; justify-content: center;"><i class="fa-solid fa-share-nodes"></i></button>
             <button class="btn btn-danger" id="btn-stage-current" title="Stage Current Media to Executioner" style="width: 44px; height: 44px;"><i class="fa-solid fa-skull"></i></button>
             <button class="btn" id="btn-toggle-fit" title="Cycle Media Fit" style="width: 44px; height: 44px;"><i class="fa-solid fa-compress"></i></button>
         </div>
@@ -421,6 +422,10 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
             
             <div class="modal-grid-2" style="margin-top:5px;">
                 <div>
+                    <label>Backup File Prefix</label>
+                    <input type="text" id="setting-backup-prefix" class="form-input" value="dms_elo">
+                </div>
+                <div>
                     <label>Default Media Fit</label>
                     <select id="setting-default-fit" class="form-input">
                         <option value="contain">Fit Screen</option>
@@ -440,6 +445,12 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
                 <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
                     <input type="checkbox" id="setting-auto-submit" style="width:18px;height:18px;">
                     Auto-submit match once fully ranked
+                </label>
+            </div>
+            <div style="margin-top: 15px;">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                    <input type="checkbox" id="setting-skip-unmatched" style="width:18px;height:18px;" checked>
+                    Hide Unmatched in Leaderboard
                 </label>
             </div>
             <button class="btn btn-danger" id="btn-hard-reset" style="margin-top: 15px;"><i class="fa-solid fa-bomb"></i> Hard Reset (Wipe All Data)</button>
@@ -569,7 +580,9 @@ let appSettings = {
     autoBackupInterval: 0,
     defaultFitMode: 'contain',
     startMuted: true,
-    autoSubmitMatch: false
+    autoSubmitMatch: false,
+    backupPrefix: 'dms_elo',
+    skipUnmatched: true
 };
 
 let elements = {};
@@ -634,6 +647,7 @@ function bindElements() {
         btnExport: document.getElementById('btn-export'),
         importInput: document.getElementById('import-input'),
         btnHardReset: document.getElementById('btn-hard-reset'),
+        btnShareCurrent: document.getElementById('btn-share-current'),
         btnAppFullscreen: document.getElementById('btn-app-fullscreen'),
         
         leaderboardModal: document.getElementById('leaderboard-modal'),
@@ -665,10 +679,12 @@ function loadSettingsFromStorage() {
         const stored = localStorage.getItem('eloSorterSettings');
         if (stored) appSettings = { ...appSettings, ...JSON.parse(stored) };
         
-        document.getElementById('setting-auto-backup').value = appSettings.autoBackupInterval;
+        document.getElementById('setting-auto-backup').value = appSettings.autoBackupInterval || 0;
+        document.getElementById('setting-backup-prefix').value = appSettings.backupPrefix || 'dms_elo';
         document.getElementById('setting-default-fit').value = appSettings.defaultFitMode || 'contain';
         document.getElementById('setting-start-muted').checked = appSettings.startMuted !== false;
         document.getElementById('setting-auto-submit').checked = appSettings.autoSubmitMatch === true;
+        document.getElementById('setting-skip-unmatched').checked = appSettings.skipUnmatched !== false;
         
         state.fitMode = appSettings.defaultFitMode || 'contain';
         const icons = { 'contain': 'fa-compress', 'cover': 'fa-crop-simple', 'stretch': 'fa-expand', 'original': 'fa-maximize' };
@@ -689,9 +705,11 @@ function saveSettingsToStorage() {
             return isNaN(val) ? fallback : val;
         };
         appSettings.autoBackupInterval = parseSetting('setting-auto-backup', 0);
+        appSettings.backupPrefix = document.getElementById('setting-backup-prefix').value || 'dms_elo';
         appSettings.defaultFitMode = document.getElementById('setting-default-fit').value;
         appSettings.startMuted = document.getElementById('setting-start-muted').checked;
         appSettings.autoSubmitMatch = document.getElementById('setting-auto-submit').checked;
+        appSettings.skipUnmatched = document.getElementById('setting-skip-unmatched').checked;
         localStorage.setItem('eloSorterSettings', JSON.stringify(appSettings));
         
         state.fitMode = appSettings.defaultFitMode;
@@ -789,6 +807,11 @@ function handleFilesSelected(event) {
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
     
+    for (let i = files.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [files[i], files[j]] = [files[j], files[i]];
+    }
+    
     if (isProcessRunning) {
         loadingQueue = loadingQueue.concat(files);
         totalLoading += files.length;
@@ -859,7 +882,7 @@ async function processLoadingQueue() {
 
     if (didAdd && state.currentMatchup.length === 0 && state.appMode === 'matchmaking') {
         const list = getActiveList();
-        if (list.length >= 2) pickNextMatchup();
+        if ((list.length >= 4) || (list.length >= 2 && loadedCount === totalLoading)) pickNextMatchup();
     }
     
     setTimeout(processLoadingQueue, 0);
@@ -1080,6 +1103,14 @@ function renderCurrentMedia() {
         elements.fileInfoOverlay.classList.add('hidden');
     }
     
+    if (elements.btnShareCurrent) {
+        if (navigator.canShare && navigator.canShare({ files: [activeFile] })) {
+            elements.btnShareCurrent.style.display = 'flex';
+        } else {
+            elements.btnShareCurrent.style.display = 'none';
+        }
+    }
+    
     renderPlacementStrip();
 }
 
@@ -1178,7 +1209,7 @@ function renderPlacementStrip() {
 
 function renderLeaderboard() {
     const list = state.leaderboardType === 'image' ? state.images : state.videos;
-    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted).sort((a,b) => (getOrdinal(state.ratings[getFileId(b)]) || 0) - (getOrdinal(state.ratings[getFileId(a)]) || 0));
+    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted && (!appSettings.skipUnmatched || state.ratings[getFileId(f)]?.matches > 0)).sort((a,b) => (getOrdinal(state.ratings[getFileId(b)]) || 0) - (getOrdinal(state.ratings[getFileId(a)]) || 0));
     const size = 6;
     
     elements.leaderboardTopList.innerHTML = '';
@@ -1258,6 +1289,13 @@ function renderExecutionerMedia() {
     
     elements.displayFilename.textContent = `${file.name} (${formatSize(file.size)})`;
     elements.fileInfoOverlay.classList.remove('hidden');
+    if (elements.btnShareCurrent) {
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            elements.btnShareCurrent.style.display = 'flex';
+        } else {
+            elements.btnShareCurrent.style.display = 'none';
+        }
+    }
     
     elements.executionerCheckbox.onchange = (e) => {
         if (e.target.checked) state.stagedFilesMap.set(id, file);
@@ -1268,7 +1306,7 @@ function renderExecutionerMedia() {
 // --- Continuous Leaderboard Viewer ---
 function startLeaderboardViewer(reverse) {
     const list = state.leaderboardType === 'image' ? state.images : state.videos;
-    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted).sort((a,b) => (getOrdinal(state.ratings[getFileId(b)]) || 0) - (getOrdinal(state.ratings[getFileId(a)]) || 0));
+    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted && (!appSettings.skipUnmatched || state.ratings[getFileId(f)]?.matches > 0)).sort((a,b) => (getOrdinal(state.ratings[getFileId(b)]) || 0) - (getOrdinal(state.ratings[getFileId(a)]) || 0));
     
     state.leaderboardReverse = reverse;
 
@@ -1332,6 +1370,13 @@ function renderLeaderboardViewerMedia() {
         elements.fileInfoOverlay.classList.remove('hidden');
     } else {
         elements.fileInfoOverlay.classList.add('hidden');
+    }
+    if (elements.btnShareCurrent) {
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            elements.btnShareCurrent.style.display = 'flex';
+        } else {
+            elements.btnShareCurrent.style.display = 'none';
+        }
     }
 }
 
@@ -1405,9 +1450,33 @@ function setupEventListeners() {
         showToast("Match reverted!");
     });
     
+    if (elements.btnShareCurrent) elements.btnShareCurrent.addEventListener('click', async (e) => {
+        const btn = e.target.closest('button');
+        if (btn) btn.blur();
+        let file;
+        if (state.appMode === 'executioner') file = state.executionerQueue[state.executionerIndex];
+        else if (state.appMode === 'leaderboard_viewer') file = state.leaderboardQueue[state.leaderboardIndex];
+        else if (state.currentMatchup.length > 0) file = state.currentMatchup[state.activeViewIndex];
+        if (!file) return;
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({ files: [file], title: file.name });
+            } catch (err) {
+                if (err.name !== 'AbortError') showToast('Failed to share.');
+            }
+        } else {
+            showToast('Sharing not supported on this browser/device.');
+        }
+    });
+    
     elements.btnStageCurrent.addEventListener('click', (e) => {
         const btn = e.target.closest('button');
         if (btn) btn.blur();
+
+        if (state.appMode === 'executioner') {
+            showToast("File is already staged for execution.");
+            return;
+        }
 
         if (state.appMode === 'leaderboard_viewer') {
             const currentMedia = state.leaderboardQueue[state.leaderboardIndex];
@@ -1601,7 +1670,8 @@ function exportRatings(isAuto = false) {
     const node = document.createElement('a');
     node.setAttribute("href", url);
     const dt = new Date().toISOString().replace(/[:.]/g, '-');
-    node.setAttribute("download", `dms_elo_${isAuto?'autobackup':'backup'}_${dt}.json`);
+    const prefix = appSettings.backupPrefix || 'dms_elo';
+    node.setAttribute("download", `${prefix}_${isAuto?'autobackup':'backup'}_${dt}.json`);
     document.body.appendChild(node); node.click(); node.remove();
     URL.revokeObjectURL(url);
     if(!isAuto) showToast("Exported Backup!");
