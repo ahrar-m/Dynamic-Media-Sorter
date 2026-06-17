@@ -20,3 +20,8 @@
 ## [2026-06-17] Analytics Dashboard: QA Feedback & Fixes Applied
 - **Visual/UI**: Replaced inline margins with CSS flex gap, updated grid layout to `stretch`, added a gradient and interactive hover states to the histogram bars, and added touch-friendly text overlays to the bars.
 - **Logic**: Corrected Total Matches to reflect exact rounds instead of participations (divided by 4), fixed ETA distortion by calculating deficit on a per-item basis, and excluded unsorted media from the bell curve to fix the visual scale.
+
+## [2026-06-17] Architectural Improvement: Build Step & Modular Code
+- Extracted HTML, CSS, and JS from the monolithic `index.html` into a `src/` directory (`src/index.html`, `src/style.css`, `src/main.js`) for better maintainability.
+- Created a fast, native Node.js `build.js` script to automatically bundle the modular source files back into a standalone `index.html` file for release.
+- Deployed subagents for QA review on the new modular architecture.

@@ -1503,7 +1503,7 @@ window.handleMediaError = function() {
     `;
 };
 
-window.onload = init;
+document.addEventListener('DOMContentLoaded', init);
 
 // Resize Handle Logic
 let isResizing = false;
