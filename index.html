@@ -251,6 +251,24 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 .leaderboard-item .filename { max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Executioner Checkbox */
+.dash-bar {
+    flex: 1;
+    background: linear-gradient(to top, rgba(79, 172, 254, 0.2), var(--accent-blue));
+    border-radius: 4px 4px 0 0;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 2px;
+    font-size: 0.65rem;
+    color: white;
+    overflow: hidden;
+}
+.dash-bar:hover {
+    opacity: 1;
+    filter: brightness(1.2);
+}
 .executioner-checkbox {
     position: absolute; top: 70px; right: 20px; z-index: 50;
     display: flex; align-items: center; gap: 10px;
@@ -506,7 +524,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         <button class="modal-close" id="close-dashboard-modal"><i class="fa-solid fa-xmark"></i></button>
         <h2><i class="fa-solid fa-chart-pie"></i> Analytics Dashboard</h2>
         <div class="modal-body">
-            <div class="modal-grid-2">
+            <div class="modal-grid-2" style="align-items: stretch;">
                 <div class="glass-panel" style="padding: 15px; text-align: center;">
                     <h3 style="color: var(--text-secondary); margin-bottom: 5px;">Total Media</h3>
                     <div id="dash-total-media" style="font-size: 2rem; font-weight: bold; color: var(--accent-blue);">0</div>
@@ -516,12 +534,12 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
                     <div id="dash-total-matches" style="font-size: 2rem; font-weight: bold; color: var(--accent-green);">0</div>
                 </div>
             </div>
-            <div class="glass-panel" style="padding: 15px; margin-top: 10px;">
+            <div class="glass-panel" style="padding: 15px;">
                 <h3 style="color: var(--text-secondary); margin-bottom: 10px;">Estimated Time to Sort</h3>
                 <div id="dash-eta" style="font-size: 1.2rem; font-weight: 500;">Calculating...</div>
-                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px;">(Assuming ~3 seconds per match, targeting 3 matches per item)</p>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px;">(Based on deficit to target matches)</p>
             </div>
-            <div class="glass-panel" style="padding: 15px; margin-top: 10px;">
+            <div class="glass-panel" style="padding: 15px;">
                 <h3 style="color: var(--text-secondary); margin-bottom: 10px;">Rating Distribution</h3>
                 <div style="display: flex; height: 100px; align-items: flex-end; gap: 4px;" id="dash-bell-curve">
                 </div>
@@ -1912,21 +1930,22 @@ function renderDashboard() {
     elements.dashTotalMedia.textContent = listToStage.length;
     
     let totalMatches = 0;
+    let totalDeficit = 0;
     const ordinals = [];
     listToStage.forEach(f => {
         const id = getFileId(f);
-        if (state.ratings[id]) {
-            totalMatches += state.ratings[id].matches || 0;
+        const matches = state.ratings[id]?.matches || 0;
+        totalMatches += matches;
+        totalDeficit += Math.max(0, 3 - matches);
+        
+        if (matches > 0) {
             ordinals.push(getOrdinal(state.ratings[id]));
-        } else {
-            ordinals.push(0);
         }
     });
     
-    elements.dashTotalMatches.textContent = totalMatches;
+    elements.dashTotalMatches.textContent = Math.ceil(totalMatches / 4);
 
-    const targetMatches = listToStage.length * 3;
-    const remainingMatches = Math.max(0, targetMatches - totalMatches) / 4; 
+    const remainingMatches = totalDeficit / 4; 
     const remainingSeconds = remainingMatches * 3; 
     if (listToStage.length === 0) {
         elements.dashEta.textContent = "Load media to estimate";
@@ -1955,7 +1974,7 @@ function renderDashboard() {
         const maxBucket = Math.max(...buckets);
         elements.dashBellCurve.innerHTML = buckets.map(count => {
             const height = maxBucket > 0 ? (count / maxBucket) * 100 : 0;
-            return `<div style="flex: 1; background: var(--accent-blue); height: ${height}%; border-radius: 4px 4px 0 0; opacity: 0.7; transition: height 0.3s;" title="${count} items"></div>`;
+            return `<div class="dash-bar" style="height: ${height}%;" title="${count} items">${count > 0 ? count : ''}</div>`;
         }).join('');
     } else {
         elements.dashBellCurve.innerHTML = '';

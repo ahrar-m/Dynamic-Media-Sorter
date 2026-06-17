@@ -12,3 +12,7 @@
 ## [2026-06-17] The Curator: QA Feedback & Fixes Applied
 - **Visual/UI**: Removed inline styles for text area, improved mobile responsiveness with flex-wrap, changed button styling to match visual hierarchy, fixed double margins, styled helper text.
 - **Logic**: Fixed percentage parsing logic, solved Python syntax edge cases with string generation, implemented Python logic to avoid file overwriting via `get_unique_path`.
+
+## [2026-06-17] Feature Implementation: Analytics Dashboard
+- Implemented a Dashboard modal to display Total Media, Matches Played, ETA, and a CSS-based Bell Curve for rating distributions.
+- Deployed subagents for QA review on the Dashboard feature.
