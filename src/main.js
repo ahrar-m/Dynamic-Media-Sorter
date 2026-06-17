@@ -12,8 +12,16 @@ const workerCallbacks = {};
 worker.onmessage = (e) => {
     const { id, type, results, error } = e.data;
     if (workerCallbacks[id]) {
-        if (error) workerCallbacks[id].reject(new Error(error));
+        if (type === 'ERROR' || error) workerCallbacks[id].reject(new Error(error || "Worker Error"));
         else workerCallbacks[id].resolve(results);
+        delete workerCallbacks[id];
+    }
+};
+
+worker.onerror = (e) => {
+    console.error("Worker crashed:", e);
+    for (const id in workerCallbacks) {
+        workerCallbacks[id].reject(new Error(e.message));
         delete workerCallbacks[id];
     }
 };
@@ -526,76 +534,84 @@ async function submitMatch() {
     }
     
     state.isAnimating = true;
+    const oldBtnHTML = elements.btnSubmitMatch.innerHTML;
+    elements.btnSubmitMatch.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+    elements.btnSubmitMatch.disabled = true;
     elements.mediaContainer.style.opacity = '0.3';
     elements.mediaContainer.style.transition = 'opacity 0.1s ease';
-    await new Promise(r => setTimeout(r, 100));
     
-    // Snapshot for undo
-    let prevStats = {};
-    state.currentMatchup.forEach(f => {
-        const id = getFileId(f);
-        prevStats[id] = JSON.parse(JSON.stringify(state.ratings[id]));
-    });
-    state.undoStack.push({
-        matchup: [...state.currentMatchup],
-        prevStats: prevStats
-    });
-    if (state.undoStack.length > 50) state.undoStack.shift();
-    
-    let teamIds = [];
-    let fileRanks = [];
-    
-    state.currentMatchup.forEach(f => {
-        const id = getFileId(f);
-        const rank = parseInt(state.currentRankings[id]);
-        fileRanks.push({file: f, id: id, rank: rank, rating: state.ratings[id]});
-    });
-    
-    fileRanks.sort((a,b) => a.rank - b.rank);
-    
-    let ranksForOpenskill = [];
-    
-    fileRanks.forEach(item => {
-        teamIds.push(item.id);
-        ranksForOpenskill.push(item.rank);
-    });
-    
-    const currentRatings = {};
-    state.currentMatchup.forEach(f => {
-        const id = getFileId(f);
-        currentRatings[id] = state.ratings[id];
-    });
-
-    const newRatingsMap = await runInWorker('RATE_MATCH', {
-        currentMatchup: teamIds,
-        currentRatings,
-        ranksForOpenskill
-    });
-    const t = Date.now();
-    
-    fileRanks.forEach((item, idx) => {
-        const newRating = newRatingsMap[item.id];
-        const oldOrdinal = getOrdinal(item.rating);
-        const newOrdinal = getOrdinal(newRating);
-        const diff = newOrdinal - oldOrdinal;
+    try {
+        let teamIds = [];
+        let fileRanks = [];
         
-        item.rating.mu = newRating.mu;
-        item.rating.sigma = newRating.sigma;
-        item.rating.matches++;
-        
-        let oppIds = teamIds.filter(id => id !== item.id);
-        item.rating.history.unshift({ 
-            opponentIds: oppIds, 
-            rank: item.rank,
-            ordinalChange: diff,
-            timestamp: t 
+        state.currentMatchup.forEach(f => {
+            const id = getFileId(f);
+            const rank = parseInt(state.currentRankings[id]);
+            fileRanks.push({file: f, id: id, rank: rank, rating: state.ratings[id]});
         });
-    });
-    
-    await saveRatingsToStorage(fileRanks.map(item => item.id));
-    
-    state.isAnimating = false;
-    pickNextMatchup();
+        
+        fileRanks.sort((a,b) => a.rank - b.rank);
+        
+        let ranksForOpenskill = [];
+        fileRanks.forEach(item => {
+            teamIds.push(item.id);
+            ranksForOpenskill.push(item.rank);
+        });
+        
+        const currentRatings = {};
+        state.currentMatchup.forEach(f => {
+            const id = getFileId(f);
+            currentRatings[id] = state.ratings[id];
+        });
+
+        const newRatingsMap = await runInWorker('RATE_MATCH', {
+            currentMatchup: teamIds,
+            currentRatings,
+            ranksForOpenskill
+        });
+
+        let prevStats = {};
+        state.currentMatchup.forEach(f => {
+            const id = getFileId(f);
+            prevStats[id] = JSON.parse(JSON.stringify(state.ratings[id]));
+        });
+        state.undoStack.push({
+            matchup: [...state.currentMatchup],
+            prevStats: prevStats
+        });
+        if (state.undoStack.length > 50) state.undoStack.shift();
+
+        const t = Date.now();
+        fileRanks.forEach((item, idx) => {
+            const newRating = newRatingsMap[item.id];
+            const oldOrdinal = getOrdinal(item.rating);
+            const newOrdinal = getOrdinal(newRating);
+            const diff = newOrdinal - oldOrdinal;
+            
+            item.rating.mu = newRating.mu;
+            item.rating.sigma = newRating.sigma;
+            item.rating.matches++;
+            
+            let oppIds = teamIds.filter(id => id !== item.id);
+            if (!item.rating.history) item.rating.history = [];
+            item.rating.history.unshift({ 
+                opponentIds: oppIds, 
+                rank: item.rank,
+                ordinalChange: diff,
+                timestamp: t 
+            });
+        });
+        
+        await saveRatingsToStorage(fileRanks.map(item => item.id));
+        pickNextMatchup();
+    } catch (err) {
+        console.error("Submit match failed:", err);
+        showToast("Error processing match.");
+    } finally {
+        elements.btnSubmitMatch.innerHTML = oldBtnHTML;
+        elements.btnSubmitMatch.disabled = false;
+        state.isAnimating = false;
+    }
 }
 
 function checkSubmitUnlock() {
@@ -631,6 +647,7 @@ function destroyPanzoomAndWheel() {
 }
 
 function renderCurrentMedia() {
+    if (state.isAnimating) return;
     elements.btnUndo.disabled = state.undoStack.length === 0;
     if (objectUrlA) { URL.revokeObjectURL(objectUrlA); objectUrlA = null; }
     elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); });
@@ -723,6 +740,7 @@ function renderPlacementStrip() {
         btn.innerHTML = '<i class="fa-solid fa-plus"></i>';
         btn.title = "Insert Here";
         btn.onclick = () => {
+            if (state.isAnimating) return;
             const currentIndex = state.userRanking.indexOf(activeId);
             const wasRanked = currentIndex !== -1;
             if (wasRanked) {
@@ -778,6 +796,7 @@ function renderPlacementStrip() {
             unrankBtn.title = "Remove Rank";
             unrankBtn.style.cssText = 'position: absolute; top: -5px; right: -5px; width: 16px; height: 16px; border-radius: 50%; background: #ff0844; color: white; border: none; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 0 5px rgba(0,0,0,0.5);';
             unrankBtn.onclick = (e) => {
+                if (state.isAnimating) return;
                 e.stopPropagation();
                 state.userRanking.splice(idx, 1);
                 updateUserRankingState();
@@ -1024,10 +1043,11 @@ function setupEventListeners() {
         showToast(`Switched to ${state.leaderboardType}s (Pool: ${list.length})`);
         pickNextMatchup();
     };
-    elements.toggleImage.addEventListener('click', () => { state.appMode = 'matchmaking'; state.leaderboardType = 'image'; applyToggle(); });
-    elements.toggleVideo.addEventListener('click', () => { state.appMode = 'matchmaking'; state.leaderboardType = 'video'; applyToggle(); });
+    elements.toggleImage.addEventListener('click', () => { if(state.isAnimating) return; state.appMode = 'matchmaking'; state.leaderboardType = 'image'; applyToggle(); });
+    elements.toggleVideo.addEventListener('click', () => { if(state.isAnimating) return; state.appMode = 'matchmaking'; state.leaderboardType = 'video'; applyToggle(); });
 
     if (elements.btnPrevMedia) elements.btnPrevMedia.addEventListener('click', () => {
+        if (state.isAnimating) return;
         if (state.currentMatchup.length > 0) {
             state.activeViewIndex = (state.activeViewIndex - 1 + state.currentMatchup.length) % state.currentMatchup.length;
             renderCurrentMedia();
@@ -1035,6 +1055,7 @@ function setupEventListeners() {
     });
     
     if (elements.btnNextMedia) elements.btnNextMedia.addEventListener('click', () => {
+        if (state.isAnimating) return;
         if (state.currentMatchup.length > 0) {
             state.activeViewIndex = (state.activeViewIndex + 1) % state.currentMatchup.length;
             renderCurrentMedia();

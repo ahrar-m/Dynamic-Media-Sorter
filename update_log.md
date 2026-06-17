@@ -40,3 +40,9 @@
 ## [2026-06-17] File System Access API: QA Feedback Applied
 - **Logic**: Fixed a bug where successfully deleted files weren't properly marked as blacklisted in IndexedDB. Fixed directory traversal edge case if a user selects a parent directory as the root handle. Wrapped the direct copy `write()` operation in an inner try-catch so that one corrupted file doesn't abort the entire batch export.
 - **UI/Visual**: Modified The Curator modal layout to display the "Generate Script" and "Direct Copy" buttons evenly stacked at 100% width, matching The Executioner modal.
+
+## [2026-06-17] Feature Implementation: Web Workers for Heavy Lifting
+- Extracted the intensive TrueSkill (`openskill.js`) mathematical calculations and moved them entirely out of the main thread and into a new background `worker.js`.
+- Configured `build.js` to automatically bundle the Web Worker script as an injected string blob, allowing the final output to remain a strictly standalone, single-file HTML app.
+- Implemented asynchronous Promise wrappers around worker messages for seamless `await` integration in the UI logic.
+- Deployed subagents for QA review on the new Web Worker implementation.
