@@ -56,3 +56,9 @@
 - Added profound drop shadows (`box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7)`) to all `.modal` components to strongly elevate them off the background canvas.
 - Resolved CSS specificity conflicts where the footer grid and `.file-info` overlays were artificially overriding the glass background gradients.
 - Deployed subagents for QA review on Section 1 updates and resolved minor `-webkit` backdrop issues and responsive viewport height unit fallbacks (`100vh` -> `100dvh`).
+
+## [2026-06-17] UI/UX Refresh: Section 2 - Layout & Responsiveness
+- Upgraded the `<header>` containers with dynamic `flex-wrap` and gap spacing to prevent layout snapping and overlap on very narrow viewports.
+- Stripped rigid pixel `max-width` math from the `#placement-strip` scroll container, using `flex: 1; min-width: 0` to let the browser compute optimal remaining spatial bounds.
+- Re-architected `.footer-grid` to utilize standard `grid-template-columns` on desktop/tablet for perfect centering, but implemented an `@media` query flex-wrap stack on narrow mobile screens (<600px) to prevent button squishing.
+- Deployed subagents for QA. Resolved an `overflow` conflict by removing `overflow-y` from the horizontal scroll container. Verified by the Visual QA Checker that zero layout clipping exists and the main viewport scales perfectly.
