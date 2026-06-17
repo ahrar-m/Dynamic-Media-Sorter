@@ -331,7 +331,10 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 </main>
 
 <!-- Footer Controls -->
-<footer class="glass-panel" style="padding: 4px 16px 12px 16px; display: flex; flex-direction: column; gap: 16px; z-index: 10; background: var(--bg-color); border-top: 1px solid var(--panel-border); flex-shrink: 0;">
+<footer class="glass-panel" id="app-footer" style="padding: 4px 16px 12px 16px; display: flex; flex-direction: column; gap: 16px; z-index: 10; background: var(--bg-color); border-top: 1px solid var(--panel-border); flex-shrink: 0; position: relative;">
+    <div id="footer-resize-handle" style="position: absolute; top: -12px; left: 0; right: 0; height: 24px; cursor: ns-resize; display: flex; justify-content: center; align-items: center; z-index: 20; touch-action: none;">
+        <div style="width: 50px; height: 5px; background: rgba(255,255,255,0.4); border-radius: 3px;"></div>
+    </div>
     <div class="matchup-controls" id="matchup-controls" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
         <button class="btn" id="btn-prev-media" style="font-size: 1.2rem; padding: 10px 15px;"><i class="fa-solid fa-chevron-left"></i></button>
         
@@ -351,15 +354,19 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         .footer-center { display: flex; justify-content: center; }
         .footer-right { display: flex; gap: 8px; justify-content: flex-end; }
         
+        :root {
+            --thumb-size: 60px;
+        }
         .placement-strip {
-            display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: visible; align-items: center; justify-content: center; gap: 8px; padding: 5px 10px;
-            min-height: 80px;
+            display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: visible; align-items: center; justify-content: flex-start; margin: 0 auto; gap: 8px; padding: 5px 10px;
+            min-height: calc(var(--thumb-size) + 20px);
             background: linear-gradient(to right, rgba(0, 255, 100, 0.15), rgba(255, 8, 68, 0.15));
             border-radius: 12px;
+            width: 100%;
         }
         .placement-thumbnail {
-            width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 2px solid var(--panel-border);
-            cursor: pointer; opacity: 0.7; transition: all 0.2s ease; background: black;
+            width: var(--thumb-size); height: var(--thumb-size); border-radius: 8px; object-fit: cover; border: 2px solid var(--panel-border);
+            cursor: pointer; opacity: 0.7; transition: all 0.2s ease; background: black; flex-shrink: 0;
         }
         .placement-thumbnail.active-rank {
             border-color: var(--accent-blue); opacity: 1; transform: scale(1.1); box-shadow: 0 0 10px rgba(79,172,254,0.5);
@@ -804,31 +811,34 @@ let loadingStartTime = 0;
 let isProcessRunning = false;
 
 function handleFilesSelected(event) {
-    const files = Array.from(event.target.files);
-    if (files.length === 0) return;
-    
-    for (let i = files.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [files[i], files[j]] = [files[j], files[i]];
-    }
-    
-    if (isProcessRunning) {
-        loadingQueue = loadingQueue.concat(files);
-        totalLoading += files.length;
-        return;
-    }
-    
-    isProcessRunning = true;
-    loadingQueue = files;
-    totalLoading = files.length;
-    loadedCount = 0;
-    loadingStartTime = Date.now();
+    const fileList = event.target.files;
+    if (!fileList || fileList.length === 0) return;
     
     elements.loadingProgress.classList.remove('hidden');
-    elements.loadingPercent.textContent = "0%";
+    elements.loadingPercent.textContent = "Processing...";
     elements.loadingProgress.style.background = `conic-gradient(var(--accent-green) 0%, rgba(255,255,255,0.1) 0%)`;
     
-    setTimeout(processLoadingQueue, 0);
+    setTimeout(() => {
+        const files = Array.from(fileList);
+        for (let i = files.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [files[i], files[j]] = [files[j], files[i]];
+        }
+        
+        if (isProcessRunning) {
+            loadingQueue = loadingQueue.concat(files);
+            totalLoading += files.length;
+            return;
+        }
+        
+        isProcessRunning = true;
+        loadingQueue = files;
+        totalLoading = files.length;
+        loadedCount = 0;
+        loadingStartTime = Date.now();
+        
+        processLoadingQueue();
+    }, 50);
 }
 
 async function processLoadingQueue() {
@@ -844,45 +854,64 @@ async function processLoadingQueue() {
         return;
     }
 
-    const batch = loadingQueue.splice(0, 2); // Batch size 2
+    const batchStart = Date.now();
+    let loadedThisBatch = 0;
     let didAdd = false;
+    let statsUpdated = false;
     
-    batch.forEach(f => {
-        let isImage = false, isVideo = false;
-        if (f.type) {
-            isImage = f.type.startsWith('image/');
-            isVideo = f.type.startsWith('video/');
-        } else {
-            isImage = /\.(jpe?g|png|gif|webp)$/i.test(f.name);
-            isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(f.name);
-        }
+    try {
+        while (loadingQueue.length > 0 && (Date.now() - batchStart < 16)) {
+            const f = loadingQueue.pop();
+            let isImage = false, isVideo = false;
+            if (f.type) {
+                isImage = f.type.startsWith('image/');
+                isVideo = f.type.startsWith('video/');
+            } else {
+                isImage = /\.(jpe?g|png|gif|webp)$/i.test(f.name);
+                isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(f.name);
+            }
 
-        const id = getFileId(f);
-        if (state.ratings[id] && state.ratings[id].blacklisted) {
-            state.stagedFilesMap.set(id, f);
-            if (elements.purgeStats) elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
-            return;
-        }
+            const id = getFileId(f);
+            if (state.ratings[id] && state.ratings[id].blacklisted) {
+                if (!state.stagedFilesMap.has(id)) {
+                    state.stagedFilesMap.set(id, f);
+                    statsUpdated = true;
+                }
+                loadedThisBatch++;
+                continue;
+            }
 
-        if (isImage) {
-            if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.images.push(f); didAdd = true; }
-        } else if (isVideo) {
-            if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.videos.push(f); didAdd = true; }
-        }
+            let localDidAdd = false;
+            if (isImage) {
+                if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.images.push(f); didAdd = true; localDidAdd = true; }
+            } else if (isVideo) {
+                if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.videos.push(f); didAdd = true; localDidAdd = true; }
+            }
 
-        if (didAdd && !state.ratings[id]) {
-            state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
+            if (localDidAdd && !state.ratings[id]) {
+                state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
+            }
+            loadedThisBatch++;
         }
-    });
+    } catch (e) {
+        console.error('File parsing error in batch:', e);
+    }
 
-    loadedCount += batch.length;
+    if (statsUpdated && elements.purgeStats) {
+        elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
+    }
+
+    loadedCount += loadedThisBatch;
     const pct = Math.floor((loadedCount / totalLoading) * 100);
     elements.loadingPercent.textContent = `${pct}%`;
     elements.loadingProgress.style.background = `conic-gradient(var(--accent-green) ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
 
     if (didAdd && state.currentMatchup.length === 0 && state.appMode === 'matchmaking') {
-        const list = getActiveList();
-        if ((list.length >= 4) || (list.length >= 2 && loadedCount === totalLoading)) pickNextMatchup();
+        const baseList = state.leaderboardType === 'image' ? state.images : state.videos;
+        if ((baseList.length >= 4) || (baseList.length >= 2 && loadedCount === totalLoading)) {
+            const list = getActiveList();
+            if ((list.length >= 4) || (list.length >= 2 && loadedCount === totalLoading)) pickNextMatchup();
+        }
     }
     
     setTimeout(processLoadingQueue, 0);
@@ -923,6 +952,8 @@ function pickNextMatchup() {
     state.matchupUrls = {};
     
     renderCurrentMedia();
+    elements.mediaContainer.style.transition = 'opacity 0.2s ease';
+    elements.mediaContainer.style.opacity = '1';
     updateMatchupProgress();
 }
 
@@ -972,6 +1003,9 @@ async function submitMatch() {
     }
     
     state.isAnimating = true;
+    elements.mediaContainer.style.opacity = '0.3';
+    elements.mediaContainer.style.transition = 'opacity 0.1s ease';
+    await new Promise(r => setTimeout(r, 100));
     
     // Snapshot for undo
     let prevStats = {};
@@ -1800,6 +1834,37 @@ window.handleMediaError = function() {
 
 window.onload = init;
 
+// Resize Handle Logic
+let isResizing = false;
+let startY = 0;
+let startSize = 60;
+const resizeHandle = document.getElementById('footer-resize-handle');
+resizeHandle.addEventListener('pointerdown', (e) => {
+    isResizing = true;
+    startY = e.clientY;
+    const rootStyles = getComputedStyle(document.documentElement);
+    startSize = parseInt(rootStyles.getPropertyValue('--thumb-size')) || 60;
+    document.body.style.userSelect = 'none';
+    resizeHandle.setPointerCapture(e.pointerId);
+});
+resizeHandle.addEventListener('pointermove', (e) => {
+    if (!isResizing) return;
+    const dy = startY - e.clientY;
+    let newSize = startSize + dy;
+    if (newSize < 40) newSize = 40;
+    if (newSize > window.innerHeight * 0.5) newSize = window.innerHeight * 0.5;
+    document.documentElement.style.setProperty('--thumb-size', `${newSize}px`);
+});
+resizeHandle.addEventListener('pointerup', (e) => {
+    isResizing = false;
+    document.body.style.userSelect = '';
+    resizeHandle.releasePointerCapture(e.pointerId);
+});
+resizeHandle.addEventListener('pointercancel', (e) => {
+    isResizing = false;
+    document.body.style.userSelect = '';
+    resizeHandle.releasePointerCapture(e.pointerId);
+});
 
 </script>
 </body>
