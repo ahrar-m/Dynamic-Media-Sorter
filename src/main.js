@@ -1524,25 +1524,29 @@ async function copyFavoritesDirectly() {
         let copied = 0;
         
         for (const f of topFiles) {
-            let finalName = f.name;
-            let counter = 1;
-            while (true) {
-                try {
-                    await destDirHandle.getFileHandle(finalName);
-                    const dotIndex = f.name.lastIndexOf('.');
-                    const base = dotIndex !== -1 ? f.name.substring(0, dotIndex) : f.name;
-                    const ext = dotIndex !== -1 ? f.name.substring(dotIndex) : '';
-                    finalName = `${base}_${counter}${ext}`;
-                    counter++;
-                } catch (e) {
-                    break;
+            try {
+                let finalName = f.name;
+                let counter = 1;
+                while (true) {
+                    try {
+                        await destDirHandle.getFileHandle(finalName);
+                        const dotIndex = f.name.lastIndexOf('.');
+                        const base = dotIndex !== -1 ? f.name.substring(0, dotIndex) : f.name;
+                        const ext = dotIndex !== -1 ? f.name.substring(dotIndex) : '';
+                        finalName = `${base}_${counter}${ext}`;
+                        counter++;
+                    } catch (e) {
+                        break;
+                    }
                 }
+                const newFileHandle = await destDirHandle.getFileHandle(finalName, { create: true });
+                const writable = await newFileHandle.createWritable();
+                await writable.write(f);
+                await writable.close();
+                copied++;
+            } catch (err) {
+                console.error(`Failed to copy ${f.name}:`, err);
             }
-            const newFileHandle = await destDirHandle.getFileHandle(finalName, { create: true });
-            const writable = await newFileHandle.createWritable();
-            await writable.write(f);
-            await writable.close();
-            copied++;
         }
         showToast(`Successfully copied ${copied} files!`);
     } catch (err) {
@@ -1565,6 +1569,7 @@ async function deleteStagedFilesDirectly() {
         const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
         let deletedCount = 0;
         let freedBytes = 0;
+        let processedIds = [];
         elements.purgeModal.classList.remove('active');
 
         for (const [id, f] of state.stagedFilesMap.entries()) {
@@ -1572,7 +1577,8 @@ async function deleteStagedFilesDirectly() {
             let currentHandle = dirHandle;
             try {
                 if (parts.length > 1) {
-                    for (let i = 1; i < parts.length - 1; i++) {
+                    const startIndex = (dirHandle.name === parts[0]) ? 1 : 0;
+                    for (let i = startIndex; i < parts.length - 1; i++) {
                         currentHandle = await currentHandle.getDirectoryHandle(parts[i]);
                     }
                 }
@@ -1580,6 +1586,7 @@ async function deleteStagedFilesDirectly() {
                 await currentHandle.removeEntry(filename);
                 freedBytes += f.size || 0;
                 deletedCount++;
+                processedIds.push(id);
                 state.stagedFilesMap.delete(id);
                 if (!state.ratings[id]) state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0 };
                 state.ratings[id].blacklisted = true;
@@ -1587,7 +1594,7 @@ async function deleteStagedFilesDirectly() {
                 console.error("Failed to delete", f.name, err);
             }
         }
-        saveRatingsToStorage(Array.from(state.stagedFilesMap.keys()));
+        if (processedIds.length > 0) saveRatingsToStorage(processedIds);
         showToast(`Successfully deleted ${deletedCount} files, freeing ${(freedBytes / (1024*1024)).toFixed(2)} MB.`);
     } catch (err) {
         console.error(err);

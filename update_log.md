@@ -30,3 +30,9 @@
 - **UI/Visual**: Moved the final lingering `<style>` block (animations and grids) into `src/style.css` to properly separate concerns.
 - **Logic**: Removed `window.onload` in favor of `DOMContentLoaded` so the app initializes instantly instead of waiting for external network resources. Fixed local dev breakages by switching absolute paths (`/src/style.css`) to relative (`./style.css`).
 - **Build**: Upgraded the `build.js` string injection script to use Regular Expressions, making it immune to HTML formatting changes.
+
+## [2026-06-17] Feature Implementation: File System Access API
+- Replaced the brittle Python/Bash script generation for **The Curator** and **The Executioner** with modern, native browser APIs.
+- Added a `Direct Copy (Browser)` button to The Curator that uses `window.showDirectoryPicker()` to copy top-ranked files directly into a user-selected folder.
+- Added a `Direct Delete (Browser)` button to The Executioner that allows the browser to traverse the local filesystem and natively delete staged files, completely bypassing the terminal.
+- Deployed subagents for QA review on the new File System Access feature.
