@@ -50,3 +50,9 @@
 ## [2026-06-17] Web Worker Architecture: QA Feedback Applied
 - **Logic**: Wrapped `worker.js` message handler in a `try...catch` block to gracefully reject Promises and prevent `workerCallbacks` memory leaks and UI freezes. Safely initialized `item.rating.history` arrays for backward compatibility with older database schemas.
 - **UI/Visual**: Upgraded `submitMatch` to use a `try...finally` block, explicitly unlocking `state.isAnimating`. Swapped the "Submit" button icon for a spinner during background processing. Actively blocked race conditions by preventing users from clicking UI toggles, placements, or navigation arrows while the background worker is computing math. Removed the artificial 100ms render delay, making submissions instant.
+
+## [2026-06-17] UI/UX Refresh: Section 1 - Glassmorphism & Aesthetics
+- Implemented deep inner lighting and translucent diagonal linear gradients to `.glass-panel` to dramatically improve the 3D material feel of the dark UI.
+- Added profound drop shadows (`box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7)`) to all `.modal` components to strongly elevate them off the background canvas.
+- Resolved CSS specificity conflicts where the footer grid and `.file-info` overlays were artificially overriding the glass background gradients.
+- Deployed subagents for QA review on Section 1 updates and resolved minor `-webkit` backdrop issues and responsive viewport height unit fallbacks (`100vh` -> `100dvh`).
