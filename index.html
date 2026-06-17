@@ -296,6 +296,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         </div>
 
         <button class="btn btn-primary" id="btn-open-leaderboard" title="Leaderboard"><i class="fa-solid fa-ranking-star"></i></button>
+        <button class="btn" id="btn-open-dashboard" title="Analytics Dashboard" style="background: rgba(255, 255, 255, 0.1);"><i class="fa-solid fa-chart-pie"></i></button>
         <button class="btn" id="btn-curator" title="The Curator"><i class="fa-solid fa-star" style="color: #ffd700;"></i></button>
         <button class="btn btn-danger" id="btn-purge" title="The Executioner"><i class="fa-solid fa-skull"></i></button>
         <button class="btn" id="btn-open-settings" title="Settings"><i class="fa-solid fa-gear"></i></button>
@@ -500,6 +501,40 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
     </div>
 </div>
 
+<div class="modal-overlay" id="dashboard-modal-overlay">
+    <div class="modal glass-panel" style="max-width: 600px;">
+        <button class="modal-close" id="close-dashboard-modal"><i class="fa-solid fa-xmark"></i></button>
+        <h2><i class="fa-solid fa-chart-pie"></i> Analytics Dashboard</h2>
+        <div class="modal-body">
+            <div class="modal-grid-2">
+                <div class="glass-panel" style="padding: 15px; text-align: center;">
+                    <h3 style="color: var(--text-secondary); margin-bottom: 5px;">Total Media</h3>
+                    <div id="dash-total-media" style="font-size: 2rem; font-weight: bold; color: var(--accent-blue);">0</div>
+                </div>
+                <div class="glass-panel" style="padding: 15px; text-align: center;">
+                    <h3 style="color: var(--text-secondary); margin-bottom: 5px;">Matches Played</h3>
+                    <div id="dash-total-matches" style="font-size: 2rem; font-weight: bold; color: var(--accent-green);">0</div>
+                </div>
+            </div>
+            <div class="glass-panel" style="padding: 15px; margin-top: 10px;">
+                <h3 style="color: var(--text-secondary); margin-bottom: 10px;">Estimated Time to Sort</h3>
+                <div id="dash-eta" style="font-size: 1.2rem; font-weight: 500;">Calculating...</div>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px;">(Assuming ~3 seconds per match, targeting 3 matches per item)</p>
+            </div>
+            <div class="glass-panel" style="padding: 15px; margin-top: 10px;">
+                <h3 style="color: var(--text-secondary); margin-bottom: 10px;">Rating Distribution</h3>
+                <div style="display: flex; height: 100px; align-items: flex-end; gap: 4px;" id="dash-bell-curve">
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px;">
+                    <span>Worst</span>
+                    <span>Average</span>
+                    <span>Best</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="curator-modal-overlay">
     <div class="modal glass-panel">
         <button class="modal-close" id="close-curator-modal"><i class="fa-solid fa-xmark"></i></button>
@@ -699,6 +734,13 @@ function bindElements() {
         btnShareCurrent: document.getElementById('btn-share-current'),
         btnAppFullscreen: document.getElementById('btn-app-fullscreen'),
         
+        dashboardModal: document.getElementById('dashboard-modal-overlay'),
+        btnOpenDashboard: document.getElementById('btn-open-dashboard'),
+        closeDashboardModal: document.getElementById('close-dashboard-modal'),
+        dashTotalMedia: document.getElementById('dash-total-media'),
+        dashTotalMatches: document.getElementById('dash-total-matches'),
+        dashEta: document.getElementById('dash-eta'),
+        dashBellCurve: document.getElementById('dash-bell-curve'),
         leaderboardModal: document.getElementById('leaderboard-modal'),
         closeLeaderboardModal: document.getElementById('close-leaderboard-modal'),
         btnOpenLeaderboard: document.getElementById('btn-open-leaderboard'),
@@ -1755,6 +1797,9 @@ function setupEventListeners() {
     });
     elements.closeLeaderboardModal.addEventListener('click', () => elements.leaderboardModal.classList.remove('active'));
     
+    elements.btnOpenDashboard.addEventListener('click', () => { renderDashboard(); elements.dashboardModal.classList.add('active'); });
+    elements.closeDashboardModal.addEventListener('click', () => elements.dashboardModal.classList.remove('active'));
+    
     elements.btnViewTopCont.addEventListener('click', () => startLeaderboardViewer(false));
     elements.btnViewBottomCont.addEventListener('click', () => startLeaderboardViewer(true));
     
@@ -1859,6 +1904,61 @@ async function importRatings(event) {
         event.target.value = '';
         renderLeaderboard();
         pickNextMatchup();
+    }
+}
+
+function renderDashboard() {
+    const listToStage = state.leaderboardType === 'image' ? state.images : state.videos;
+    elements.dashTotalMedia.textContent = listToStage.length;
+    
+    let totalMatches = 0;
+    const ordinals = [];
+    listToStage.forEach(f => {
+        const id = getFileId(f);
+        if (state.ratings[id]) {
+            totalMatches += state.ratings[id].matches || 0;
+            ordinals.push(getOrdinal(state.ratings[id]));
+        } else {
+            ordinals.push(0);
+        }
+    });
+    
+    elements.dashTotalMatches.textContent = totalMatches;
+
+    const targetMatches = listToStage.length * 3;
+    const remainingMatches = Math.max(0, targetMatches - totalMatches) / 4; 
+    const remainingSeconds = remainingMatches * 3; 
+    if (listToStage.length === 0) {
+        elements.dashEta.textContent = "Load media to estimate";
+    } else if (remainingSeconds <= 0) {
+        elements.dashEta.textContent = "Fully Sorted! 🎉";
+    } else if (remainingSeconds < 60) {
+        elements.dashEta.textContent = `< 1 minute`;
+    } else if (remainingSeconds < 3600) {
+        elements.dashEta.textContent = `~${Math.ceil(remainingSeconds / 60)} minutes`;
+    } else {
+        elements.dashEta.textContent = `~${(remainingSeconds / 3600).toFixed(1)} hours`;
+    }
+
+    if (ordinals.length > 0) {
+        const min = Math.min(...ordinals);
+        const max = Math.max(...ordinals);
+        const buckets = new Array(10).fill(0);
+        const range = Math.max(0.1, max - min);
+        
+        ordinals.forEach(val => {
+            let idx = Math.floor(((val - min) / range) * 10);
+            if (idx === 10) idx = 9;
+            buckets[idx]++;
+        });
+
+        const maxBucket = Math.max(...buckets);
+        elements.dashBellCurve.innerHTML = buckets.map(count => {
+            const height = maxBucket > 0 ? (count / maxBucket) * 100 : 0;
+            return `<div style="flex: 1; background: var(--accent-blue); height: ${height}%; border-radius: 4px 4px 0 0; opacity: 0.7; transition: height 0.3s;" title="${count} items"></div>`;
+        }).join('');
+    } else {
+        elements.dashBellCurve.innerHTML = '';
     }
 }
 
