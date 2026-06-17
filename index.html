@@ -296,7 +296,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         </div>
 
         <button class="btn btn-primary" id="btn-open-leaderboard" title="Leaderboard"><i class="fa-solid fa-ranking-star"></i></button>
-        <button class="btn btn-primary" id="btn-curator" title="The Curator"><i class="fa-solid fa-star"></i></button>
+        <button class="btn" id="btn-curator" title="The Curator"><i class="fa-solid fa-star" style="color: #ffd700;"></i></button>
         <button class="btn btn-danger" id="btn-purge" title="The Executioner"><i class="fa-solid fa-skull"></i></button>
         <button class="btn" id="btn-open-settings" title="Settings"><i class="fa-solid fa-gear"></i></button>
     </div>
@@ -505,17 +505,17 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         <button class="modal-close" id="close-curator-modal"><i class="fa-solid fa-xmark"></i></button>
         <h2><i class="fa-solid fa-star"></i> The Curator</h2>
         <div class="modal-body">
-            <div style="display: flex; gap: 10px; align-items: center;">
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                 <label>Select top % of files: </label>
                 <input type="number" id="curator-threshold" class="form-input" value="10" min="1" max="100" style="width: 100px; margin:0;">
                 <button class="btn btn-primary" id="btn-generate-curator"><i class="fa-solid fa-magic"></i> Generate Script</button>
             </div>
-            <div style="margin-top: 10px;">
-                <p>This script will copy your absolute best files to a 'favorites' folder.</p>
+            <div>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">This script will copy your absolute best files to a 'favorites' folder.</p>
             </div>
-            <div id="curator-script-container" class="hidden" style="margin-top: 10px;">
-                <textarea id="curator-script-output" style="width: 100%; height: 200px; background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border); border-radius: 8px; color: #a5d6ff; font-family: monospace; padding: 12px; resize: vertical;" readonly></textarea>
-                <button class="btn" id="btn-copy-curator-script" style="margin-top: 10px;"><i class="fa-solid fa-copy"></i> Copy to Clipboard</button>
+            <div id="curator-script-container" class="hidden">
+                <textarea id="curator-script-output" readonly></textarea>
+                <button class="btn" id="btn-copy-curator-script"><i class="fa-solid fa-copy"></i> Copy to Clipboard</button>
             </div>
         </div>
     </div>
@@ -1876,7 +1876,8 @@ function generateCuratorScripts() {
         return oB - oA; // highest first
     });
 
-    const thresholdPercent = parseInt(elements.curatorThreshold.value) || 10;
+    let thresholdPercent = parseInt(elements.curatorThreshold.value, 10);
+    if (isNaN(thresholdPercent) || thresholdPercent < 0) thresholdPercent = 10;
     const numFiles = Math.max(1, Math.floor(sortedList.length * (thresholdPercent / 100)));
     const topFiles = sortedList.slice(0, numFiles);
 
@@ -1899,16 +1900,24 @@ if not os.path.exists(favorites_dir):
     os.makedirs(favorites_dir)
 
 files = [
-${names.map(n=>`  ${JSON.stringify(n)},`).join('\\n')}
+${names.map(n => '  ' + JSON.stringify(n) + ',').join('\\n')}
 ]
+
+def get_unique_path(dest):
+    if not os.path.exists(dest): return dest
+    base, ext = os.path.splitext(dest)
+    counter = 1
+    while os.path.exists(f"{base}_{counter}{ext}"):
+        counter += 1
+    return f"{base}_{counter}{ext}"
 
 for f in files:
   if os.path.exists(f):
     try:
-      dest = os.path.join(favorites_dir, os.path.basename(f))
-      if not os.path.exists(dest):
-        shutil.copy2(f, dest)
-        copied_count += 1
+      base_dest = os.path.join(favorites_dir, os.path.basename(f))
+      dest = get_unique_path(base_dest)
+      shutil.copy2(f, dest)
+      copied_count += 1
     except Exception as e:
       print(f"Error copying {f}: {e}")
 
