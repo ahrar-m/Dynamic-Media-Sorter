@@ -225,6 +225,7 @@ function loadSettingsFromStorage() {
         if (stored) appSettings = { ...appSettings, ...JSON.parse(stored) };
         
         document.getElementById('setting-auto-backup').value = appSettings.autoBackupInterval || 0;
+        document.getElementById('setting-leaderboard-size').value = appSettings.leaderboardSize || 32;
         document.getElementById('setting-backup-prefix').value = appSettings.backupPrefix || 'dms_elo';
         document.getElementById('setting-default-fit').value = appSettings.defaultFitMode || 'contain';
         document.getElementById('setting-start-muted').checked = appSettings.startMuted !== false;
@@ -245,6 +246,7 @@ function saveSettingsToStorage(skipRender = false) {
             return isNaN(val) ? fallback : val;
         };
         appSettings.autoBackupInterval = parseSetting('setting-auto-backup', 0);
+        appSettings.leaderboardSize = parseSetting('setting-leaderboard-size', 32);
         appSettings.backupPrefix = document.getElementById('setting-backup-prefix').value || 'dms_elo';
         appSettings.defaultFitMode = document.getElementById('setting-default-fit').value;
         appSettings.startMuted = document.getElementById('setting-start-muted').checked;
@@ -650,7 +652,7 @@ function renderCurrentMedia() {
     if (state.isAnimating) return;
     elements.btnUndo.disabled = state.undoStack.length === 0;
     if (objectUrlA) { URL.revokeObjectURL(objectUrlA); objectUrlA = null; }
-    elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); });
+    elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); });
     destroyPanzoomAndWheel();
     elements.mediaContainer.innerHTML = '';
     if (elements.executionerCheckContainer) elements.executionerCheckContainer.classList.add('hidden');
@@ -798,8 +800,11 @@ function renderPlacementStrip() {
             unrankBtn.onclick = (e) => {
                 if (state.isAnimating) return;
                 e.stopPropagation();
-                state.userRanking.splice(idx, 1);
-                updateUserRankingState();
+                const idxToRemove = state.userRanking.indexOf(id);
+                if (idxToRemove !== -1) {
+                    state.userRanking.splice(idxToRemove, 1);
+                    updateUserRankingState();
+                }
             };
             thumb.appendChild(unrankBtn);
         }
@@ -814,9 +819,10 @@ function renderPlacementStrip() {
 // --- Leaderboard & History ---
 
 function renderLeaderboard() {
-    const list = state.leaderboardType === 'image' ? state.images : state.videos;
-    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted && (!appSettings.skipUnmatched || state.ratings[getFileId(f)]?.matches > 0)).sort((a,b) => (getOrdinal(state.ratings[getFileId(b)]) || 0) - (getOrdinal(state.ratings[getFileId(a)]) || 0));
-    const size = 6;
+    if (state.appMode !== 'matchmaking') return;
+    const list = getActiveList();
+    const sorted = [...list].sort((a, b) => getOrdinal(state.ratings[getFileId(b)]) - getOrdinal(state.ratings[getFileId(a)]));
+    const size = appSettings.leaderboardSize || 32;
     
     elements.leaderboardTopList.innerHTML = '';
     elements.leaderboardBottomList.innerHTML = '';
@@ -1137,6 +1143,10 @@ function setupEventListeners() {
         let replacement = candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)] : undefined;
         
         if (replacement) {
+            if (state.matchupUrls && state.matchupUrls[state.activeViewIndex]) {
+                URL.revokeObjectURL(state.matchupUrls[state.activeViewIndex]);
+                state.matchupUrls[state.activeViewIndex] = null;
+            }
             state.currentMatchup[state.activeViewIndex] = replacement;
             delete state.currentRankings[activeId];
             const urIdx = state.userRanking.indexOf(activeId);
@@ -1232,7 +1242,7 @@ function setupEventListeners() {
         const listToStage = state.leaderboardType === 'image' ? state.images : state.videos;
         listToStage.forEach(f => {
             const id = getFileId(f);
-            if (state.ratings[id] && getOrdinal(state.ratings[id]) < threshold) {
+            if (state.ratings[id] && state.ratings[id].matches > 0 && getOrdinal(state.ratings[id]) < threshold) {
                 if (!state.stagedFilesMap.has(id)) { state.stagedFilesMap.set(id, f); added++; }
             }
         });
@@ -1659,6 +1669,7 @@ async function deleteStagedFilesDirectly() {
 
 
 window.handleMediaError = function() {
+    destroyPanzoomAndWheel();
     elements.mediaContainer.innerHTML = `
         <div class="empty-state glass-panel" style="padding: 40px; border: 2px dashed rgba(255, 71, 87, 0.5);">
             <i class="fa-solid fa-triangle-exclamation" style="font-size: 48px; margin-bottom: 15px; color: var(--accent-red);"></i>

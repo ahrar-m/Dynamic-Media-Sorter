@@ -62,3 +62,9 @@
 - Stripped rigid pixel `max-width` math from the `#placement-strip` scroll container, using `flex: 1; min-width: 0` to let the browser compute optimal remaining spatial bounds.
 - Re-architected `.footer-grid` to utilize standard `grid-template-columns` on desktop/tablet for perfect centering, but implemented an `@media` query flex-wrap stack on narrow mobile screens (<600px) to prevent button squishing.
 - Deployed subagents for QA. Resolved an `overflow` conflict by removing `overflow-y` from the horizontal scroll container. Verified by the Visual QA Checker that zero layout clipping exists and the main viewport scales perfectly.
+
+## [2026-06-17] UI/UX Refresh: Section 3 - Visual Polish & UX Details
+- Implemented fully customized translucent webkit scrollbars (`::-webkit-scrollbar`) to eliminate jarring native UI elements against the dark theme. Added Firefox `scrollbar-width` support.
+- Upgraded form inputs, textareas, and selects with bright glowing focus states (`:focus-visible` with drop shadows) for drastically improved accessibility.
+- Engineered a pure CSS custom toggle switch, fully replacing all native HTML checkboxes (`input[type="checkbox"]`). Features smooth layout animations and pill-shaped interactive bounds.
+- Refactored `src/index.html` inline styles (`width: 18px;`) that were previously colliding with the new global custom CSS toggles. Repositioned the `#match-status-indicator` for better vertical balance.

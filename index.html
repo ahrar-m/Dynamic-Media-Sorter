@@ -389,13 +389,20 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 <body>
 <!-- Header -->
 <header class="glass-panel">
-    <div class="header-left">
+    <div class="header-left" style="position: relative;">
+        <h1 style="font-size: 1.2rem; margin: 0; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-sort" style="color: var(--accent-blue);"></i> Dynamic Media Sorter
+        </h1>
         <input type="file" id="folder-input" webkitdirectory directory multiple class="hidden">
         <input type="file" id="file-input" multiple class="hidden">
         
         <button class="btn btn-primary" id="btn-load-menu" onclick="document.getElementById('load-dropdown').classList.toggle('hidden')">
             <i class="fa-solid fa-folder-plus"></i>
         </button>
+        <div id="load-dropdown" class="glass-panel hidden" style="position: absolute; top: 100%; left: 0; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; padding: 10px; z-index: 9999; min-width: 140px;">
+            <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('file-input').click(); document.getElementById('load-dropdown').classList.add('hidden');"><i class="fa-solid fa-file-image"></i> Load Files</button>
+            <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('folder-input').click(); document.getElementById('load-dropdown').classList.add('hidden');"><i class="fa-solid fa-folder-open"></i> Load Folder</button>
+        </div>
         <button class="btn" id="btn-app-fullscreen" title="Toggle Fullscreen"><i class="fa-solid fa-expand"></i></button>
         
         <div style="display: flex; gap: 4px;">
@@ -412,7 +419,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         <!-- Circular Progress Bar for Matchup Pool -->
         <div style="display: flex; align-items: center; gap: 8px; margin-right: 10px;" id="matchup-progress-container" class="hidden">
             <span id="matchup-pool-level" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Pool 0</span>
-            <div class="progress-circle" style="position: relative; width: 32px; height: 32px;" title="Matchup Pool Progress">
+            <div style="position: relative; width: 32px; height: 32px;" title="Matchup Pool Progress">
                 <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-90deg);">
                     <path style="fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3;" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                     <path id="matchup-circle" style="fill: none; stroke: var(--accent-blue); stroke-width: 3; stroke-linecap: round; transition: stroke-dasharray 0.3s ease;" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
@@ -429,10 +436,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
     </div>
 </header>
 
-<div id="load-dropdown" class="glass-panel hidden" style="position: fixed; top: 70px; left: 15px; display: flex; flex-direction: column; gap: 8px; padding: 10px; z-index: 9999; min-width: 140px;">
-    <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('file-input').click(); document.getElementById('load-dropdown').classList.add('hidden');"><i class="fa-solid fa-file-image"></i> Load Files</button>
-    <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('folder-input').click(); document.getElementById('load-dropdown').classList.add('hidden');"><i class="fa-solid fa-folder-open"></i> Load Folder</button>
-</div>
+
 
 <!-- Main Content Area -->
 <main id="main-area" style="display: flex; flex-direction: column; overflow: hidden; flex: 1;">
@@ -561,7 +565,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
     <div class="modal glass-panel" style="width: 90%; max-width: 700px; height: 80vh;">
         <button class="modal-close" id="close-leaderboard-modal"><i class="fa-solid fa-xmark"></i></button>
         <h2><i class="fa-solid fa-ranking-star"></i> Leaderboard</h2>
-        <div class="modal-body" style="flex-direction: row; gap: 20px;">
+        <div class="modal-body leaderboard-columns">
             <div style="flex: 1; border-right: 1px solid var(--panel-border); padding-right: 10px; overflow-y:auto;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <h3 style="margin: 0; color: var(--accent-green);">Top Tier</h3>
@@ -892,6 +896,7 @@ function loadSettingsFromStorage() {
         if (stored) appSettings = { ...appSettings, ...JSON.parse(stored) };
         
         document.getElementById('setting-auto-backup').value = appSettings.autoBackupInterval || 0;
+        document.getElementById('setting-leaderboard-size').value = appSettings.leaderboardSize || 32;
         document.getElementById('setting-backup-prefix').value = appSettings.backupPrefix || 'dms_elo';
         document.getElementById('setting-default-fit').value = appSettings.defaultFitMode || 'contain';
         document.getElementById('setting-start-muted').checked = appSettings.startMuted !== false;
@@ -912,6 +917,7 @@ function saveSettingsToStorage(skipRender = false) {
             return isNaN(val) ? fallback : val;
         };
         appSettings.autoBackupInterval = parseSetting('setting-auto-backup', 0);
+        appSettings.leaderboardSize = parseSetting('setting-leaderboard-size', 32);
         appSettings.backupPrefix = document.getElementById('setting-backup-prefix').value || 'dms_elo';
         appSettings.defaultFitMode = document.getElementById('setting-default-fit').value;
         appSettings.startMuted = document.getElementById('setting-start-muted').checked;
@@ -1317,7 +1323,7 @@ function renderCurrentMedia() {
     if (state.isAnimating) return;
     elements.btnUndo.disabled = state.undoStack.length === 0;
     if (objectUrlA) { URL.revokeObjectURL(objectUrlA); objectUrlA = null; }
-    elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); });
+    elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); });
     destroyPanzoomAndWheel();
     elements.mediaContainer.innerHTML = '';
     if (elements.executionerCheckContainer) elements.executionerCheckContainer.classList.add('hidden');
@@ -1465,8 +1471,11 @@ function renderPlacementStrip() {
             unrankBtn.onclick = (e) => {
                 if (state.isAnimating) return;
                 e.stopPropagation();
-                state.userRanking.splice(idx, 1);
-                updateUserRankingState();
+                const idxToRemove = state.userRanking.indexOf(id);
+                if (idxToRemove !== -1) {
+                    state.userRanking.splice(idxToRemove, 1);
+                    updateUserRankingState();
+                }
             };
             thumb.appendChild(unrankBtn);
         }
@@ -1481,9 +1490,10 @@ function renderPlacementStrip() {
 // --- Leaderboard & History ---
 
 function renderLeaderboard() {
-    const list = state.leaderboardType === 'image' ? state.images : state.videos;
-    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted && (!appSettings.skipUnmatched || state.ratings[getFileId(f)]?.matches > 0)).sort((a,b) => (getOrdinal(state.ratings[getFileId(b)]) || 0) - (getOrdinal(state.ratings[getFileId(a)]) || 0));
-    const size = 6;
+    if (state.appMode !== 'matchmaking') return;
+    const list = getActiveList();
+    const sorted = [...list].sort((a, b) => getOrdinal(state.ratings[getFileId(b)]) - getOrdinal(state.ratings[getFileId(a)]));
+    const size = appSettings.leaderboardSize || 32;
     
     elements.leaderboardTopList.innerHTML = '';
     elements.leaderboardBottomList.innerHTML = '';
@@ -1804,6 +1814,10 @@ function setupEventListeners() {
         let replacement = candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)] : undefined;
         
         if (replacement) {
+            if (state.matchupUrls && state.matchupUrls[state.activeViewIndex]) {
+                URL.revokeObjectURL(state.matchupUrls[state.activeViewIndex]);
+                state.matchupUrls[state.activeViewIndex] = null;
+            }
             state.currentMatchup[state.activeViewIndex] = replacement;
             delete state.currentRankings[activeId];
             const urIdx = state.userRanking.indexOf(activeId);
@@ -1899,7 +1913,7 @@ function setupEventListeners() {
         const listToStage = state.leaderboardType === 'image' ? state.images : state.videos;
         listToStage.forEach(f => {
             const id = getFileId(f);
-            if (state.ratings[id] && getOrdinal(state.ratings[id]) < threshold) {
+            if (state.ratings[id] && state.ratings[id].matches > 0 && getOrdinal(state.ratings[id]) < threshold) {
                 if (!state.stagedFilesMap.has(id)) { state.stagedFilesMap.set(id, f); added++; }
             }
         });
@@ -2326,6 +2340,7 @@ async function deleteStagedFilesDirectly() {
 
 
 window.handleMediaError = function() {
+    destroyPanzoomAndWheel();
     elements.mediaContainer.innerHTML = `
         <div class="empty-state glass-panel" style="padding: 40px; border: 2px dashed rgba(255, 71, 87, 0.5);">
             <i class="fa-solid fa-triangle-exclamation" style="font-size: 48px; margin-bottom: 15px; color: var(--accent-red);"></i>

@@ -17,13 +17,20 @@
 <body>
 <!-- Header -->
 <header class="glass-panel">
-    <div class="header-left">
+    <div class="header-left" style="position: relative;">
+        <h1 style="font-size: 1.2rem; margin: 0; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-sort" style="color: var(--accent-blue);"></i> Dynamic Media Sorter
+        </h1>
         <input type="file" id="folder-input" webkitdirectory directory multiple class="hidden">
         <input type="file" id="file-input" multiple class="hidden">
         
         <button class="btn btn-primary" id="btn-load-menu" onclick="document.getElementById('load-dropdown').classList.toggle('hidden')">
             <i class="fa-solid fa-folder-plus"></i>
         </button>
+        <div id="load-dropdown" class="glass-panel hidden" style="position: absolute; top: 100%; left: 0; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; padding: 10px; z-index: 9999; min-width: 140px;">
+            <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('file-input').click(); document.getElementById('load-dropdown').classList.add('hidden');"><i class="fa-solid fa-file-image"></i> Load Files</button>
+            <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('folder-input').click(); document.getElementById('load-dropdown').classList.add('hidden');"><i class="fa-solid fa-folder-open"></i> Load Folder</button>
+        </div>
         <button class="btn" id="btn-app-fullscreen" title="Toggle Fullscreen"><i class="fa-solid fa-expand"></i></button>
         
         <div style="display: flex; gap: 4px;">
@@ -40,7 +47,7 @@
         <!-- Circular Progress Bar for Matchup Pool -->
         <div style="display: flex; align-items: center; gap: 8px; margin-right: 10px;" id="matchup-progress-container" class="hidden">
             <span id="matchup-pool-level" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Pool 0</span>
-            <div class="progress-circle" style="position: relative; width: 32px; height: 32px;" title="Matchup Pool Progress">
+            <div style="position: relative; width: 32px; height: 32px;" title="Matchup Pool Progress">
                 <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-90deg);">
                     <path style="fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3;" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                     <path id="matchup-circle" style="fill: none; stroke: var(--accent-blue); stroke-width: 3; stroke-linecap: round; transition: stroke-dasharray 0.3s ease;" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
@@ -57,10 +64,7 @@
     </div>
 </header>
 
-<div id="load-dropdown" class="glass-panel hidden" style="position: fixed; top: 70px; left: 15px; display: flex; flex-direction: column; gap: 8px; padding: 10px; z-index: 9999; min-width: 140px;">
-    <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('file-input').click(); document.getElementById('load-dropdown').classList.add('hidden');"><i class="fa-solid fa-file-image"></i> Load Files</button>
-    <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('folder-input').click(); document.getElementById('load-dropdown').classList.add('hidden');"><i class="fa-solid fa-folder-open"></i> Load Folder</button>
-</div>
+
 
 <!-- Main Content Area -->
 <main id="main-area" style="display: flex; flex-direction: column; overflow: hidden; flex: 1;">
@@ -189,7 +193,7 @@
     <div class="modal glass-panel" style="width: 90%; max-width: 700px; height: 80vh;">
         <button class="modal-close" id="close-leaderboard-modal"><i class="fa-solid fa-xmark"></i></button>
         <h2><i class="fa-solid fa-ranking-star"></i> Leaderboard</h2>
-        <div class="modal-body" style="flex-direction: row; gap: 20px;">
+        <div class="modal-body leaderboard-columns">
             <div style="flex: 1; border-right: 1px solid var(--panel-border); padding-right: 10px; overflow-y:auto;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <h3 style="margin: 0; color: var(--accent-green);">Top Tier</h3>
