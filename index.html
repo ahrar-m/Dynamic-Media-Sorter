@@ -14,6 +14,7 @@ window.openskill = { rate, rating, ordinal };
 </script>
     <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
     <style>
 :root {
     --bg-color: #0b0c10;
@@ -367,6 +368,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
             background: linear-gradient(to right, rgba(0, 255, 100, 0.15), rgba(255, 8, 68, 0.15));
             border-radius: 12px;
             -webkit-overflow-scrolling: touch;
+            width: 100%;
         }
         .placement-strip::after {
             content: ''; padding-right: 1px; flex-shrink: 0;
@@ -399,7 +401,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
             <button class="btn btn-primary" id="btn-submit-match" disabled style="width: 44px; height: 44px; border-radius: 50%; padding: 0; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; transition: all 0.3s ease;"><i class="fa-solid fa-check"></i></button>
         </div>
         <div class="footer-right">
-            <button class="btn btn-primary" id="btn-share-current" title="Share Media" style="width: 44px; height: 44px; display: none; align-items: center; justify-content: center;"><i class="fa-solid fa-share-nodes"></i></button>
+            <button class="btn" id="btn-share-current" title="Share Media" style="width: 44px; height: 44px; display: none; align-items: center; justify-content: center;"><i class="fa-solid fa-share-nodes"></i></button>
             <button class="btn btn-danger" id="btn-stage-current" title="Stage Current Media to Executioner" style="width: 44px; height: 44px;"><i class="fa-solid fa-skull"></i></button>
             <button class="btn" id="btn-toggle-fit" title="Cycle Media Fit" style="width: 44px; height: 44px;"><i class="fa-solid fa-compress"></i></button>
         </div>
@@ -1133,11 +1135,17 @@ function renderCurrentMedia() {
     else if (state.fitMode === 'stretch') fitClass = 'media-fit-stretch';
     else if (state.fitMode === 'original') fitClass = 'media-fit-original';
 
+    if (window.currentPanzoom) { window.currentPanzoom.destroy(); window.currentPanzoom = null; }
     if (activeFile.type.startsWith('video/') || activeFile.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
         const mutedAttr = appSettings.startMuted ? 'muted' : '';
         elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr} onerror="handleMediaError()"></video>`;
     } else {
         elements.mediaContainer.innerHTML = `<img src="${objectUrlA}" class="${fitClass}" onerror="handleMediaError()">`;
+        const imgEl = elements.mediaContainer.querySelector('img');
+        if (typeof Panzoom !== 'undefined') {
+            window.currentPanzoom = Panzoom(imgEl, { maxScale: 5, canvas: true, contain: 'outside' });
+            imgEl.parentElement.addEventListener('wheel', window.currentPanzoom.zoomWithWheel);
+        }
     }
     
     elements.displayFilename.textContent = `${activeFile.name} (${formatSize(activeFile.size)}) [${state.activeViewIndex + 1}/${state.currentMatchup.length}]`;
@@ -1169,7 +1177,9 @@ function updateUserRankingState() {
 
 function renderPlacementStrip() {
     if (!elements.placementStrip) return;
+    elements.placementStrip.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); });
     elements.placementStrip.innerHTML = '';
+    elements.placementStrip.style.justifyContent = state.userRanking.length === 0 ? 'center' : 'flex-start';
     const activeFile = state.currentMatchup[state.activeViewIndex];
     const activeId = getFileId(activeFile);
     
@@ -1206,6 +1216,7 @@ function renderPlacementStrip() {
         
         const thumb = document.createElement('div');
         thumb.style.position = 'relative';
+        thumb.style.flexShrink = '0';
         
         if (!state.matchupUrls) state.matchupUrls = {};
         if (!state.matchupUrls[id]) state.matchupUrls[id] = URL.createObjectURL(file);
@@ -1325,10 +1336,16 @@ function renderExecutionerMedia() {
     else if (state.fitMode === 'original') fitClass = 'media-fit-original';
 
     const mutedAttr = appSettings.startMuted ? 'muted' : '';
+    if (window.currentPanzoom) { window.currentPanzoom.destroy(); window.currentPanzoom = null; }
     if (file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
         elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr} onerror="handleMediaError()"></video>`;
     } else {
         elements.mediaContainer.innerHTML = `<img src="${objectUrlA}" class="${fitClass}" onerror="handleMediaError()">`;
+        const imgEl = elements.mediaContainer.querySelector('img');
+        if (typeof Panzoom !== 'undefined') {
+            window.currentPanzoom = Panzoom(imgEl, { maxScale: 5, canvas: true, contain: 'outside' });
+            imgEl.parentElement.addEventListener('wheel', window.currentPanzoom.zoomWithWheel);
+        }
     }
     
     elements.displayFilename.textContent = `${file.name} (${formatSize(file.size)})`;
@@ -1402,11 +1419,17 @@ function renderLeaderboardViewerMedia() {
     else if (state.fitMode === 'stretch') fitClass = 'media-fit-stretch';
     else if (state.fitMode === 'original') fitClass = 'media-fit-original';
     
+    if (window.currentPanzoom) { window.currentPanzoom.destroy(); window.currentPanzoom = null; }
     if (file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
         const mutedAttr = appSettings.startMuted ? 'muted' : '';
         elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr} onerror="handleMediaError()"></video>`;
     } else {
         elements.mediaContainer.innerHTML = `<img src="${objectUrlA}" class="${fitClass}" onerror="handleMediaError()">`;
+        const imgEl = elements.mediaContainer.querySelector('img');
+        if (typeof Panzoom !== 'undefined') {
+            window.currentPanzoom = Panzoom(imgEl, { maxScale: 5, canvas: true, contain: 'outside' });
+            imgEl.parentElement.addEventListener('wheel', window.currentPanzoom.zoomWithWheel);
+        }
     }
     
     elements.displayFilename.textContent = `${file.name} (${formatSize(file.size)})`;
@@ -1576,24 +1599,15 @@ function setupEventListeners() {
         let idx = modes.indexOf(state.fitMode);
         state.fitMode = modes[(idx + 1) % modes.length];
         appSettings.defaultFitMode = state.fitMode;
+        const fitSelect = document.getElementById('setting-default-fit');
+        if (fitSelect) fitSelect.value = state.fitMode;
         saveSettingsToStorage();
         showToast(`Fit Mode: ${state.fitMode.charAt(0).toUpperCase() + state.fitMode.slice(1)}`);
         elements.btnToggleFit.innerHTML = `<i class="fa-solid ${icons[state.fitMode]}"></i>`;
         
-        let fitClass = '';
-        if (state.fitMode === 'contain') fitClass = 'media-fit-contain';
-        else if (state.fitMode === 'cover') fitClass = 'media-fit-cover';
-        else if (state.fitMode === 'stretch') fitClass = 'media-fit-stretch';
-        else if (state.fitMode === 'original') fitClass = 'media-fit-original';
-        
-        const mediaEl = elements.mediaContainer.querySelector('video, img');
-        if (mediaEl) {
-            mediaEl.className = fitClass;
-        } else {
-            if (state.appMode === 'executioner') renderExecutionerMedia();
-            else if (state.appMode === 'leaderboard_viewer') renderLeaderboardViewerMedia();
-            else renderCurrentMedia();
-        }
+        if (state.appMode === 'executioner') renderExecutionerMedia();
+        else if (state.appMode === 'leaderboard_viewer') renderLeaderboardViewerMedia();
+        else renderCurrentMedia();
     });
     
     // Timeline / Nav Buttons
