@@ -251,6 +251,7 @@
                 <label>Select top % of files: </label>
                 <input type="number" id="curator-threshold" class="form-input" value="10" min="1" max="100" style="width: 100px; margin:0;">
                 <button class="btn btn-primary" id="btn-generate-curator"><i class="fa-solid fa-magic"></i> Generate Script</button>
+                <button class="btn btn-primary" id="btn-curator-direct" style="background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); border: none; color: white; font-weight: 600;"><i class="fa-solid fa-folder-open"></i> Direct Copy (Browser)</button>
             </div>
             <div>
                 <p style="color: var(--text-secondary); font-size: 0.9rem;">This script will copy your absolute best files to a 'favorites' folder.</p>
@@ -278,6 +279,7 @@
                 <button class="btn btn-danger" id="btn-clear-staged">Clear All</button>
             </div>
             <button class="btn btn-primary" id="btn-review-staged" style="width: 100%; margin-top: 10px;"><i class="fa-solid fa-eye"></i> Immersive Review & Generate Script</button>
+            <button class="btn btn-danger" id="btn-purge-direct" style="width: 100%; margin-top: 10px; background: linear-gradient(135deg, #f00 0%, #a00 100%); border: none; color: white; font-weight: 600;"><i class="fa-solid fa-folder-minus"></i> Direct Delete (Browser)</button>
             <div id="script-container" class="hidden" style="margin-top: 10px;">
                 <textarea id="script-output" readonly></textarea>
                 <button class="btn" id="btn-copy-script" style="margin-top: 10px;"><i class="fa-solid fa-copy"></i> Copy to Clipboard</button>

@@ -134,6 +134,7 @@ function bindElements() {
         closeCuratorModal: document.getElementById('close-curator-modal'),
         curatorThreshold: document.getElementById('curator-threshold'),
         btnGenerateCurator: document.getElementById('btn-generate-curator'),
+        btnCuratorDirect: document.getElementById('btn-curator-direct'),
         curatorScriptContainer: document.getElementById('curator-script-container'),
         curatorScriptOutput: document.getElementById('curator-script-output'),
         btnCopyCuratorScript: document.getElementById('btn-copy-curator-script'),
@@ -142,6 +143,7 @@ function bindElements() {
         btnStageFiles: document.getElementById('btn-stage-files'),
         btnClearStaged: document.getElementById('btn-clear-staged'),
         btnReviewStaged: document.getElementById('btn-review-staged'),
+        btnPurgeDirect: document.getElementById('btn-purge-direct'),
         scriptContainer: document.getElementById('script-container'),
         scriptOutput: document.getElementById('script-output'),
         btnCopyScript: document.getElementById('btn-copy-script'),
@@ -1161,6 +1163,7 @@ function setupEventListeners() {
     elements.btnCurator.addEventListener('click', () => elements.curatorModal.classList.add('active'));
     elements.closeCuratorModal.addEventListener('click', () => elements.curatorModal.classList.remove('active'));
     elements.btnGenerateCurator.addEventListener('click', generateCuratorScripts);
+    if (elements.btnCuratorDirect) elements.btnCuratorDirect.addEventListener('click', copyFavoritesDirectly);
     elements.btnCopyCuratorScript.addEventListener('click', () => { elements.curatorScriptOutput.select(); document.execCommand('copy'); showToast("Copied!"); });
 
     elements.btnPurge.addEventListener('click', () => { 
@@ -1184,6 +1187,7 @@ function setupEventListeners() {
     });
     elements.btnClearStaged.addEventListener('click', () => { state.stagedFilesMap.clear(); elements.purgeStats.textContent = `0 files staged.`; });
     elements.btnReviewStaged.addEventListener('click', startExecutionerReview);
+    if (elements.btnPurgeDirect) elements.btnPurgeDirect.addEventListener('click', deleteStagedFilesDirectly);
 
     elements.btnCopyScript.addEventListener('click', () => { elements.scriptOutput.select(); document.execCommand('copy'); showToast("Copied!"); });
 
@@ -1488,6 +1492,107 @@ print(f"Successfully deleted {deleted_count} files, freeing {freed_bytes / (1024
         state.ratings[id].blacklisted = true;
     }
     saveRatingsToStorage(stagedIds);
+}
+
+async function copyFavoritesDirectly() {
+    if (!window.showDirectoryPicker) {
+        showToast("File System Access API not supported by your browser.");
+        return;
+    }
+    const listToStage = state.leaderboardType === 'image' ? state.images : state.videos;
+    if (listToStage.length === 0) {
+        showToast("No media available.");
+        return;
+    }
+    const sortedList = [...listToStage].sort((a, b) => {
+        const idA = getFileId(a);
+        const idB = getFileId(b);
+        const oA = state.ratings[idA] ? getOrdinal(state.ratings[idA]) : 0;
+        const oB = state.ratings[idB] ? getOrdinal(state.ratings[idB]) : 0;
+        return oB - oA;
+    });
+
+    let thresholdPercent = parseInt(elements.curatorThreshold.value, 10);
+    if (isNaN(thresholdPercent) || thresholdPercent < 0) thresholdPercent = 10;
+    const numFiles = Math.max(1, Math.floor(sortedList.length * (thresholdPercent / 100)));
+    const topFiles = sortedList.slice(0, numFiles);
+
+    try {
+        const destDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        elements.curatorModal.classList.remove('active');
+        showToast("Copying " + numFiles + " files...");
+        let copied = 0;
+        
+        for (const f of topFiles) {
+            let finalName = f.name;
+            let counter = 1;
+            while (true) {
+                try {
+                    await destDirHandle.getFileHandle(finalName);
+                    const dotIndex = f.name.lastIndexOf('.');
+                    const base = dotIndex !== -1 ? f.name.substring(0, dotIndex) : f.name;
+                    const ext = dotIndex !== -1 ? f.name.substring(dotIndex) : '';
+                    finalName = `${base}_${counter}${ext}`;
+                    counter++;
+                } catch (e) {
+                    break;
+                }
+            }
+            const newFileHandle = await destDirHandle.getFileHandle(finalName, { create: true });
+            const writable = await newFileHandle.createWritable();
+            await writable.write(f);
+            await writable.close();
+            copied++;
+        }
+        showToast(`Successfully copied ${copied} files!`);
+    } catch (err) {
+        console.error(err);
+        showToast("Copy cancelled or failed.");
+    }
+}
+
+async function deleteStagedFilesDirectly() {
+    if (!window.showDirectoryPicker) {
+        showToast("File System Access API not supported by your browser.");
+        return;
+    }
+    if(state.stagedFilesMap.size === 0) {
+        showToast("No files left to delete.");
+        return;
+    }
+    try {
+        showToast("Please select the root directory containing your media to allow deletion.");
+        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        let deletedCount = 0;
+        let freedBytes = 0;
+        elements.purgeModal.classList.remove('active');
+
+        for (const [id, f] of state.stagedFilesMap.entries()) {
+            const parts = f.webkitRelativePath ? f.webkitRelativePath.split('/') : [f.name];
+            let currentHandle = dirHandle;
+            try {
+                if (parts.length > 1) {
+                    for (let i = 1; i < parts.length - 1; i++) {
+                        currentHandle = await currentHandle.getDirectoryHandle(parts[i]);
+                    }
+                }
+                const filename = parts[parts.length - 1];
+                await currentHandle.removeEntry(filename);
+                freedBytes += f.size || 0;
+                deletedCount++;
+                state.stagedFilesMap.delete(id);
+                if (!state.ratings[id]) state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0 };
+                state.ratings[id].blacklisted = true;
+            } catch (err) {
+                console.error("Failed to delete", f.name, err);
+            }
+        }
+        saveRatingsToStorage(Array.from(state.stagedFilesMap.keys()));
+        showToast(`Successfully deleted ${deletedCount} files, freeing ${(freedBytes / (1024*1024)).toFixed(2)} MB.`);
+    } catch (err) {
+        console.error(err);
+        showToast("Deletion cancelled or failed.");
+    }
 }
 
 

@@ -25,3 +25,8 @@
 - Extracted HTML, CSS, and JS from the monolithic `index.html` into a `src/` directory (`src/index.html`, `src/style.css`, `src/main.js`) for better maintainability.
 - Created a fast, native Node.js `build.js` script to automatically bundle the modular source files back into a standalone `index.html` file for release.
 - Deployed subagents for QA review on the new modular architecture.
+
+## [2026-06-17] Architectural Refinements: Subagent Feedback
+- **UI/Visual**: Moved the final lingering `<style>` block (animations and grids) into `src/style.css` to properly separate concerns.
+- **Logic**: Removed `window.onload` in favor of `DOMContentLoaded` so the app initializes instantly instead of waiting for external network resources. Fixed local dev breakages by switching absolute paths (`/src/style.css`) to relative (`./style.css`).
+- **Build**: Upgraded the `build.js` string injection script to use Regular Expressions, making it immune to HTML formatting changes.
