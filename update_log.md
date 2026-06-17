@@ -16,3 +16,7 @@
 ## [2026-06-17] Feature Implementation: Analytics Dashboard
 - Implemented a Dashboard modal to display Total Media, Matches Played, ETA, and a CSS-based Bell Curve for rating distributions.
 - Deployed subagents for QA review on the Dashboard feature.
+
+## [2026-06-17] Analytics Dashboard: QA Feedback & Fixes Applied
+- **Visual/UI**: Replaced inline margins with CSS flex gap, updated grid layout to `stretch`, added a gradient and interactive hover states to the histogram bars, and added touch-friendly text overlays to the bars.
+- **Logic**: Corrected Total Matches to reflect exact rounds instead of participations (divided by 4), fixed ETA distortion by calculating deficit on a per-item basis, and excluded unsorted media from the bell curve to fix the visual scale.
