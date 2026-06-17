@@ -194,7 +194,7 @@ video, img {
 .file-name { font-size: 0.9rem; font-weight: 600; word-break: break-all; }
 
 /* Footer & Gesture Controls */
-footer { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; z-index: 10; background: var(--bg-color); border-top: 1px solid var(--panel-border); flex-shrink: 0; }
+footer { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; z-index: 10; background: var(--bg-color); border-top: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.5); flex-shrink: 0; }
 
 .gesture-controls {
     display: flex;
@@ -332,9 +332,9 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 </main>
 
 <!-- Footer Controls -->
-<footer class="glass-panel" id="app-footer" style="padding: 4px 16px 12px 16px; display: flex; flex-direction: column; gap: 16px; z-index: 10; background: var(--bg-color); border-top: 1px solid var(--panel-border); flex-shrink: 0; position: relative;">
-    <div id="footer-resize-handle" style="position: absolute; top: -12px; left: 0; right: 0; height: 24px; cursor: ns-resize; display: flex; justify-content: center; align-items: center; z-index: 20; touch-action: none;">
-        <div style="width: 50px; height: 5px; background: rgba(255,255,255,0.4); border-radius: 3px;"></div>
+<footer class="glass-panel" id="app-footer" style="padding: 4px 16px 12px 16px; display: flex; flex-direction: column; gap: 16px; z-index: 10; background: var(--bg-color); border-top: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 -4px 15px rgba(0,0,0,0.5); flex-shrink: 0; position: relative;">
+    <div id="footer-resize-handle" style="position: absolute; top: -16px; left: 0; right: 0; height: 32px; cursor: ns-resize; display: flex; justify-content: center; align-items: flex-start; padding-top: 6px; z-index: 20; touch-action: none;">
+        <div style="width: 50px; height: 6px; background: rgba(255,255,255,0.4); border-radius: 3px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);"></div>
     </div>
     <div class="matchup-controls" id="matchup-controls" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px;">
         <button class="btn" id="btn-prev-media" style="font-size: 1.2rem; padding: 10px 15px; flex-shrink: 0;"><i class="fa-solid fa-chevron-left"></i></button>
@@ -365,7 +365,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         .placement-strip {
             display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: visible; align-items: center; justify-content: flex-start; margin: 0 auto; gap: 8px; padding: 15px 10px;
             min-height: calc(var(--thumb-size) + 30px);
-            background: linear-gradient(to right, rgba(0, 255, 100, 0.15), rgba(255, 8, 68, 0.15));
+            background: linear-gradient(to right, rgba(0, 255, 100, 0.25), rgba(255, 8, 68, 0.25));
             border-radius: 12px;
             -webkit-overflow-scrolling: touch;
             width: 100%;
@@ -604,7 +604,7 @@ let appSettings = {
 };
 
 let elements = {};
-let autoBackupIntervalId = null;
+
 let objectUrlA = null;
 
 async function init() {
@@ -613,6 +613,7 @@ async function init() {
         await loadRatingsFromStorage();
         loadSettingsFromStorage();
         setupEventListeners();
+        window.lastAutoBackupTime = Date.now();
     } catch (e) {
         alert("Failed to initialize database: " + e.message);
     }
@@ -708,15 +709,10 @@ function loadSettingsFromStorage() {
         const icons = { 'contain': 'fa-compress', 'cover': 'fa-crop-simple', 'stretch': 'fa-expand', 'original': 'fa-maximize' };
         elements.btnToggleFit.innerHTML = `<i class="fa-solid ${icons[state.fitMode] || 'fa-compress'}"></i>`;
         
-        if (appSettings.autoBackupInterval > 0) {
-            autoBackupIntervalId = setInterval(() => {
-                if (Object.keys(state.ratings).length > 0) exportRatings(true);
-            }, appSettings.autoBackupInterval * 60 * 1000);
-        }
     } catch (e) { console.error(e); }
 }
 
-function saveSettingsToStorage() {
+function saveSettingsToStorage(skipRender = false) {
     try {
         const parseSetting = (id, fallback) => {
             const val = parseInt(document.getElementById(id).value, 10);
@@ -733,14 +729,12 @@ function saveSettingsToStorage() {
         state.fitMode = appSettings.defaultFitMode;
         const icons = { 'contain': 'fa-compress', 'cover': 'fa-crop-simple', 'stretch': 'fa-expand', 'original': 'fa-maximize' };
         elements.btnToggleFit.innerHTML = `<i class="fa-solid ${icons[state.fitMode] || 'fa-compress'}"></i>`;
-        if (state.currentMatchup.length > 0) renderCurrentMedia();
-        
-        if (autoBackupIntervalId) clearInterval(autoBackupIntervalId);
-        if (appSettings.autoBackupInterval > 0) {
-            autoBackupIntervalId = setInterval(() => {
-                if (Object.keys(state.ratings).length > 0) exportRatings(true);
-            }, appSettings.autoBackupInterval * 60 * 1000);
+        if (!skipRender && state.currentMatchup.length > 0) {
+            if (state.appMode === 'executioner') renderExecutionerMedia();
+            else if (state.appMode === 'leaderboard_viewer') renderLeaderboardViewerMedia();
+            else renderCurrentMedia();
         }
+        
         showToast("Settings saved.");
     } catch (e) {
         alert("Error saving settings: " + e.message + "\n" + e.stack);
@@ -1099,10 +1093,22 @@ function formatSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+function destroyPanzoomAndWheel() {
+    if (window.currentPanzoom) {
+        if (window.panzoomWheelListener) {
+            elements.mediaContainer.removeEventListener('wheel', window.panzoomWheelListener);
+            window.panzoomWheelListener = null;
+        }
+        window.currentPanzoom.destroy();
+        window.currentPanzoom = null;
+    }
+}
+
 function renderCurrentMedia() {
     elements.btnUndo.disabled = state.undoStack.length === 0;
     if (objectUrlA) { URL.revokeObjectURL(objectUrlA); objectUrlA = null; }
     elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); });
+    destroyPanzoomAndWheel();
     elements.mediaContainer.innerHTML = '';
     if (elements.executionerCheckContainer) elements.executionerCheckContainer.classList.add('hidden');
     elements.matchStatusIndicator.classList.add('hidden');
@@ -1135,7 +1141,6 @@ function renderCurrentMedia() {
     else if (state.fitMode === 'stretch') fitClass = 'media-fit-stretch';
     else if (state.fitMode === 'original') fitClass = 'media-fit-original';
 
-    if (window.currentPanzoom) { window.currentPanzoom.destroy(); window.currentPanzoom = null; }
     if (activeFile.type.startsWith('video/') || activeFile.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
         const mutedAttr = appSettings.startMuted ? 'muted' : '';
         elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr} onerror="handleMediaError()"></video>`;
@@ -1144,7 +1149,8 @@ function renderCurrentMedia() {
         const imgEl = elements.mediaContainer.querySelector('img');
         if (typeof Panzoom !== 'undefined') {
             window.currentPanzoom = Panzoom(imgEl, { maxScale: 5, canvas: true, contain: 'outside' });
-            imgEl.parentElement.addEventListener('wheel', window.currentPanzoom.zoomWithWheel);
+            window.panzoomWheelListener = window.currentPanzoom.zoomWithWheel;
+            elements.mediaContainer.addEventListener('wheel', window.panzoomWheelListener);
         }
     }
     
@@ -1336,7 +1342,7 @@ function renderExecutionerMedia() {
     else if (state.fitMode === 'original') fitClass = 'media-fit-original';
 
     const mutedAttr = appSettings.startMuted ? 'muted' : '';
-    if (window.currentPanzoom) { window.currentPanzoom.destroy(); window.currentPanzoom = null; }
+    destroyPanzoomAndWheel();
     if (file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
         elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr} onerror="handleMediaError()"></video>`;
     } else {
@@ -1344,7 +1350,8 @@ function renderExecutionerMedia() {
         const imgEl = elements.mediaContainer.querySelector('img');
         if (typeof Panzoom !== 'undefined') {
             window.currentPanzoom = Panzoom(imgEl, { maxScale: 5, canvas: true, contain: 'outside' });
-            imgEl.parentElement.addEventListener('wheel', window.currentPanzoom.zoomWithWheel);
+            window.panzoomWheelListener = window.currentPanzoom.zoomWithWheel;
+            elements.mediaContainer.addEventListener('wheel', window.panzoomWheelListener);
         }
     }
     
@@ -1419,7 +1426,7 @@ function renderLeaderboardViewerMedia() {
     else if (state.fitMode === 'stretch') fitClass = 'media-fit-stretch';
     else if (state.fitMode === 'original') fitClass = 'media-fit-original';
     
-    if (window.currentPanzoom) { window.currentPanzoom.destroy(); window.currentPanzoom = null; }
+    destroyPanzoomAndWheel();
     if (file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
         const mutedAttr = appSettings.startMuted ? 'muted' : '';
         elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr} onerror="handleMediaError()"></video>`;
@@ -1428,7 +1435,8 @@ function renderLeaderboardViewerMedia() {
         const imgEl = elements.mediaContainer.querySelector('img');
         if (typeof Panzoom !== 'undefined') {
             window.currentPanzoom = Panzoom(imgEl, { maxScale: 5, canvas: true, contain: 'outside' });
-            imgEl.parentElement.addEventListener('wheel', window.currentPanzoom.zoomWithWheel);
+            window.panzoomWheelListener = window.currentPanzoom.zoomWithWheel;
+            elements.mediaContainer.addEventListener('wheel', window.panzoomWheelListener);
         }
     }
     
@@ -1451,6 +1459,17 @@ function renderLeaderboardViewerMedia() {
 // --- Setup & Listeners ---
 
 function setupEventListeners() {
+    document.body.addEventListener('click', () => {
+        if (appSettings.autoBackupInterval > 0) {
+            if (!window.lastAutoBackupTime) window.lastAutoBackupTime = Date.now();
+            if (Date.now() - window.lastAutoBackupTime >= appSettings.autoBackupInterval * 60 * 1000) {
+                if (Object.keys(state.ratings).length > 0) {
+                    window.lastAutoBackupTime = Date.now();
+                    exportRatings(true);
+                }
+            }
+        }
+    });
     document.getElementById('matchup-progress-container').addEventListener('click', () => {
         const list = getActiveList();
         if(list.length === 0) return;
@@ -1601,7 +1620,7 @@ function setupEventListeners() {
         appSettings.defaultFitMode = state.fitMode;
         const fitSelect = document.getElementById('setting-default-fit');
         if (fitSelect) fitSelect.value = state.fitMode;
-        saveSettingsToStorage();
+        saveSettingsToStorage(true);
         showToast(`Fit Mode: ${state.fitMode.charAt(0).toUpperCase() + state.fitMode.slice(1)}`);
         elements.btnToggleFit.innerHTML = `<i class="fa-solid ${icons[state.fitMode]}"></i>`;
         
@@ -1733,7 +1752,7 @@ function exportRatings(isAuto = false) {
     node.setAttribute("download", `${prefix}_${isAuto?'autobackup':'backup'}_${dt}.json`);
     document.body.appendChild(node); node.click(); node.remove();
     URL.revokeObjectURL(url);
-    if(!isAuto) showToast("Exported Backup!");
+    showToast(isAuto ? "Auto-backup successful!" : "Exported Backup!");
 }
 async function importRatings(event) {
     const files = event.target.files;
@@ -1824,14 +1843,20 @@ function generateScripts() {
     const py = `import os
 # WARNING: If file paths lack directories, you MUST run this script inside the target folder!
 deleted_count = 0
+freed_bytes = 0
 files = [
 ${names.map(n=>`  ${JSON.stringify(n)},`).join('\n')}
 ]
 for f in files:
   if os.path.exists(f):
-    os.remove(f)
-    deleted_count += 1
-print(f"Successfully deleted {deleted_count} files.")`;
+    try:
+      size = os.path.getsize(f)
+      os.remove(f)
+      freed_bytes += size
+      deleted_count += 1
+    except Exception as e:
+      print(f"Error deleting {f}: {e}")
+print(f"Successfully deleted {deleted_count} files, freeing {freed_bytes / (1024*1024):.2f} MB.")`;
     elements.scriptOutput.value = py;
     elements.scriptContainer.classList.remove('hidden');
     elements.purgeStats.textContent = `Script ready for ${state.stagedFilesMap.size} files.`;

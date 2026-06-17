@@ -22,7 +22,9 @@ A powerful, entirely local media ranking tool built in a single HTML file. Stop 
 - **TrueSkill Matchmaking**: Ranks your media using the algorithm behind competitive gaming (mu and sigma). The system natively supports N-way Battle Royale match-ups (sizing up to 4 items at once) with completely random, chaotic matchmaking to get through your media significantly faster than 1v1 duels! Tap the circular **Pool Icon** at any time to see a breakdown of how many files have been matched at each tier.
 - **Privacy First & Fully Local**: No server required. The tool runs directly in your browser. All media logic uses local `blob:` URLs, and your ratings database is saved directly to a limitless local database.
 - **Mobile-Friendly UI**: Clean, mobile-friendly interface with native video playback controls, `autoplay`, `loop`, and a customizable "Start Muted" toggle. The footer features sequential navigation (`Prev` and `Next`) and checkbox ranking for active media.
-- **Undo Stack**: Made a mistake? Use the **Undo** button to revert the last match seamlessly.
+- **Image Pan-Zoom**: Dynamically pinch or scroll-wheel to zoom specifically on image media up to 5x scale without affecting the rest of your UI.
+- **Fluid Layout**: The thumbnail sorting strip natively scales and scrolls horizontally across the screen to comfortably accommodate multiple items without clipping or squishing.
+- **Undo Stack**: Made a mistake? Use the **Undo** button to revert the last match seamlessly. The undo history is strictly capped at your last 50 turns to prevent background memory leaks on long sorting sessions.
 - **Dynamic Leaderboards**: View your absolute best and worst media. The leaderboard display is explicitly clamped to prevent UI lag. You can also toggle "Skip unmatched files" in Settings to keep unranked media off the leaderboard.
 - **Native File Sharing**: Share your favorite media directly to other apps using the native Web Share API (on supported browsers/devices).
 - **Import Randomization**: Folder imports are completely randomized up-front, and matchmaking instantly begins as soon as 4 items are loaded.
@@ -47,6 +49,7 @@ This application is fully sandboxed and verified to be entirely safe for hosting
   - `fonts.googleapis.com` & `fonts.gstatic.com` (Google Fonts: Inter)
   - `cdnjs.cloudflare.com` (FontAwesome Icons)
   - `cdn.jsdelivr.net` (OpenSkill TrueSkill math module)
+  - `unpkg.com` (Panzoom library for image scaling)
 
 ### Logic & Features Overview
 
