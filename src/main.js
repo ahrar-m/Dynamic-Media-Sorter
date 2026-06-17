@@ -1,5 +1,30 @@
-import { rate, rating, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@4.1.1/+esm';
-window.openskill = { rate, rating, ordinal };
+let worker;
+if (window.WORKER_CODE) {
+    const blob = new Blob([window.WORKER_CODE], { type: 'application/javascript' });
+    worker = new Worker(URL.createObjectURL(blob), { type: 'module' });
+} else {
+    worker = new Worker('./worker.js', { type: 'module' });
+}
+
+let workerMsgId = 0;
+const workerCallbacks = {};
+
+worker.onmessage = (e) => {
+    const { id, type, results, error } = e.data;
+    if (workerCallbacks[id]) {
+        if (error) workerCallbacks[id].reject(new Error(error));
+        else workerCallbacks[id].resolve(results);
+        delete workerCallbacks[id];
+    }
+};
+
+function runInWorker(type, data) {
+    return new Promise((resolve, reject) => {
+        const id = workerMsgId++;
+        workerCallbacks[id] = { resolve, reject };
+        worker.postMessage({ id, type, data });
+    });
+}
 
 window.onerror = function(msg, url, lineNo, columnNo, error) {
     showErrorToast(`Error: ${msg}`);
@@ -517,7 +542,6 @@ async function submitMatch() {
     });
     if (state.undoStack.length > 50) state.undoStack.shift();
     
-    let teams = [];
     let teamIds = [];
     let fileRanks = [];
     
@@ -532,16 +556,25 @@ async function submitMatch() {
     let ranksForOpenskill = [];
     
     fileRanks.forEach(item => {
-        teams.push([item.rating]);
         teamIds.push(item.id);
         ranksForOpenskill.push(item.rank);
     });
     
-    const newRatings = openskill.rate(teams, { rank: ranksForOpenskill });
+    const currentRatings = {};
+    state.currentMatchup.forEach(f => {
+        const id = getFileId(f);
+        currentRatings[id] = state.ratings[id];
+    });
+
+    const newRatingsMap = await runInWorker('RATE_MATCH', {
+        currentMatchup: teamIds,
+        currentRatings,
+        ranksForOpenskill
+    });
     const t = Date.now();
     
     fileRanks.forEach((item, idx) => {
-        const newRating = newRatings[idx][0];
+        const newRating = newRatingsMap[item.id];
         const oldOrdinal = getOrdinal(item.rating);
         const newOrdinal = getOrdinal(newRating);
         const diff = newOrdinal - oldOrdinal;

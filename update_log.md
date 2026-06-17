@@ -36,3 +36,7 @@
 - Added a `Direct Copy (Browser)` button to The Curator that uses `window.showDirectoryPicker()` to copy top-ranked files directly into a user-selected folder.
 - Added a `Direct Delete (Browser)` button to The Executioner that allows the browser to traverse the local filesystem and natively delete staged files, completely bypassing the terminal.
 - Deployed subagents for QA review on the new File System Access feature.
+
+## [2026-06-17] File System Access API: QA Feedback Applied
+- **Logic**: Fixed a bug where successfully deleted files weren't properly marked as blacklisted in IndexedDB. Fixed directory traversal edge case if a user selects a parent directory as the root handle. Wrapped the direct copy `write()` operation in an inner try-catch so that one corrupted file doesn't abort the entire batch export.
+- **UI/Visual**: Modified The Curator modal layout to display the "Generate Script" and "Direct Copy" buttons evenly stacked at 100% width, matching The Executioner modal.

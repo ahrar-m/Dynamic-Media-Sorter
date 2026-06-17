@@ -598,8 +598,35 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 <div id="toast"></div>
 
 <script type="module">
-import { rate, rating, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@4.1.1/+esm';
-window.openskill = { rate, rating, ordinal };
+window.WORKER_CODE = "import { rate, rating, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@4.1.1/+esm';\n\nself.onmessage = function(e) {\n    const { id, type, data } = e.data;\n    \n    if (type === 'RATE_MATCH') {\n        const { currentMatchup, currentRatings, ranksForOpenskill } = data;\n        \n        const teams = currentMatchup.map(fileId => {\n            const r = currentRatings[fileId] || { mu: 25.0, sigma: 8.333 };\n            return [ rating({ mu: r.mu, sigma: r.sigma }) ];\n        });\n\n        const newTeams = rate(teams, { rank: ranksForOpenskill });\n        \n        const results = {};\n        currentMatchup.forEach((fileId, i) => {\n            results[fileId] = {\n                mu: newTeams[i][0].mu,\n                sigma: newTeams[i][0].sigma\n            };\n        });\n\n        self.postMessage({ id, type: 'RATE_RESULT', results });\n    }\n};\n";
+
+let worker;
+if (window.WORKER_CODE) {
+    const blob = new Blob([window.WORKER_CODE], { type: 'application/javascript' });
+    worker = new Worker(URL.createObjectURL(blob), { type: 'module' });
+} else {
+    worker = new Worker('./worker.js', { type: 'module' });
+}
+
+let workerMsgId = 0;
+const workerCallbacks = {};
+
+worker.onmessage = (e) => {
+    const { id, type, results, error } = e.data;
+    if (workerCallbacks[id]) {
+        if (error) workerCallbacks[id].reject(new Error(error));
+        else workerCallbacks[id].resolve(results);
+        delete workerCallbacks[id];
+    }
+};
+
+function runInWorker(type, data) {
+    return new Promise((resolve, reject) => {
+        const id = workerMsgId++;
+        workerCallbacks[id] = { resolve, reject };
+        worker.postMessage({ id, type, data });
+    });
+}
 
 window.onerror = function(msg, url, lineNo, columnNo, error) {
     showErrorToast(`Error: ${msg}`);
@@ -1117,7 +1144,6 @@ async function submitMatch() {
     });
     if (state.undoStack.length > 50) state.undoStack.shift();
     
-    let teams = [];
     let teamIds = [];
     let fileRanks = [];
     
@@ -1132,16 +1158,25 @@ async function submitMatch() {
     let ranksForOpenskill = [];
     
     fileRanks.forEach(item => {
-        teams.push([item.rating]);
         teamIds.push(item.id);
         ranksForOpenskill.push(item.rank);
     });
     
-    const newRatings = openskill.rate(teams, { rank: ranksForOpenskill });
+    const currentRatings = {};
+    state.currentMatchup.forEach(f => {
+        const id = getFileId(f);
+        currentRatings[id] = state.ratings[id];
+    });
+
+    const newRatingsMap = await runInWorker('RATE_MATCH', {
+        currentMatchup: teamIds,
+        currentRatings,
+        ranksForOpenskill
+    });
     const t = Date.now();
     
     fileRanks.forEach((item, idx) => {
-        const newRating = newRatings[idx][0];
+        const newRating = newRatingsMap[item.id];
         const oldOrdinal = getOrdinal(item.rating);
         const newOrdinal = getOrdinal(newRating);
         const diff = newOrdinal - oldOrdinal;
