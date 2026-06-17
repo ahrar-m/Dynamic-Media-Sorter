@@ -46,3 +46,7 @@
 - Configured `build.js` to automatically bundle the Web Worker script as an injected string blob, allowing the final output to remain a strictly standalone, single-file HTML app.
 - Implemented asynchronous Promise wrappers around worker messages for seamless `await` integration in the UI logic.
 - Deployed subagents for QA review on the new Web Worker implementation.
+
+## [2026-06-17] Web Worker Architecture: QA Feedback Applied
+- **Logic**: Wrapped `worker.js` message handler in a `try...catch` block to gracefully reject Promises and prevent `workerCallbacks` memory leaks and UI freezes. Safely initialized `item.rating.history` arrays for backward compatibility with older database schemas.
+- **UI/Visual**: Upgraded `submitMatch` to use a `try...finally` block, explicitly unlocking `state.isAnimating`. Swapped the "Submit" button icon for a spinner during background processing. Actively blocked race conditions by preventing users from clicking UI toggles, placements, or navigation arrows while the background worker is computing math. Removed the artificial 100ms render delay, making submissions instant.
