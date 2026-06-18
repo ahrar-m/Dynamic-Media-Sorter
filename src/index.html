@@ -23,20 +23,6 @@
         </h1>
         <input type="file" id="folder-input" webkitdirectory directory multiple class="hidden">
         <input type="file" id="file-input" multiple class="hidden">
-        
-        <button class="btn btn-primary" id="btn-load-menu" onclick="document.getElementById('load-dropdown').classList.toggle('hidden')">
-            <i class="fa-solid fa-folder-plus"></i>
-        </button>
-        <div id="load-dropdown" class="glass-panel hidden" style="position: absolute; top: 100%; left: 0; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; padding: 10px; z-index: 9999; min-width: 140px;">
-            <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('file-input').click(); document.getElementById('load-dropdown').classList.add('hidden');"><i class="fa-solid fa-file-image"></i> Load Files</button>
-            <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('folder-input').click(); document.getElementById('load-dropdown').classList.add('hidden');"><i class="fa-solid fa-folder-open"></i> Load Folder</button>
-        </div>
-        <button class="btn" id="btn-app-fullscreen" title="Toggle Fullscreen"><i class="fa-solid fa-expand"></i></button>
-        
-        <div style="display: flex; gap: 4px;">
-            <button class="btn" id="toggle-image" style="background: rgba(79, 172, 254, 0.4);"><i class="fa-solid fa-image"></i></button>
-            <button class="btn" id="toggle-video"><i class="fa-solid fa-video"></i></button>
-        </div>
     </div>
     <div class="header-right">
         <!-- Circular Progress Bar for Background Loading -->
@@ -55,12 +41,7 @@
                 <span id="matchup-percent" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65rem; font-weight: bold;">0%</span>
             </div>
         </div>
-
-        <button class="btn btn-primary" id="btn-open-leaderboard" title="Leaderboard"><i class="fa-solid fa-ranking-star"></i></button>
-        <button class="btn" id="btn-open-dashboard" title="Analytics Dashboard" style="background: rgba(255, 255, 255, 0.1);"><i class="fa-solid fa-chart-pie"></i></button>
-        <button class="btn" id="btn-curator" title="The Curator"><i class="fa-solid fa-star" style="color: #ffd700;"></i></button>
-        <button class="btn btn-danger" id="btn-purge" title="The Executioner"><i class="fa-solid fa-skull"></i></button>
-        <button class="btn" id="btn-open-settings" title="Settings"><i class="fa-solid fa-gear"></i></button>
+        <button class="btn btn-primary" id="btn-open-tools-menu" title="Tools Menu"><i class="fa-solid fa-bars"></i> Tools</button>
     </div>
 </header>
 
@@ -130,6 +111,36 @@
 
 <!-- Modals -->
 
+<div class="modal-overlay" id="tools-modal">
+    <div class="modal glass-panel" style="width: 90%; max-width: 400px;">
+        <button class="modal-close" id="close-tools-modal"><i class="fa-solid fa-xmark"></i></button>
+        <h2><i class="fa-solid fa-toolbox"></i> Tools & Layout</h2>
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 10px;">
+            <div class="glass-panel" style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.1);">
+                <h3 style="margin:0; font-size: 1rem; color: var(--accent-blue);">Load Media</h3>
+                <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('file-input').click(); document.getElementById('tools-modal').classList.remove('active');"><i class="fa-solid fa-file-image"></i> Load Files</button>
+                <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('folder-input').click(); document.getElementById('tools-modal').classList.remove('active');"><i class="fa-solid fa-folder-open"></i> Load Folder</button>
+            </div>
+            <div class="glass-panel" style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.1);">
+                <h3 style="margin:0; font-size: 1rem; color: var(--accent-blue);">App Modes</h3>
+                <button class="btn btn-primary" id="btn-open-leaderboard" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-ranking-star"></i> Leaderboard</button>
+                <button class="btn" id="btn-open-dashboard" style="width: 100%; justify-content: flex-start; background: rgba(255, 255, 255, 0.1);"><i class="fa-solid fa-chart-pie"></i> Analytics Dashboard</button>
+                <button class="btn" id="btn-curator" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-star" style="color: #ffd700;"></i> The Curator</button>
+                <button class="btn btn-danger" id="btn-purge" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-skull"></i> The Executioner</button>
+            </div>
+            <div class="glass-panel" style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.1);">
+                <h3 style="margin:0; font-size: 1rem; color: var(--accent-blue);">Layout & Options</h3>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn" id="toggle-image" style="flex: 1; background: rgba(79, 172, 254, 0.4);"><i class="fa-solid fa-image"></i> Images</button>
+                    <button class="btn" id="toggle-video" style="flex: 1;"><i class="fa-solid fa-video"></i> Videos</button>
+                </div>
+                <button class="btn" id="btn-app-fullscreen" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-expand"></i> Toggle Fullscreen</button>
+                <button class="btn" id="btn-open-settings" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-gear"></i> Settings</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="settings-modal">
     <div class="modal glass-panel" style="width: 75%; max-width: 600px;">
         <button class="modal-close" id="close-settings-modal"><i class="fa-solid fa-xmark"></i></button>
@@ -194,14 +205,14 @@
         <button class="modal-close" id="close-leaderboard-modal"><i class="fa-solid fa-xmark"></i></button>
         <h2><i class="fa-solid fa-ranking-star"></i> Leaderboard</h2>
         <div class="modal-body leaderboard-columns">
-            <div style="flex: 1; border-right: 1px solid var(--panel-border); padding-right: 10px; overflow-y:auto;">
+            <div class="leaderboard-col">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <h3 style="margin: 0; color: var(--accent-green);">Top Tier</h3>
                     <button class="btn btn-primary" id="btn-view-top-cont">View Top Continuously</button>
                 </div>
                 <div id="leaderboard-top-list"></div>
             </div>
-            <div style="flex: 1; padding-left: 10px; overflow-y:auto;">
+            <div class="leaderboard-col">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <h3 style="margin: 0; color: var(--accent-red);">Bottom Tier</h3>
                     <button class="btn btn-danger" id="btn-view-bottom-cont">View Bottom Continuously</button>

@@ -68,3 +68,13 @@
 - Upgraded form inputs, textareas, and selects with bright glowing focus states (`:focus-visible` with drop shadows) for drastically improved accessibility.
 - Engineered a pure CSS custom toggle switch, fully replacing all native HTML checkboxes (`input[type="checkbox"]`). Features smooth layout animations and pill-shaped interactive bounds.
 - Refactored `src/index.html` inline styles (`width: 18px;`) that were previously colliding with the new global custom CSS toggles. Repositioned the `#match-status-indicator` for better vertical balance.
+
+## [2026-06-17] Final Overall Review & Robustness Patch
+- Deployed overall QA subagents to thoroughly review the state of the codebase.
+- Handled edge cases: Fixed an array slice mutation bug in `renderPlacementStrip` by checking `indexOf`, safely cleared ObjectURLs in `btnStageCurrent` to prevent memory leaks, forced `video.load()` during teardowns to stop hidden buffer leaks, and detached `Panzoom` wheel listeners securely if `handleMediaError` fires on corrupt files.
+- UI Layout Edge Cases: Enclosed `load-dropdown` within `.header-left` for stable absolute anchoring, eliminated redundant `<svg>` wrapping classes in the matchup progress indicator, added flex column handling for leaderboard modals, and hardened hover states for touch devices (`@media (hover: hover)`).
+
+## [2026-06-18] Mobile Layout Optimization & Processing Performance
+- Resolved the cluttered header layout on mobile screens by consolidating all secondary actions (Leaderboard, Dashboard, The Curator, The Executioner, Settings, and Image/Video toggles) into a dedicated "Tools Menu" modal, dramatically simplifying the top navigation bar.
+- Fixed a massive performance bottleneck when loading huge media sets (e.g. 25k+ files) that caused the app to hang in the "processing" state. Replaced the heavy full-array Fisher-Yates shuffle in `pickNextMatchup` with an ultra-lightweight `Set` based random index picker, restoring instant matchup generation.
+- Reverted restrictive flex-wrap logic on the mobile footer. Removed the stacked 3-row layout overrides, returning the main UI controls to a clean, highly accessible single horizontal row.

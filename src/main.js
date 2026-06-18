@@ -1,38 +1,4 @@
-let worker;
-if (window.WORKER_CODE) {
-    const blob = new Blob([window.WORKER_CODE], { type: 'application/javascript' });
-    worker = new Worker(URL.createObjectURL(blob), { type: 'module' });
-} else {
-    worker = new Worker('./worker.js', { type: 'module' });
-}
-
-let workerMsgId = 0;
-const workerCallbacks = {};
-
-worker.onmessage = (e) => {
-    const { id, type, results, error } = e.data;
-    if (workerCallbacks[id]) {
-        if (type === 'ERROR' || error) workerCallbacks[id].reject(new Error(error || "Worker Error"));
-        else workerCallbacks[id].resolve(results);
-        delete workerCallbacks[id];
-    }
-};
-
-worker.onerror = (e) => {
-    console.error("Worker crashed:", e);
-    for (const id in workerCallbacks) {
-        workerCallbacks[id].reject(new Error(e.message));
-        delete workerCallbacks[id];
-    }
-};
-
-function runInWorker(type, data) {
-    return new Promise((resolve, reject) => {
-        const id = workerMsgId++;
-        workerCallbacks[id] = { resolve, reject };
-        worker.postMessage({ id, type, data });
-    });
-}
+import { rate, rating, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@4.1.1/+esm';
 
 window.onerror = function(msg, url, lineNo, columnNo, error) {
     showErrorToast(`Error: ${msg}`);
@@ -147,7 +113,9 @@ function bindElements() {
         btnInfo: document.getElementById('btn-info'),
         btnStageCurrent: document.getElementById('btn-stage-current'),
         btnToggleFit: document.getElementById('btn-toggle-fit'),
-        
+        toolsModal: document.getElementById('tools-modal'),
+        btnOpenToolsMenu: document.getElementById('btn-open-tools-menu'),
+        closeToolsModal: document.getElementById('close-tools-modal'),
 
         matchStatusIndicator: document.getElementById('match-status-indicator'),
         
@@ -359,7 +327,9 @@ function handleFilesSelected(event) {
         }
         
         if (isProcessRunning) {
-            loadingQueue = loadingQueue.concat(files);
+            for (let i = 0; i < files.length; i++) {
+                loadingQueue.push(files[i]);
+            }
             totalLoading += files.length;
             return;
         }
@@ -391,7 +361,6 @@ async function processLoadingQueue() {
     let loadedThisBatch = 0;
     let didAdd = false;
     let statsUpdated = false;
-    
     try {
         while (loadingQueue.length > 0 && (Date.now() - batchStart < 16)) {
             const f = loadingQueue.pop();
@@ -427,7 +396,7 @@ async function processLoadingQueue() {
             loadedThisBatch++;
         }
     } catch (e) {
-        console.error('File parsing error in batch:', e);
+        console.error("Batch processing error:", e);
     }
 
     if (statsUpdated && elements.purgeStats) {
@@ -466,14 +435,11 @@ function pickNextMatchup() {
     }
 
     const matchupSize = Math.min(4, list.length);
-    
-    const shuffledList = [...list];
-    for (let i = shuffledList.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffledList[i], shuffledList[j]] = [shuffledList[j], shuffledList[i]];
+    const selectedIndices = new Set();
+    while (selectedIndices.size < matchupSize) {
+        selectedIndices.add(Math.floor(Math.random() * list.length));
     }
-    
-    state.currentMatchup = shuffledList.slice(0, matchupSize);
+    state.currentMatchup = Array.from(selectedIndices).map(idx => list[idx]);
     
     state.activeViewIndex = 0;
     state.hasSeen.clear();
@@ -566,10 +532,19 @@ async function submitMatch() {
             currentRatings[id] = state.ratings[id];
         });
 
-        const newRatingsMap = await runInWorker('RATE_MATCH', {
-            currentMatchup: teamIds,
-            currentRatings,
-            ranksForOpenskill
+        const teams = teamIds.map(fileId => {
+            const r = currentRatings[fileId] || { mu: 25.0, sigma: 8.333 };
+            return [ rating({ mu: r.mu, sigma: r.sigma }) ];
+        });
+
+        const newTeams = rate(teams, { rank: ranksForOpenskill });
+        
+        const newRatingsMap = {};
+        teamIds.forEach((fileId, i) => {
+            newRatingsMap[fileId] = {
+                mu: newTeams[i][0].mu,
+                sigma: newTeams[i][0].sigma
+            };
         });
 
         let prevStats = {};
@@ -605,6 +580,7 @@ async function submitMatch() {
         });
         
         await saveRatingsToStorage(fileRanks.map(item => item.id));
+        state.isAnimating = false;
         pickNextMatchup();
     } catch (err) {
         console.error("Submit match failed:", err);
@@ -1220,17 +1196,20 @@ function setupEventListeners() {
 
 
     // Modals
-    elements.btnOpenSettings.addEventListener('click', () => elements.settingsModal.classList.add('active'));
+    const closeTools = () => elements.toolsModal.classList.remove('active');
+    elements.btnOpenSettings.addEventListener('click', () => { closeTools(); loadSettingsFromStorage(); elements.settingsModal.classList.add('active'); });
     elements.closeSettingsModal.addEventListener('click', () => { saveSettingsToStorage(); elements.settingsModal.classList.remove('active'); });
 
 
-    elements.btnCurator.addEventListener('click', () => elements.curatorModal.classList.add('active'));
-    elements.closeCuratorModal.addEventListener('click', () => elements.curatorModal.classList.remove('active'));
+    elements.btnCurator.addEventListener('click', () => { closeTools(); elements.curatorModal.classList.add('active'); });
+    elements.closeCuratorModal.addEventListener('click', () => {
+        elements.curatorModal.classList.remove('active');
+    });
     elements.btnGenerateCurator.addEventListener('click', generateCuratorScripts);
     if (elements.btnCuratorDirect) elements.btnCuratorDirect.addEventListener('click', copyFavoritesDirectly);
     elements.btnCopyCuratorScript.addEventListener('click', () => { elements.curatorScriptOutput.select(); document.execCommand('copy'); showToast("Copied!"); });
 
-    elements.btnPurge.addEventListener('click', () => { 
+    elements.btnPurge.addEventListener('click', () => { closeTools(); 
         elements.purgeModal.classList.add('active'); 
         elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
     });
@@ -1278,13 +1257,13 @@ function setupEventListeners() {
         else if (document.exitFullscreen) document.exitFullscreen();
     });
     
-    elements.btnOpenLeaderboard.addEventListener('click', () => {
-        renderLeaderboard();
-        elements.leaderboardModal.classList.add('active');
-    });
+    elements.btnOpenToolsMenu.addEventListener('click', () => elements.toolsModal.classList.add('active'));
+    elements.closeToolsModal.addEventListener('click', closeTools);
+
+    elements.btnOpenLeaderboard.addEventListener('click', () => { closeTools(); renderLeaderboard(); elements.leaderboardModal.classList.add('active'); });
     elements.closeLeaderboardModal.addEventListener('click', () => elements.leaderboardModal.classList.remove('active'));
     
-    elements.btnOpenDashboard.addEventListener('click', () => { renderDashboard(); elements.dashboardModal.classList.add('active'); });
+    elements.btnOpenDashboard.addEventListener('click', () => { closeTools(); renderDashboard(); elements.dashboardModal.classList.add('active'); });
     elements.closeDashboardModal.addEventListener('click', () => elements.dashboardModal.classList.remove('active'));
     
     elements.btnViewTopCont.addEventListener('click', () => startLeaderboardViewer(false));

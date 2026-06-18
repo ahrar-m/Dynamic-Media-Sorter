@@ -298,7 +298,6 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
     justify-content: center;
     align-items: flex-start;
     padding-top: 2px;
-    font-size: 0.65rem;
     color: white;
     overflow: hidden;
 }
@@ -307,10 +306,21 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
     filter: brightness(1.2);
 }
 .executioner-checkbox {
-    position: absolute; top: 70px; right: 20px; z-index: 50;
-    display: flex; align-items: center; gap: 10px;
-    background: rgba(0,0,0,0.8); padding: 10px 15px; border-radius: 8px;
-    border: 1px solid var(--panel-border); font-weight: bold; cursor: pointer;
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    z-index: 200;
+    width: 32px;
+    height: 32px; 
+    display: flex;
+    align-items: center; 
+    gap: 10px;
+    background: rgba(0,0,0,0.8); 
+    padding: 10px 15px; 
+    border-radius: 8px;
+    border: 1px solid var(--panel-border); 
+    font-weight: bold; 
+    cursor: pointer;
 }
 
 .footer-grid {
@@ -324,14 +334,73 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 .footer-center { display: flex; justify-content: center; }
 .footer-right { display: flex; gap: 8px; justify-content: flex-end; }
 @media (max-width: 600px) {
-    .footer-grid {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
+    /* Retaining media query for other potential overrides, but removing footer-grid wrapping */
+}
+
+.action-btn {
+    width: 44px; 
+    height: 44px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    flex-shrink: 0;
+}
+#btn-submit-match {
+    border-radius: 50%;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+@media (max-width: 380px) {
+    #app-footer {
+        padding: 4px 8px 12px 8px !important;
     }
-    .footer-left { order: 2; width: 100%; justify-content: center; }
-    .footer-center { order: 1; width: 100%; margin-bottom: 8px; }
-    .footer-right { order: 3; width: 100%; justify-content: center; }
+    .footer-grid {
+        gap: 6px;
+    }
+    .footer-left, .footer-right {
+        gap: 4px;
+    }
+    .action-btn {
+        width: 38px;
+        height: 38px;
+    }
+    #btn-submit-match {
+        font-size: 1.1rem;
+    }
+}
+
+.leaderboard-columns {
+    display: flex;
+    flex-direction: row;
+}
+.leaderboard-col {
+    flex: 1;
+    overflow-y: auto;
+}
+.leaderboard-columns .leaderboard-col:first-child {
+    border-right: 1px solid var(--panel-border);
+    padding-right: 10px;
+}
+.leaderboard-columns .leaderboard-col:last-child {
+    padding-left: 10px;
+}
+
+@media (max-width: 600px) {
+    .leaderboard-columns {
+        flex-direction: column;
+    }
+    .leaderboard-columns .leaderboard-col:first-child {
+        border-right: none;
+        border-bottom: 1px solid var(--panel-border);
+        padding-right: 0;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+    }
+    .leaderboard-columns .leaderboard-col:last-child {
+        padding-left: 0;
+    }
 }
 
 :root {
