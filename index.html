@@ -1078,7 +1078,7 @@ function handleFilesSelected(event) {
     showToast(`Added ${newFiles.length} media files to the queue.`);
     
     if (state.currentMatchup.length === 0 && state.appMode === 'matchmaking') {
-        pickNextMatchup();
+        pickNextMatchup(true);
     }
 }
 
@@ -1105,7 +1105,7 @@ function forceLoadAllFiles() {
             showToast("Force load complete!");
             updateMatchupProgress();
             if (state.currentMatchup.length === 0 && state.appMode === 'matchmaking') {
-                pickNextMatchup();
+                pickNextMatchup(true);
             }
             return;
         }
@@ -1158,16 +1158,22 @@ function getActiveList() {
     return baseList.filter(file => !state.stagedFilesMap.has(getFileId(file)));
 }
 
-function pickNextMatchup() {
+function pickNextMatchup(isNewMatch = false) {
     if (state.isAnimating) return;
 
     const targetType = state.leaderboardType;
     let baseList = targetType === 'image' ? state.images : state.videos;
     
     let activeValid = baseList.filter(f => !state.stagedFilesMap.has(getFileId(f)));
-    let desiredNewFiles = 2; // Golden Ratio mix: 2 new, 2 old
-    if (activeValid.length < 2) desiredNewFiles = 4 - activeValid.length;
-    else if (activeValid.length < 4) desiredNewFiles = 4 - activeValid.length;
+    let desiredNewFiles = 0; 
+    
+    if (isNewMatch) {
+        desiredNewFiles = 2; // Golden Ratio mix: 2 new, 2 old
+    }
+    
+    if (activeValid.length < 4) {
+        desiredNewFiles = Math.max(desiredNewFiles, 4 - activeValid.length);
+    }
     
     let newFilesAdded = [];
     let parsedCount = 0;
@@ -1221,7 +1227,7 @@ function pickNextMatchup() {
         
         if (state.unparsedFiles.length > 0) {
             elements.mediaContainer.innerHTML = '<div style="color:var(--text-secondary); padding: 20px; font-weight: 500; font-size: 1.2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2rem; margin-bottom: 1rem; color: var(--accent-blue);"></i> Scanning media pool...</div>';
-            setTimeout(pickNextMatchup, 10);
+            setTimeout(() => pickNextMatchup(isNewMatch), 10);
         } else {
             showToast("Not enough media to form a matchup.");
         }
@@ -1398,7 +1404,7 @@ async function submitMatch() {
         
         await saveRatingsToStorage(fileRanks.map(item => item.id));
         state.isAnimating = false;
-        pickNextMatchup();
+        pickNextMatchup(true);
     } catch (err) {
         console.error("Submit match failed:", err);
         showToast("Error processing match.");
