@@ -61,29 +61,19 @@ This application is fully sandboxed and verified to be entirely safe for hosting
 - **The Executioner (File Deletion)**: Browsers cannot delete local files directly. Instead, the app stages your poorly rated files and generates a standalone Python or Bash script containing the paths of the "condemned" files. Running this script locally executes the deletion.
 - **Asynchronous Loading**: File loading utilizes a chunked queue system to ensure the browser remains responsive even when importing thousands of files at once.
 
-### Code Structure (Navigating `index.html`)
+### 💻 Development & Build Workflow
 
-The entire application is bundled into a single `index.html` file to maximize portability. Here is a guide to help you navigate the source code:
+To keep the development process organized while maintaining the portability of a single standalone HTML file, the source code is divided into modular files inside the `src/` directory:
 
-1. **HTML Skeleton & CSS (Lines 1-496)**
-   - Contains the CSS `<style>` block configuring the dark-mode glassmorphism UI.
-   - Defines the modal structures (Settings, Leaderboard, Executioner) and the main media viewer area.
-2. **Global State & Initialization (Lines 497-650)**
-   - Defines the global variables (`files`, `ratings`, `settings`, `currentMatchup`).
-   - The `init()` function sets up the database and loads preferences.
-3. **Storage & Database (Lines 651-780)**
-   - `openDB()`, `loadRatingsFromStorage()`, and `saveRatingsToStorage()` handle IndexedDB interactions.
-   - Functions for `localStorage` manage UI settings.
-4. **File Handling & Queuing (Lines 781-860)**
-   - `handleFilesSelected()` and `processLoadingQueue()` manage parsing files and converting them to `blob:` URLs.
-5. **Matchmaking Engine (Lines 861-1040)**
-   - `pickNextMatchup()` selects media for the next round.
-   - `submitMatch()` interfaces with the `openskill` module to calculate new `mu` and `sigma` values based on user rankings.
-6. **UI Rendering (Lines 1041-1360)**
-   - `renderCurrentMedia()` handles displaying images/videos.
-   - `renderPlacementStrip()` creates the 1, 2, 3, 4 ranking buttons.
-   - `renderLeaderboard()` and `renderExecutionerMedia()` populate their respective modals.
-7. **Event Listeners & Script Generation (Lines 1361-1732)**
-   - `setupEventListeners()` binds all clicks and keyboard shortcuts.
-   - `exportRatings()` and `importRatings()` handle JSON backups.
-   - `generateScripts()` creates the Python/Bash deletion scripts.
+- **`src/index.html`**: Contains the HTML skeleton, modal interfaces (Settings, Leaderboard, Executioner), and markup.
+- **`src/style.css`**: Defines styling, layout grids, modern glassmorphism aesthetic variables, custom scrollbars, and mobile media queries.
+- **`src/main.js`**: Drives all logic, including matchmaking algorithms, IndexedDB ratings storage, backups export/import, dynamic DOM manipulation, and settings handling.
+
+#### Building the Standalone Release
+A lightweight bundler script is provided to compile these source modules back into a monolithic file:
+1. Make your changes inside the `src/` folder.
+2. Run the build script using Node.js:
+   ```bash
+   node build.js
+   ```
+3. This creates a fully self-contained `./index.html` file in the root directory that is immediately ready to run in any browser.
