@@ -322,25 +322,83 @@ async function saveRatingsToStorage(updatedIds = null) {
     }
 }
 
+async function deleteLegacyKeyFromStorage(id) {
+    try {
+        const db = await openDB();
+        const tx = db.transaction('ratings', 'readwrite');
+        const store = tx.objectStore('ratings');
+        store.delete(id);
+    } catch (e) {
+        console.error("IndexedDB delete error:", e);
+    }
+}
+
 function handleFilesSelected(event) {
     const fileList = event.target.files;
     if (!fileList || fileList.length === 0) return;
     
     if (!forceLoadingProcess) elements.loadingProgress.classList.add('hidden');
     
-    const newFiles = Array.from(fileList);
-    // Initial shuffle
-    for (let i = newFiles.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [newFiles[i], newFiles[j]] = [newFiles[j], newFiles[i]];
+    state.unparsedFiles = Array.from(fileList);
+    let loadedCount = 0;
+    
+    function parseBatch() {
+        if (state.unparsedFiles.length === 0) {
+            elements.loadingProgress.classList.add('hidden');
+            renderCurrentMedia();
+            renderLeaderboard();
+            pickNextMatchup();
+            return;
+        }
+        
+        const batch = state.unparsedFiles.splice(0, 100);
+        loadedCount += batch.length;
+        
+        for (const f of batch) {
+            let isImage = false;
+            let isVideo = false;
+            if (f.type) {
+                isImage = f.type.startsWith('image/');
+                isVideo = f.type.startsWith('video/');
+            } else {
+                isImage = /\.(jpe?g|png|gif|webp)$/i.test(f.name);
+                isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(f.name);
+            }
+
+            const id = getFileId(f);
+            let isBlacklisted = state.ratings[id] && state.ratings[id].blacklisted;
+            if (isBlacklisted && !state.stagedFilesMap.has(id)) {
+                state.stagedFilesMap.set(id, f);
+            }
+
+            let localDidAdd = false;
+            if (isImage) {
+                if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.images.push(f); localDidAdd = true; }
+            } else if (isVideo) {
+                if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.videos.push(f); localDidAdd = true; }
+            }
+
+            if (localDidAdd && !state.ratings[id]) {
+                const legacyKey = f.name;
+                if (state.ratings[legacyKey]) {
+                    state.ratings[id] = state.ratings[legacyKey];
+                    delete state.ratings[legacyKey];
+                    deleteLegacyKeyFromStorage(legacyKey);
+                } else {
+                    state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
+                }
+            }
+        }
+        
+        const currentTotal = loadedCount + state.unparsedFiles.length;
+        const pct = currentTotal === 0 ? 100 : Math.floor((loadedCount / currentTotal) * 100);
+        elements.loadingPercent.textContent = `${pct}%`;
+        elements.loadingProgress.style.background = `conic-gradient(var(--accent-green) ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
+        
+        setTimeout(parseBatch, 0);
     }
     
-    state.unparsedFiles = state.unparsedFiles.concat(newFiles);
-    showToast(`Added ${newFiles.length} media files to the queue.`);
-    
-    if (state.currentMatchup.length === 0 && state.appMode === 'matchmaking') {
-        pickNextMatchup(true);
-    }
+    parseBatch();
 }
 
 let forceLoadingProcess = false;
@@ -1635,9 +1693,21 @@ async function importRatings(event) {
                     const parsed = JSON.parse(e.target.result);
                     
                     const mergeRatings = (newRatings) => {
+                        const allFiles = [...state.images, ...state.videos];
+                        const loadedNameMap = new Map();
+                        allFiles.forEach(f => {
+                            loadedNameMap.set(f.name, getFileId(f));
+                        });
+                        
                         for (const key in newRatings) {
-                            const id = key.split('/').pop();
+                            let id = key.split('/').pop();
                             const rating = newRatings[key];
+                            
+                            // Migrate name-only keys to size-suffixed keys if a matching file is currently loaded
+                            if (!id.includes('_') && loadedNameMap.has(id)) {
+                                id = loadedNameMap.get(id);
+                            }
+                            
                             if (state.ratings[id]) {
                                 const m1 = rating.matches || 0;
                                 const m2 = state.ratings[id].matches || 0;

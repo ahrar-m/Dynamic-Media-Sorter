@@ -131,4 +131,8 @@
   - Added visual sort active indicators (downward arrow `▼`) and styled hover states to give clear interaction cues for sortable headers.
   - Integrated dynamic sorting throughout the continuous leaderboard viewer and individual row navigation overlays, showing the active sorting metric (`μ` or `Score`) in the status bar.
   - Used actual lowercase unicode Greek characters `μ` and `σ` for the table headers and viewer metadata to ensure clean browser rendering.
-
+- **Legacy Rating Backup Key Migration**:
+  - Engineered bidirectional migration logic for legacy name-only backup keys:
+    - If media folders are loaded first: `mergeRatings` maps legacy keys to modern `filename_size` IDs on backup import.
+    - If the backup is restored first: `processLoadingQueue` checks for pre-existing legacy key ratings on file parse and migrates them to modern IDs on load.
+  - Automatically cleans up and purges migrated legacy key records from local IndexedDB storage.
