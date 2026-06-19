@@ -468,6 +468,36 @@ function pickNextMatchup(isNewMatch = false) {
     }
     
     const list = getActiveList();
+    
+    // Auto-switch to the other media type during initial load/scan if a full matchup is available there
+    if (state.currentMatchup.length === 0 && list.length < 4) {
+        if (targetType === 'image') {
+            const validVideos = state.videos.filter(f => !state.stagedFilesMap.has(getFileId(f)));
+            if (validVideos.length >= 4) {
+                state.leaderboardType = 'video';
+                showToast("Auto-switched to videos (found 4+ videos)");
+                if (elements.toggleImage && elements.toggleVideo) {
+                    elements.toggleImage.style.background = 'transparent';
+                    elements.toggleVideo.style.background = 'rgba(79, 172, 254, 0.4)';
+                }
+                pickNextMatchup(isNewMatch);
+                return;
+            }
+        } else if (targetType === 'video') {
+            const validImages = state.images.filter(f => !state.stagedFilesMap.has(getFileId(f)));
+            if (validImages.length >= 4) {
+                state.leaderboardType = 'image';
+                showToast("Auto-switched to images (found 4+ images)");
+                if (elements.toggleImage && elements.toggleVideo) {
+                    elements.toggleImage.style.background = 'rgba(79, 172, 254, 0.4)';
+                    elements.toggleVideo.style.background = 'transparent';
+                }
+                pickNextMatchup(isNewMatch);
+                return;
+            }
+        }
+    }
+
     if (list.length < 2) {
         state.currentMatchup = [];
         renderCurrentMedia();
