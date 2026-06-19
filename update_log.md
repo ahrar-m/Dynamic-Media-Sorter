@@ -78,3 +78,10 @@
 - Resolved the cluttered header layout on mobile screens by consolidating all secondary actions (Leaderboard, Dashboard, The Curator, The Executioner, Settings, and Image/Video toggles) into a dedicated "Tools Menu" modal, dramatically simplifying the top navigation bar.
 - Fixed a massive performance bottleneck when loading huge media sets (e.g. 25k+ files) that caused the app to hang in the "processing" state. Replaced the heavy full-array Fisher-Yates shuffle in `pickNextMatchup` with an ultra-lightweight `Set` based random index picker, restoring instant matchup generation.
 - Reverted restrictive flex-wrap logic on the mobile footer. Removed the stacked 3-row layout overrides, returning the main UI controls to a clean, highly accessible single horizontal row.
+
+## [2026-06-19] Lazy Loading Architecture & Matchmaking Enhancements
+- Replaced the underlying architecture with true Lazy Loading: loading a massive 25k file folder now requires exactly zero processing overhead, drastically cooling devices and resulting in 0s load times.
+- Resolved CORS issues on mobile apps by completely reverting the Web Worker structure back to the main thread.
+- Designed a mathematically robust **Golden Ratio Matchmaking** system: Matchups now consistently consist of exactly 2 newly parsed items drawn fully randomly from the 25k unparsed pool combined seamlessly with 2 previously ranked items from the active pool.
+- Added a background, non-blocking **Force Load All** UI button in the Settings panel for users preferring to pre-populate their database instantly.
+- Handled all edge cases: automatically hidden the submit button during `autoSubmitMatch`, dynamically solved `blacklisted` staging leaks to preserve user file data, and corrected percentage overflow logic during mid-run directory drags.
