@@ -1086,12 +1086,15 @@ function pickNextMatchup() {
     const targetType = state.leaderboardType;
     let baseList = targetType === 'image' ? state.images : state.videos;
     
+    let activeValid = baseList.filter(f => !state.stagedFilesMap.has(getFileId(f)));
+    let desiredNewFiles = 2; // Golden Ratio mix: 2 new, 2 old
+    if (activeValid.length < 2) desiredNewFiles = 4 - activeValid.length;
+    else if (activeValid.length < 4) desiredNewFiles = 4 - activeValid.length;
+    
+    let newFilesAdded = [];
     let parsedCount = 0;
-    // Lazy parse files if we have fewer than 20 active items in the pool
-    while (state.unparsedFiles.length > 0 && parsedCount < 1000) {
-        let activeValid = baseList.filter(f => !state.stagedFilesMap.has(getFileId(f)));
-        if (activeValid.length >= 20) break;
-        
+    
+    while (state.unparsedFiles.length > 0 && newFilesAdded.length < desiredNewFiles && parsedCount < 1000) {
         const f = state.unparsedFiles.pop();
         parsedCount++;
         
@@ -1114,9 +1117,19 @@ function pickNextMatchup() {
 
         let localDidAdd = false;
         if (isImage) {
-            if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.images.push(f); localDidAdd = true; }
+            if(!state.loadedIds.has(id)) { 
+                state.loadedIds.add(id); 
+                state.images.push(f); 
+                localDidAdd = true; 
+                if (targetType === 'image') newFilesAdded.push(f);
+            }
         } else if (isVideo) {
-            if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.videos.push(f); localDidAdd = true; }
+            if(!state.loadedIds.has(id)) { 
+                state.loadedIds.add(id); 
+                state.videos.push(f); 
+                localDidAdd = true; 
+                if (targetType === 'video') newFilesAdded.push(f);
+            }
         }
 
         if (localDidAdd && !state.ratings[id]) {
@@ -1140,11 +1153,27 @@ function pickNextMatchup() {
     }
 
     const matchupSize = Math.min(4, list.length);
-    const selectedIndices = new Set();
-    while (selectedIndices.size < matchupSize) {
-        selectedIndices.add(Math.floor(Math.random() * list.length));
+    let matchupFiles = [];
+    
+    for (const nf of newFilesAdded) {
+        if (matchupFiles.length < matchupSize) {
+            matchupFiles.push(nf);
+        }
     }
-    state.currentMatchup = Array.from(selectedIndices).map(idx => list[idx]);
+    
+    const availableOldFiles = list.filter(f => !matchupFiles.includes(f));
+    while (matchupFiles.length < matchupSize && availableOldFiles.length > 0) {
+        const rIdx = Math.floor(Math.random() * availableOldFiles.length);
+        matchupFiles.push(availableOldFiles[rIdx]);
+        availableOldFiles.splice(rIdx, 1);
+    }
+    
+    for (let i = matchupFiles.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [matchupFiles[i], matchupFiles[j]] = [matchupFiles[j], matchupFiles[i]];
+    }
+    
+    state.currentMatchup = matchupFiles;
     
     state.activeViewIndex = 0;
     state.hasSeen.clear();
@@ -1950,7 +1979,7 @@ function setupEventListeners() {
         } catch (e) { console.error("Error clearing IndexedDB", e); }
         state.ratings = {}; state.images = []; state.videos = [];
         state.stagedFilesMap.clear();
-        state.loadedIds.clear(); loadingQueue = []; totalLoading = 0; loadedCount = 0;
+        state.loadedIds.clear(); state.unparsedFiles = [];
         pickNextMatchup(); elements.settingsModal.classList.remove('active');
     });
     

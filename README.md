@@ -27,7 +27,7 @@ A powerful, entirely local media ranking tool built in a single HTML file. Stop 
 - **Undo Stack**: Made a mistake? Use the **Undo** button to revert the last match seamlessly. The undo history is strictly capped at your last 50 turns to prevent background memory leaks on long sorting sessions.
 - **Dynamic Leaderboards**: View your absolute best and worst media. The leaderboard display is explicitly clamped to prevent UI lag. You can also toggle "Skip unmatched files" in Settings to keep unranked media off the leaderboard.
 - **Native File Sharing**: Share your favorite media directly to other apps using the native Web Share API (on supported browsers/devices).
-- **Import Randomization**: Folder imports are completely randomized up-front, and matchmaking instantly begins as soon as 4 items are loaded.
+- **Import Randomization & Golden Ratio Matchmaking**: Massive folders are lazily parsed in 0 seconds to keep your CPU cool. Every matchup utilizes a "Golden Ratio" mix—forcing exactly 2 brand-new unparsed media and 2 already-ranked media into the ring. This guarantees you constantly discover new content while maintaining a mathematically accurate TrueSkill leaderboard.
 
 ## 💾 Backup & Restore
 
