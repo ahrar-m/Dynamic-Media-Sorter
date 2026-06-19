@@ -205,6 +205,7 @@ function loadSettingsFromStorage() {
         const icons = { 'contain': 'fa-compress', 'cover': 'fa-crop-simple', 'stretch': 'fa-expand', 'original': 'fa-maximize' };
         elements.btnToggleFit.innerHTML = `<i class="fa-solid ${icons[state.fitMode] || 'fa-compress'}"></i>`;
         
+        elements.btnSubmitMatch.style.display = appSettings.autoSubmitMatch ? 'none' : 'flex';
     } catch (e) { console.error(e); }
 }
 
@@ -231,6 +232,8 @@ function saveSettingsToStorage(skipRender = false) {
             else if (state.appMode === 'leaderboard_viewer') renderLeaderboardViewerMedia();
             else renderCurrentMedia();
         }
+        
+        elements.btnSubmitMatch.style.display = appSettings.autoSubmitMatch ? 'none' : 'flex';
         
         showToast("Settings saved.");
     } catch (e) {
@@ -309,7 +312,7 @@ function handleFilesSelected(event) {
     const fileList = event.target.files;
     if (!fileList || fileList.length === 0) return;
     
-    elements.loadingProgress.classList.add('hidden');
+    if (!forceLoadingProcess) elements.loadingProgress.classList.add('hidden');
     
     const newFiles = Array.from(fileList);
     // Initial shuffle
@@ -338,7 +341,6 @@ function forceLoadAllFiles() {
     forceLoadingProcess = true;
     document.getElementById('settings-modal').classList.remove('active');
     
-    const totalToLoad = state.unparsedFiles.length;
     let loadedCount = 0;
     
     elements.loadingProgress.classList.remove('hidden');
@@ -348,6 +350,10 @@ function forceLoadAllFiles() {
             forceLoadingProcess = false;
             elements.loadingProgress.classList.add('hidden');
             showToast("Force load complete!");
+            updateMatchupProgress();
+            if (state.currentMatchup.length === 0 && state.appMode === 'matchmaking') {
+                pickNextMatchup();
+            }
             return;
         }
         
@@ -366,11 +372,9 @@ function forceLoadAllFiles() {
             }
 
             const id = getFileId(f);
-            if (state.ratings[id] && state.ratings[id].blacklisted) {
-                if (!state.stagedFilesMap.has(id)) {
-                    state.stagedFilesMap.set(id, f);
-                }
-                continue;
+            let isBlacklisted = state.ratings[id] && state.ratings[id].blacklisted;
+            if (isBlacklisted && !state.stagedFilesMap.has(id)) {
+                state.stagedFilesMap.set(id, f);
             }
 
             let localDidAdd = false;
@@ -385,7 +389,8 @@ function forceLoadAllFiles() {
             }
         }
         
-        const pct = Math.floor((loadedCount / totalToLoad) * 100);
+        const currentTotal = loadedCount + state.unparsedFiles.length;
+        const pct = currentTotal === 0 ? 100 : Math.floor((loadedCount / currentTotal) * 100);
         elements.loadingPercent.textContent = `${pct}%`;
         elements.loadingProgress.style.background = `conic-gradient(var(--accent-green) ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
         
@@ -428,11 +433,9 @@ function pickNextMatchup() {
         }
 
         const id = getFileId(f);
-        if (state.ratings[id] && state.ratings[id].blacklisted) {
-            if (!state.stagedFilesMap.has(id)) {
-                state.stagedFilesMap.set(id, f);
-            }
-            continue;
+        let isBlacklisted = state.ratings[id] && state.ratings[id].blacklisted;
+        if (isBlacklisted && !state.stagedFilesMap.has(id)) {
+            state.stagedFilesMap.set(id, f);
         }
 
         let localDidAdd = false;
@@ -441,14 +444,14 @@ function pickNextMatchup() {
                 state.loadedIds.add(id); 
                 state.images.push(f); 
                 localDidAdd = true; 
-                if (targetType === 'image') newFilesAdded.push(f);
+                if (targetType === 'image' && !isBlacklisted) newFilesAdded.push(f);
             }
         } else if (isVideo) {
             if(!state.loadedIds.has(id)) { 
                 state.loadedIds.add(id); 
                 state.videos.push(f); 
                 localDidAdd = true; 
-                if (targetType === 'video') newFilesAdded.push(f);
+                if (targetType === 'video' && !isBlacklisted) newFilesAdded.push(f);
             }
         }
 
@@ -521,8 +524,15 @@ function updateMatchupProgress() {
     container.classList.remove('hidden');
 
     if (state.currentMatchup.length === 0 || list.length < 2) {
-        document.getElementById('matchup-percent').textContent = `100%`;
-        document.getElementById('matchup-circle').setAttribute('stroke-dasharray', `100, 100`);
+        if (state.unparsedFiles.length > 0) {
+            document.getElementById('matchup-percent').textContent = `...`;
+            document.getElementById('matchup-circle').setAttribute('stroke-dasharray', `0, 100`);
+            document.getElementById('matchup-pool-level').textContent = `SCAN`;
+        } else {
+            document.getElementById('matchup-percent').textContent = `100%`;
+            document.getElementById('matchup-circle').setAttribute('stroke-dasharray', `100, 100`);
+            document.getElementById('matchup-pool-level').textContent = `DONE`;
+        }
         return;
     }
 
@@ -1171,6 +1181,45 @@ function setupEventListeners() {
         if (candidates.length === 0) candidates = list.filter(f => !pool.includes(getFileId(f)));
         
         let replacement = candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)] : undefined;
+        
+        if (!replacement && state.unparsedFiles.length > 0) {
+            let parsedCount = 0;
+            const targetType = state.leaderboardType;
+            while (state.unparsedFiles.length > 0 && parsedCount < 1000) {
+                const f = state.unparsedFiles.pop();
+                parsedCount++;
+                let isImage = false, isVideo = false;
+                if (f.type) {
+                    isImage = f.type.startsWith('image/');
+                    isVideo = f.type.startsWith('video/');
+                } else {
+                    isImage = /\.(jpe?g|png|gif|webp)$/i.test(f.name);
+                    isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(f.name);
+                }
+
+                const id = getFileId(f);
+                if (state.ratings[id] && state.ratings[id].blacklisted) {
+                    if (!state.stagedFilesMap.has(id)) state.stagedFilesMap.set(id, f);
+                    continue;
+                }
+
+                let localDidAdd = false;
+                if (isImage) {
+                    if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.images.push(f); localDidAdd = true; }
+                } else if (isVideo) {
+                    if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.videos.push(f); localDidAdd = true; }
+                }
+
+                if (localDidAdd && !state.ratings[id]) {
+                    state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
+                }
+                
+                if (localDidAdd && ((isImage && targetType === 'image') || (isVideo && targetType === 'video'))) {
+                    replacement = f;
+                    break;
+                }
+            }
+        }
         
         if (replacement) {
             if (state.matchupUrls && state.matchupUrls[state.activeViewIndex]) {
