@@ -326,6 +326,75 @@ function handleFilesSelected(event) {
     }
 }
 
+let forceLoadingProcess = false;
+
+function forceLoadAllFiles() {
+    if (state.unparsedFiles.length === 0) {
+        showToast("No unparsed files in the queue!");
+        return;
+    }
+    if (forceLoadingProcess) return;
+    
+    forceLoadingProcess = true;
+    document.getElementById('settings-modal').classList.remove('active');
+    
+    const totalToLoad = state.unparsedFiles.length;
+    let loadedCount = 0;
+    
+    elements.loadingProgress.classList.remove('hidden');
+    
+    function parseBatch() {
+        if (!forceLoadingProcess || state.unparsedFiles.length === 0) {
+            forceLoadingProcess = false;
+            elements.loadingProgress.classList.add('hidden');
+            showToast("Force load complete!");
+            return;
+        }
+        
+        const loopStart = Date.now();
+        while (state.unparsedFiles.length > 0 && (Date.now() - loopStart < 16)) {
+            const f = state.unparsedFiles.pop();
+            loadedCount++;
+            
+            let isImage = false, isVideo = false;
+            if (f.type) {
+                isImage = f.type.startsWith('image/');
+                isVideo = f.type.startsWith('video/');
+            } else {
+                isImage = /\.(jpe?g|png|gif|webp)$/i.test(f.name);
+                isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(f.name);
+            }
+
+            const id = getFileId(f);
+            if (state.ratings[id] && state.ratings[id].blacklisted) {
+                if (!state.stagedFilesMap.has(id)) {
+                    state.stagedFilesMap.set(id, f);
+                }
+                continue;
+            }
+
+            let localDidAdd = false;
+            if (isImage) {
+                if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.images.push(f); localDidAdd = true; }
+            } else if (isVideo) {
+                if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.videos.push(f); localDidAdd = true; }
+            }
+
+            if (localDidAdd && !state.ratings[id]) {
+                state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
+            }
+        }
+        
+        const pct = Math.floor((loadedCount / totalToLoad) * 100);
+        elements.loadingPercent.textContent = `${pct}%`;
+        elements.loadingProgress.style.background = `conic-gradient(var(--accent-green) ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
+        
+        setTimeout(parseBatch, 0);
+    }
+    
+    parseBatch();
+}
+
 function getActiveList() {
     let baseList = state.leaderboardType === 'image' ? state.images : state.videos;
     return baseList.filter(file => !state.stagedFilesMap.has(getFileId(file)));
@@ -1184,7 +1253,7 @@ function setupEventListeners() {
     const closeTools = () => elements.toolsModal.classList.remove('active');
     elements.btnOpenSettings.addEventListener('click', () => { closeTools(); loadSettingsFromStorage(); elements.settingsModal.classList.add('active'); });
     elements.closeSettingsModal.addEventListener('click', () => { saveSettingsToStorage(); elements.settingsModal.classList.remove('active'); });
-
+    document.getElementById('btn-force-load-all').addEventListener('click', forceLoadAllFiles);
 
     elements.btnCurator.addEventListener('click', () => { closeTools(); elements.curatorModal.classList.add('active'); });
     elements.closeCuratorModal.addEventListener('click', () => {
