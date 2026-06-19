@@ -1012,7 +1012,10 @@ function startLeaderboardViewer(reverse, startIndex = 0) {
     
     state.leaderboardIndex = startIndex;
     state.appMode = 'leaderboard_viewer';
-    elements.leaderboardModal.classList.remove('active');
+    
+    // Close modal properly to free URLs
+    if (typeof closeLeaderboardModalFunc === 'function') closeLeaderboardModalFunc();
+    else elements.leaderboardModal.classList.remove('active');
     
     if (elements.matchupControls) elements.matchupControls.classList.add('hidden');
     elements.timelineControls.classList.remove('hidden');
@@ -1394,13 +1397,15 @@ function setupEventListeners() {
     elements.closeToolsModal.addEventListener('click', closeTools);
 
     elements.btnOpenLeaderboard.addEventListener('click', () => { closeTools(); renderLeaderboard(); elements.leaderboardModal.classList.add('active'); });
-    elements.closeLeaderboardModal.addEventListener('click', () => {
+    
+    window.closeLeaderboardModalFunc = function() {
         elements.leaderboardModal.classList.remove('active');
         if (state.leaderboardUrls) {
             state.leaderboardUrls.forEach(url => URL.revokeObjectURL(url));
             state.leaderboardUrls = [];
         }
-    });
+    };
+    elements.closeLeaderboardModal.addEventListener('click', closeLeaderboardModalFunc);
     
     elements.btnOpenDashboard.addEventListener('click', () => { closeTools(); renderDashboard(); elements.dashboardModal.classList.add('active'); });
     elements.closeDashboardModal.addEventListener('click', () => elements.dashboardModal.classList.remove('active'));
