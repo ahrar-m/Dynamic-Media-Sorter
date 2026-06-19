@@ -8,6 +8,7 @@
     --accent-green: #00f2fe;
     --accent-red: #ff0844;
     --glass-blur: blur(12px);
+    --leaderboard-thumb-size: 80px;
 }
 
 * {
@@ -289,7 +290,6 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 
 /* Executioner Checkbox */
 .dash-bar {
-    flex: 1;
     background: linear-gradient(to top, rgba(79, 172, 254, 0.2), var(--accent-blue));
     border-radius: 4px 4px 0 0;
     opacity: 0.7;
@@ -458,5 +458,70 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 @media (max-width: 600px) {
     .file-info {
         max-width: calc(100% - 170px) !important;
+    }
+}
+
+/* Leaderboard Table Styles (with frozen headers and mobile optimizations) */
+.leaderboard-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+.leaderboard-table th {
+    position: sticky;
+    top: 0;
+    background: rgba(17, 18, 22, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 10;
+    padding: 10px 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    border-bottom: 2px solid var(--panel-border);
+    text-align: center;
+}
+.leaderboard-table td {
+    padding: 8px 4px;
+    border-bottom: 1px solid var(--panel-border);
+    vertical-align: middle;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+.leaderboard-table tr {
+    transition: background 0.2s ease;
+}
+.leaderboard-table tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.leaderboard-thumbnail {
+    width: var(--leaderboard-thumb-size);
+    height: var(--leaderboard-thumb-size);
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+    display: block;
+    margin: 0 auto;
+}
+
+@media (max-width: 600px) {
+    .modal {
+        padding: 14px !important;
+    }
+    .leaderboard-table th {
+        padding: 8px 2px;
+        font-size: 0.7rem;
+    }
+    .leaderboard-table td {
+        padding: 6px 2px;
+        font-size: 0.8rem;
+    }
+    :root {
+        --leaderboard-thumb-size: 60px;
+    }
+    .leaderboard-list {
+        overflow-x: auto;
     }
 }

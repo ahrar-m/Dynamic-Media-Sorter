@@ -66,10 +66,12 @@ const state = {
     matchupUrls: {}, // Cache for UI thumbnails
     stagedFilesMap: new Map(),
     sessionMatches: 0,
-    infoHidden: false
+    infoHidden: false,
+    sessionMediaViewed: new Set()
 };
 
 function getOrdinal(rating) {
+    if (!rating) return 0;
     return rating.mu - 3 * rating.sigma;
 }
 
@@ -79,7 +81,7 @@ let appSettings = {
     defaultFitMode: 'contain',
     startMuted: true,
     autoSubmitMatch: false,
-    backupPrefix: 'dms_elo',
+    backupPrefix: '',
     skipUnmatched: true
 };
 
@@ -167,7 +169,10 @@ function bindElements() {
         closeDashboardModal: document.getElementById('close-dashboard-modal'),
         dashTotalMedia: document.getElementById('dash-total-media'),
         dashTotalMatches: document.getElementById('dash-total-matches'),
+        dashOverallMatches: document.getElementById('dash-overall-matches'),
+        dashSessionMediaViewed: document.getElementById('dash-session-media-viewed'),
         dashBellCurve: document.getElementById('dash-bell-curve'),
+        dashBellCurveLabels: document.getElementById('dash-bell-curve-labels'),
         leaderboardModal: document.getElementById('leaderboard-modal'),
         closeLeaderboardModal: document.getElementById('close-leaderboard-modal'),
         btnOpenLeaderboard: document.getElementById('btn-open-leaderboard'),
@@ -203,7 +208,7 @@ function loadSettingsFromStorage() {
         
         document.getElementById('setting-auto-backup').value = appSettings.autoBackupInterval || 0;
         document.getElementById('setting-leaderboard-size').value = appSettings.leaderboardSize || 32;
-        document.getElementById('setting-backup-prefix').value = appSettings.backupPrefix || 'dms_elo';
+        document.getElementById('setting-backup-prefix').value = appSettings.backupPrefix || '';
         document.getElementById('setting-default-fit').value = appSettings.defaultFitMode || 'contain';
         document.getElementById('setting-start-muted').checked = appSettings.startMuted !== false;
         document.getElementById('setting-auto-submit').checked = appSettings.autoSubmitMatch === true;
@@ -225,7 +230,7 @@ function saveSettingsToStorage(skipRender = false) {
         };
         appSettings.autoBackupInterval = parseSetting('setting-auto-backup', 0);
         appSettings.leaderboardSize = parseSetting('setting-leaderboard-size', 32);
-        appSettings.backupPrefix = document.getElementById('setting-backup-prefix').value || 'dms_elo';
+        appSettings.backupPrefix = document.getElementById('setting-backup-prefix').value.trim();
         appSettings.defaultFitMode = document.getElementById('setting-default-fit').value;
         appSettings.startMuted = document.getElementById('setting-start-muted').checked;
         appSettings.autoSubmitMatch = document.getElementById('setting-auto-submit').checked;
@@ -546,6 +551,9 @@ function pickNextMatchup(isNewMatch = false) {
     }
     
     state.currentMatchup = matchupFiles;
+    state.currentMatchup.forEach(f => {
+        state.sessionMediaViewed.add(getFileId(f));
+    });
     
     state.activeViewIndex = 0;
     state.hasSeen.clear();
@@ -765,6 +773,7 @@ function renderCurrentMedia() {
     const activeFile = state.currentMatchup[state.activeViewIndex];
     const activeId = getFileId(activeFile);
     
+    state.sessionMediaViewed.add(activeId);
     state.hasSeen.add(activeId);
     checkSubmitUnlock();
 
@@ -941,39 +950,59 @@ function renderLeaderboard() {
     const topItems = sorted.slice(0, size);
     const bottomItems = sorted.slice(-size).reverse(); // Worst at the top of the bottom list
     
-    const createItemHTML = (file, rank) => {
-        const r = state.ratings[getFileId(file)];
-        const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i);
-        const objUrl = URL.createObjectURL(file);
-        state.leaderboardUrls.push(objUrl);
+    const createTable = (items, isTopList) => {
+        const table = document.createElement('table');
+        table.className = 'leaderboard-table';
         
-        let mediaHtml;
-        if (isVideo) {
-            mediaHtml = `<video src="${objUrl}#t=0.1" style="width: 64px; height: 64px; object-fit: cover; border-radius: 8px; flex-shrink: 0;" preload="metadata" muted playsinline></video>`;
-        } else {
-            mediaHtml = `<img src="${objUrl}" style="width: 64px; height: 64px; object-fit: cover; border-radius: 8px; flex-shrink: 0;">`;
-        }
-
-        const row = document.createElement('div');
-        row.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--panel-border); transition: background 0.2s ease;";
-        row.onmouseover = () => row.style.background = 'rgba(255,255,255,0.05)';
-        row.onmouseout = () => row.style.background = 'transparent';
-        row.innerHTML = `
-            <div style="flex: 1; display: flex; align-items: center; gap: 15px; overflow: hidden; cursor:pointer;" onclick="openLeaderboardAt('${getFileId(file)}')">
-                <div style="font-weight:bold; width: 30px; color: var(--accent-blue); flex-shrink: 0;">${rank}.</div>
-                ${mediaHtml}
-                <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <div style="font-size:0.8rem; color:var(--text-primary); opacity:0.7;">Matches: ${r.matches || 0}</div>
-                    <div style="font-size:0.8rem; color:var(--text-primary); opacity:0.7;">μ: ${r.mu.toFixed(1)}, σ: ${r.sigma.toFixed(1)}</div>
-                </div>
-            </div>
-            <div style="font-family:monospace; font-size: 1.2rem; font-weight:bold; width:80px; text-align:right; color:var(--accent-blue); flex-shrink: 0;">${Math.round(getOrdinal(r))}</div>
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th style="width: 35px;">Rank</th>
+                    <th class="col-media">Media</th>
+                    <th style="width: 50px;">M</th>
+                    <th style="width: 40px;">&mu;</th>
+                    <th style="width: 40px;">&sigma;</th>
+                    <th style="width: 55px;">Score</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
         `;
-        return row;
+        
+        const tbody = table.querySelector('tbody');
+        
+        items.forEach((file, index) => {
+            const rank = isTopList ? index + 1 : sorted.length - index;
+            const r = state.ratings[getFileId(file)];
+            const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i);
+            const objUrl = URL.createObjectURL(file);
+            state.leaderboardUrls.push(objUrl);
+            
+            let mediaHtml;
+            if (isVideo) {
+                mediaHtml = `<video src="${objUrl}#t=0.1" class="leaderboard-thumbnail" preload="metadata" muted playsinline></video>`;
+            } else {
+                mediaHtml = `<img src="${objUrl}" class="leaderboard-thumbnail">`;
+            }
+
+            const tr = document.createElement('tr');
+            tr.onclick = () => window.openLeaderboardAt(getFileId(file));
+            
+            tr.innerHTML = `
+                <td style="text-align: center; font-weight: bold; color: var(--accent-blue);">${rank}</td>
+                <td style="padding: 6px 0; text-align: center; vertical-align: middle;">${mediaHtml}</td>
+                <td style="text-align: center; opacity: 0.8;">${r.matches || 0}</td>
+                <td style="text-align: center; opacity: 0.8; font-family: monospace;">${r.mu.toFixed(1)}</td>
+                <td style="text-align: center; opacity: 0.8; font-family: monospace;">${r.sigma.toFixed(1)}</td>
+                <td style="text-align: center; font-weight: bold; color: var(--accent-blue); font-size: 1.1rem; font-family: monospace;">${Math.round(getOrdinal(r))}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        
+        return table;
     };
     
-    topItems.forEach((f, i) => elements.leaderboardTopList.appendChild(createItemHTML(f, i+1)));
-    bottomItems.forEach((f, i) => elements.leaderboardBottomList.appendChild(createItemHTML(f, sorted.length - i)));
+    elements.leaderboardTopList.appendChild(createTable(topItems, true));
+    elements.leaderboardBottomList.appendChild(createTable(bottomItems, false));
 }
 
 function startExecutionerReview() {
@@ -1552,6 +1581,23 @@ async function importRatings(event) {
     let processedFiles = 0;
     
     for (const file of files) {
+        // Extract prefix from imported file name
+        const name = file.name;
+        let prefix = '';
+        if (name.includes('_backup_')) {
+            prefix = name.split('_backup_')[0];
+        } else if (name.includes('_autobackup_')) {
+            prefix = name.split('_autobackup_')[0];
+        } else {
+            prefix = name.replace(/\.json$/i, '');
+        }
+        if (prefix) {
+            appSettings.backupPrefix = prefix;
+            const backupPrefixInput = document.getElementById('setting-backup-prefix');
+            if (backupPrefixInput) backupPrefixInput.value = prefix;
+            saveSettingsToStorage(true);
+        }
+        
         await new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -1638,6 +1684,12 @@ function renderDashboard() {
     });
     
     elements.dashTotalMatches.textContent = state.sessionMatches;
+    if (elements.dashOverallMatches) {
+        elements.dashOverallMatches.textContent = Math.ceil(totalMatches / 4);
+    }
+    if (elements.dashSessionMediaViewed) {
+        elements.dashSessionMediaViewed.textContent = state.sessionMediaViewed.size;
+    }
 
     if (ordinals.length > 0) {
         const min = ordinals.reduce((a, b) => Math.min(a, b), ordinals[0]);
@@ -1647,7 +1699,7 @@ function renderDashboard() {
         
         ordinals.forEach(val => {
             let idx = Math.floor(((val - min) / range) * 10);
-            if (idx === 10) idx = 9;
+            idx = Math.min(9, Math.max(0, idx));
             buckets[idx]++;
         });
 
@@ -1659,14 +1711,46 @@ function renderDashboard() {
             const g = Math.round(197 + (68 - 197) * (index / 9));
             const b = Math.round(94 + (68 - 94) * (index / 9));
             const color = `rgba(${r}, ${g}, ${b}, 0.8)`;
-            
             return `<div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; flex: 1;">
                 <div style="font-size: 0.7rem; color: var(--text-primary); margin-bottom: 4px; opacity: 0.8;">${count}</div>
                 <div class="dash-bar" style="height: ${height}%; width: 100%; background: ${color}; border-radius: 4px 4px 0 0;"></div>
             </div>`;
         }).join('');
+        const tickValues = [
+            max,
+            max - 0.25 * (max - min),
+            max - 0.5 * (max - min),
+            max - 0.75 * (max - min),
+            min
+        ];
+        if (elements.dashBellCurveLabels) {
+            elements.dashBellCurveLabels.innerHTML = `
+                <div style="position: absolute; width: 100%; top: 0; left: 0; height: 5px; border-top: 1px solid rgba(255,255,255,0.15); display: flex; justify-content: space-between;">
+                    <div style="height: 5px; border-left: 1px solid rgba(255,255,255,0.3);"></div>
+                    <div style="height: 5px; border-left: 1px solid rgba(255,255,255,0.3);"></div>
+                    <div style="height: 5px; border-left: 1px solid rgba(255,255,255,0.3);"></div>
+                    <div style="height: 5px; border-left: 1px solid rgba(255,255,255,0.3);"></div>
+                    <div style="height: 5px; border-left: 1px solid rgba(255,255,255,0.3); margin-right: -1px;"></div>
+                </div>
+                <div style="position: absolute; width: 100%; top: 8px; left: 0; display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary);">
+                    <span style="transform: translateX(-15%);">Best (${Math.round(tickValues[0])})</span>
+                    <span style="transform: translateX(-50%);">${Math.round(tickValues[1])}</span>
+                    <span style="transform: translateX(-50%);">${Math.round(tickValues[2])}</span>
+                    <span style="transform: translateX(-50%);">${Math.round(tickValues[3])}</span>
+                    <span style="transform: translateX(15%);">Worst (${Math.round(tickValues[4])})</span>
+                </div>
+            `;
+        }
     } else {
         elements.dashBellCurve.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 100%; width: 100%; opacity: 0.5; font-size: 0.9rem;">No match data available yet.</div>`;
+        if (elements.dashBellCurveLabels) {
+            elements.dashBellCurveLabels.innerHTML = `
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px;">
+                    <span>Best</span>
+                    <span>Worst</span>
+                </div>
+            `;
+        }
     }
 }
 

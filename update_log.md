@@ -103,3 +103,18 @@
   - Restressed the file-info overlay max-width on narrow viewports to completely prevent collision with the absolutely positioned Executioner delete checkbox.
   - Removed native video controls and negative-height CSS calculations on placement strip video thumbnails to support hover selection and unranking.
   - Optimized tools modal scrolling performance on low-end mobile devices by removing resource-heavy nested glassmorphism styles in favor of translucent backgrounds.
+
+## [2026-06-19] Leaderboard Table, Analytics Session Stats, and Backup Setting Enhancements
+- **Leaderboard Table Layout**:
+  - Re-designed the leaderboard top/bottom lists to use a native, highly readable HTML `<table>` layout with separate columns for Matches (`M`), rating mean (`μ`), rating standard deviation (`σ`), and ordinal `Score`.
+  - Configured sticky frozen headers (`position: sticky; top: 0`) using glassmorphism (`backdrop-filter`) to keep headers visible during list scrolling without visual rendering glitches.
+  - Implemented mobile-responsive scaling: thumbnails scale down from 80px to 60px on mobile viewports (<600px).
+- **Analytics Dashboard Upgrades**:
+  - Added new stats cards: "Total Matches (All-Time)" and "Media Viewed (Session)".
+  - Populated session media viewed count dynamically via a `Set` tracking all media IDs displayed during the sorting session.
+  - Fixed histogram distribution bar height scaling by removing conflicting `flex: 1` CSS rules.
+  - Designed a 5-ticks graphical axis representing exact ordinal score bounds underneath the rating distribution bars.
+- **Backup & Setting Auto-Rename**:
+  - Initialized backup filename prefix as empty (`""`) in application settings by default.
+  - Programmed the backup parser to automatically extract the prefix from imported filenames (e.g., stripping `_backup_` or `_autobackup_`), updating settings instantly on import.
+  - Hardened settings saving to preserve empty backup prefixes without falling back to `dms_elo`.
