@@ -440,3 +440,23 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 .placement-insert-btn:hover {
     background: var(--accent-blue); transform: scale(1.2); color: white;
 }
+
+/* Inactive Tab Styles to preserve hover states */
+.btn-tab-inactive {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-secondary) !important;
+    opacity: 0.7;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.btn-tab-inactive:hover {
+    background: rgba(255, 255, 255, 0.18) !important;
+    color: var(--text-primary) !important;
+    opacity: 1;
+}
+
+/* Prevent overlap of file info and executioner delete checkbox on small viewports */
+@media (max-width: 600px) {
+    .file-info {
+        max-width: calc(100% - 170px) !important;
+    }
+}

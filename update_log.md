@@ -85,3 +85,21 @@
 - Designed a mathematically robust **Golden Ratio Matchmaking** system: Matchups now consistently consist of exactly 2 newly parsed items drawn fully randomly from the 25k unparsed pool combined seamlessly with 2 previously ranked items from the active pool.
 - Added a background, non-blocking **Force Load All** UI button in the Settings panel for users preferring to pre-populate their database instantly.
 - Handled all edge cases: automatically hidden the submit button during `autoSubmitMatch`, dynamically solved `blacklisted` staging leaks to preserve user file data, and corrected percentage overflow logic during mid-run directory drags.
+
+## [2026-06-19] Page Load Initialization Fix, Logic Bugs, and UI/UX Refinements
+- **Page Load Crash**: Resolved a critical syntax block where the closing brace `}` of the `showErrorToast` function was deleted in a previous commit, wrapping the entire rest of the file inside the function body and preventing the application from initializing on page load.
+- **Logic & Safety Bugs**:
+  - Fixed a `ReferenceError` when direct folder delete fallbacks were triggered on Android/Safari by changing `generateExecutionerScript()` to the correct `generateScripts()` function.
+  - Eliminated a memory leak in staged file replacement by revoking object URLs with the correct ID string keys rather than integer indices.
+  - Fixed a Python script syntax error in The Curator by swapping double-escaped `\\n` with a correct single-newline character join.
+  - Hardened the Analytics Dashboard against `RangeError` (call stack size exceeded) when spreading massive media arrays (~25k items) to `Math.min`/`Math.max` by rewriting them as iterative `.reduce` calls.
+  - Implemented safety checks in `renderExecutionerMedia` and `renderLeaderboardViewerMedia` to gracefully handle empty queues, preventing settings modal save TypeErrors.
+- **UI/UX & Responsive Layouts**:
+  - Swapped data backup icons to conform to web standards (Download for Export, Upload for Restore) and styled backup/restore buttons to match the uniform left-aligned tools modal layout.
+  - Dismissed the tools modal automatically upon successful backup restoration.
+  - Swapped inline background color manipulation on Leaderboard active/inactive tabs with clean CSS classes, preserving native button hover states.
+  - Redesigned the Leaderboard modal to keep tabs and action headers sticky at the top, restricting scroll behavior solely to the list containers.
+  - Eliminated mobile layout button crowding by removing inline width/height values on footer controls, allowing them to shrink using media query rules.
+  - Restressed the file-info overlay max-width on narrow viewports to completely prevent collision with the absolutely positioned Executioner delete checkbox.
+  - Removed native video controls and negative-height CSS calculations on placement strip video thumbnails to support hover selection and unranking.
+  - Optimized tools modal scrolling performance on low-end mobile devices by removing resource-heavy nested glassmorphism styles in favor of translucent backgrounds.

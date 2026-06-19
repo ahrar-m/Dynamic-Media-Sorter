@@ -32,6 +32,8 @@ function showErrorToast(message) {
     setTimeout(() => {
         if (errDiv.parentElement) errDiv.remove();
     }, 8000);
+}
+
 const state = {
     images: [],
     videos: [],
@@ -864,9 +866,9 @@ function renderPlacementStrip() {
         let mediaEl;
         if (file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
             mediaEl = document.createElement('video');
-            mediaEl.controls = true;
             mediaEl.loop = true;
-            mediaEl.style.cssText = `width: 100%; height: calc(100% - 70px); object-fit: ${state.fitMode}; border-radius: 12px;`;
+            mediaEl.muted = true;
+            mediaEl.autoplay = true;
             mediaEl.playsInline = true;
         } else {
             mediaEl = document.createElement('img');
@@ -996,6 +998,12 @@ function renderExecutionerMedia() {
     if (objectUrlA) URL.revokeObjectURL(objectUrlA);
     elements.mediaContainer.innerHTML = '';
     const file = state.executionerQueue[state.executionerIndex];
+    if (!file) {
+        elements.mediaContainer.innerHTML = '<div class="empty-state glass-panel" style="padding: 40px;"><p>No staged files left to review.</p></div>';
+        elements.matchStatusIndicator.classList.add('hidden');
+        elements.executionerCheckContainer.classList.add('hidden');
+        return;
+    }
     const id = getFileId(file);
     objectUrlA = URL.createObjectURL(file);
     
@@ -1089,6 +1097,12 @@ function renderLeaderboardViewerMedia() {
     if (objectUrlA) URL.revokeObjectURL(objectUrlA);
     
     const file = state.leaderboardQueue[state.leaderboardIndex];
+    if (!file) {
+        elements.mediaContainer.innerHTML = '<div class="empty-state glass-panel" style="padding: 40px;"><p>No leaderboard items to view.</p></div>';
+        elements.matchStatusIndicator.classList.add('hidden');
+        elements.executionerCheckContainer.classList.add('hidden');
+        return;
+    }
     const id = getFileId(file);
     const rating = state.ratings[id];
     objectUrlA = URL.createObjectURL(file);
@@ -1314,9 +1328,9 @@ function setupEventListeners() {
         }
         
         if (replacement) {
-            if (state.matchupUrls && state.matchupUrls[state.activeViewIndex]) {
-                URL.revokeObjectURL(state.matchupUrls[state.activeViewIndex]);
-                state.matchupUrls[state.activeViewIndex] = null;
+            if (state.matchupUrls && state.matchupUrls[activeId]) {
+                URL.revokeObjectURL(state.matchupUrls[activeId]);
+                delete state.matchupUrls[activeId];
             }
             state.currentMatchup[state.activeViewIndex] = replacement;
             delete state.currentRankings[activeId];
@@ -1428,21 +1442,21 @@ function setupEventListeners() {
     if (elements.btnPurgeDirect) elements.btnPurgeDirect.addEventListener('click', deleteStagedFilesDirectly);
     
     if (elements.btnLeaderboardBest) {
-        elements.btnLeaderboardBest.addEventListener('click', (e) => {
-            e.target.classList.add('btn-primary');
-            e.target.style.background = '';
+        elements.btnLeaderboardBest.addEventListener('click', () => {
+            elements.btnLeaderboardBest.classList.add('btn-primary');
+            elements.btnLeaderboardBest.classList.remove('btn-tab-inactive');
             elements.btnLeaderboardWorst.classList.remove('btn-primary');
-            elements.btnLeaderboardWorst.style.background = 'rgba(255, 255, 255, 0.1)';
+            elements.btnLeaderboardWorst.classList.add('btn-tab-inactive');
             elements.leaderboardTopSection.classList.remove('hidden');
             elements.leaderboardBottomSection.classList.add('hidden');
         });
     }
     if (elements.btnLeaderboardWorst) {
-        elements.btnLeaderboardWorst.addEventListener('click', (e) => {
-            e.target.classList.add('btn-primary');
-            e.target.style.background = '';
+        elements.btnLeaderboardWorst.addEventListener('click', () => {
+            elements.btnLeaderboardWorst.classList.add('btn-primary');
+            elements.btnLeaderboardWorst.classList.remove('btn-tab-inactive');
             elements.btnLeaderboardBest.classList.remove('btn-primary');
-            elements.btnLeaderboardBest.style.background = 'rgba(255, 255, 255, 0.1)';
+            elements.btnLeaderboardBest.classList.add('btn-tab-inactive');
             elements.leaderboardBottomSection.classList.remove('hidden');
             elements.leaderboardTopSection.classList.add('hidden');
         });
@@ -1599,6 +1613,7 @@ async function importRatings(event) {
         await saveRatingsToStorage(); 
         showToast(`Restored ${processedFiles} backup(s)!`);
         event.target.value = '';
+        if (elements.toolsModal) elements.toolsModal.classList.remove('active');
         renderLeaderboard();
         pickNextMatchup();
     }
@@ -1625,8 +1640,8 @@ function renderDashboard() {
     elements.dashTotalMatches.textContent = state.sessionMatches;
 
     if (ordinals.length > 0) {
-        const min = Math.min(...ordinals);
-        const max = Math.max(...ordinals);
+        const min = ordinals.reduce((a, b) => Math.min(a, b), ordinals[0]);
+        const max = ordinals.reduce((a, b) => Math.max(a, b), ordinals[0]);
         const buckets = new Array(10).fill(0);
         const range = Math.max(0.1, max - min);
         
@@ -1639,7 +1654,7 @@ function renderDashboard() {
         const maxBucket = Math.max(...buckets);
         const reversedBuckets = [...buckets].reverse();
         elements.dashBellCurve.innerHTML = reversedBuckets.map((count, index) => {
-            const height = maxBucket > 0 ? (count / maxBucket) * 100 : 0;
+            const height = maxBucket > 0 ? (count / maxBucket) * 80 : 0;
             const r = Math.round(34 + (239 - 34) * (index / 9));
             const g = Math.round(197 + (68 - 197) * (index / 9));
             const b = Math.round(94 + (68 - 94) * (index / 9));
@@ -1651,7 +1666,7 @@ function renderDashboard() {
             </div>`;
         }).join('');
     } else {
-        elements.dashBellCurve.innerHTML = '';
+        elements.dashBellCurve.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 100%; width: 100%; opacity: 0.5; font-size: 0.9rem;">No match data available yet.</div>`;
     }
 }
 
@@ -1693,7 +1708,7 @@ if not os.path.exists(favorites_dir):
     os.makedirs(favorites_dir)
 
 files = [
-${names.map(n => '  ' + JSON.stringify(n) + ',').join('\\n')}
+${names.map(n => '  ' + JSON.stringify(n) + ',').join('\n')}
 ]
 
 def get_unique_path(dest):
@@ -1827,7 +1842,7 @@ async function copyFavoritesDirectly() {
 async function deleteStagedFilesDirectly() {
     if (!window.showDirectoryPicker) {
         showToast("Direct Delete is unsupported on Android browsers. Generating script instead...");
-        generateExecutionerScript();
+        generateScripts();
         return;
     }
     if(state.stagedFilesMap.size === 0) {

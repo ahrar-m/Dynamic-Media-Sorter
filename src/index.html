@@ -89,16 +89,16 @@
 
     <div class="footer-grid">
         <div class="footer-left">
-            <button class="btn btn-secondary" id="btn-undo" title="Undo Last Match" style="width: 44px; height: 44px;"><i class="fa-solid fa-rotate-left"></i></button>
-            <button class="btn btn-secondary" id="btn-info" title="Toggle Info" style="width: 44px; height: 44px;"><i class="fa-solid fa-circle-info"></i></button>
+            <button class="btn btn-secondary action-btn" id="btn-undo" title="Undo Last Match"><i class="fa-solid fa-rotate-left"></i></button>
+            <button class="btn btn-secondary action-btn" id="btn-info" title="Toggle Info"><i class="fa-solid fa-circle-info"></i></button>
         </div>
         <div class="footer-center">
-            <button class="btn btn-primary" id="btn-submit-match" disabled style="width: 44px; height: 44px; border-radius: 50%; padding: 0; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; transition: all 0.3s ease;"><i class="fa-solid fa-check"></i></button>
+            <button class="btn btn-primary action-btn" id="btn-submit-match" disabled><i class="fa-solid fa-check"></i></button>
         </div>
         <div class="footer-right">
-            <button class="btn" id="btn-share-current" title="Share Media" style="width: 44px; height: 44px; display: none; align-items: center; justify-content: center;"><i class="fa-solid fa-share-nodes"></i></button>
-            <button class="btn btn-danger" id="btn-stage-current" title="Stage Current Media to Executioner" style="width: 44px; height: 44px;"><i class="fa-solid fa-skull"></i></button>
-            <button class="btn" id="btn-toggle-fit" title="Cycle Media Fit" style="width: 44px; height: 44px;"><i class="fa-solid fa-compress"></i></button>
+            <button class="btn action-btn" id="btn-share-current" title="Share Media" style="display: none;"><i class="fa-solid fa-share-nodes"></i></button>
+            <button class="btn btn-danger action-btn" id="btn-stage-current" title="Stage Current Media to Executioner"><i class="fa-solid fa-skull"></i></button>
+            <button class="btn action-btn" id="btn-toggle-fit" title="Cycle Media Fit"><i class="fa-solid fa-compress"></i></button>
         </div>
     </div>
 
@@ -117,25 +117,25 @@
         <button class="modal-close" id="close-tools-modal"><i class="fa-solid fa-xmark"></i></button>
         <h2><i class="fa-solid fa-toolbox"></i> Tools & Layout</h2>
         <div class="modal-body" style="display: flex; flex-direction: column; gap: 10px;">
-            <div class="glass-panel" style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 12px;">
                 <h3 style="margin:0; font-size: 1rem; color: var(--accent-blue);">Load Media</h3>
                 <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('file-input').click(); document.getElementById('tools-modal').classList.remove('active');"><i class="fa-solid fa-file-image"></i> Load Files</button>
                 <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('folder-input').click(); document.getElementById('tools-modal').classList.remove('active');"><i class="fa-solid fa-folder-open"></i> Load Folder</button>
             </div>
-            <div class="glass-panel" style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 12px;">
                 <h3 style="margin:0; font-size: 1rem; color: var(--accent-blue);">App Modes</h3>
                 <button class="btn btn-primary" id="btn-open-leaderboard" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-ranking-star"></i> Leaderboard</button>
                 <button class="btn" id="btn-open-dashboard" style="width: 100%; justify-content: flex-start; background: rgba(255, 255, 255, 0.1);"><i class="fa-solid fa-chart-pie"></i> Analytics Dashboard</button>
                 <button class="btn" id="btn-curator" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-star" style="color: #ffd700;"></i> The Curator</button>
                 <button class="btn btn-danger" id="btn-purge" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-skull"></i> The Executioner</button>
             </div>
-            <div class="glass-panel" style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 12px;">
                 <h3 style="margin:0; font-size: 1rem; color: var(--accent-blue);">Data & Backup</h3>
-                <button class="btn" id="btn-export"><i class="fa-solid fa-upload"></i> Export Backup</button>
+                <button class="btn" id="btn-export" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-download"></i> Export Backup</button>
                 <input type="file" id="import-input" class="hidden" multiple>
-                <button class="btn" onclick="document.getElementById('import-input').click()"><i class="fa-solid fa-download"></i> Restore Backup</button>
+                <button class="btn" onclick="document.getElementById('import-input').click()" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-upload"></i> Restore Backup</button>
             </div>
-            <div class="glass-panel" style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 12px;">
                 <h3 style="margin:0; font-size: 1rem; color: var(--accent-blue);">Layout & Options</h3>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn" id="toggle-image" style="flex: 1; background: rgba(79, 172, 254, 0.4);"><i class="fa-solid fa-image"></i> Images</button>
@@ -205,29 +205,29 @@
 </div>
 
 <div class="modal-overlay" id="leaderboard-modal">
-    <div class="modal glass-panel" style="width: 90%; max-width: 700px; height: 80vh;">
+    <div class="modal glass-panel" style="width: 90%; max-width: 700px; height: 80vh; display: flex; flex-direction: column;">
         <button class="modal-close" id="close-leaderboard-modal"><i class="fa-solid fa-xmark"></i></button>
         <h2><i class="fa-solid fa-ranking-star"></i> Leaderboard</h2>
-        <div class="modal-body">
-            <div id="leaderboard-tabs" style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <div class="modal-body" style="overflow: hidden; display: flex; flex-direction: column; flex: 1; min-height: 0;">
+            <div id="leaderboard-tabs" style="display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0;">
                 <button class="btn btn-primary" id="btn-leaderboard-best" style="flex: 1;">Best</button>
-                <button class="btn" id="btn-leaderboard-worst" style="flex: 1; background: rgba(255, 255, 255, 0.1);">Worst</button>
+                <button class="btn btn-tab-inactive" id="btn-leaderboard-worst" style="flex: 1;">Worst</button>
             </div>
             
-            <div id="leaderboard-top-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div id="leaderboard-top-section" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-shrink: 0;">
                     <h3 style="margin: 0; color: var(--accent-green);">Top Tier</h3>
                     <button class="btn btn-primary" id="btn-view-top-cont">View Continuously</button>
                 </div>
-                <div id="leaderboard-top-list" class="leaderboard-list"></div>
+                <div id="leaderboard-top-list" class="leaderboard-list" style="overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px;"></div>
             </div>
             
-            <div id="leaderboard-bottom-section" class="hidden">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div id="leaderboard-bottom-section" class="hidden" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-shrink: 0;">
                     <h3 style="margin: 0; color: var(--accent-red);">Bottom Tier</h3>
                     <button class="btn btn-danger" id="btn-view-bottom-cont">View Continuously</button>
                 </div>
-                <div id="leaderboard-bottom-list" class="leaderboard-list"></div>
+                <div id="leaderboard-bottom-list" class="leaderboard-list" style="overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px;"></div>
             </div>
         </div>
     </div>

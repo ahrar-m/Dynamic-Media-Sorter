@@ -455,6 +455,26 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 .placement-insert-btn:hover {
     background: var(--accent-blue); transform: scale(1.2); color: white;
 }
+
+/* Inactive Tab Styles to preserve hover states */
+.btn-tab-inactive {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-secondary) !important;
+    opacity: 0.7;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.btn-tab-inactive:hover {
+    background: rgba(255, 255, 255, 0.18) !important;
+    color: var(--text-primary) !important;
+    opacity: 1;
+}
+
+/* Prevent overlap of file info and executioner delete checkbox on small viewports */
+@media (max-width: 600px) {
+    .file-info {
+        max-width: calc(100% - 170px) !important;
+    }
+}
 </style>
 </head>
 <body>
@@ -532,16 +552,16 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 
     <div class="footer-grid">
         <div class="footer-left">
-            <button class="btn btn-secondary" id="btn-undo" title="Undo Last Match" style="width: 44px; height: 44px;"><i class="fa-solid fa-rotate-left"></i></button>
-            <button class="btn btn-secondary" id="btn-info" title="Toggle Info" style="width: 44px; height: 44px;"><i class="fa-solid fa-circle-info"></i></button>
+            <button class="btn btn-secondary action-btn" id="btn-undo" title="Undo Last Match"><i class="fa-solid fa-rotate-left"></i></button>
+            <button class="btn btn-secondary action-btn" id="btn-info" title="Toggle Info"><i class="fa-solid fa-circle-info"></i></button>
         </div>
         <div class="footer-center">
-            <button class="btn btn-primary" id="btn-submit-match" disabled style="width: 44px; height: 44px; border-radius: 50%; padding: 0; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; transition: all 0.3s ease;"><i class="fa-solid fa-check"></i></button>
+            <button class="btn btn-primary action-btn" id="btn-submit-match" disabled><i class="fa-solid fa-check"></i></button>
         </div>
         <div class="footer-right">
-            <button class="btn" id="btn-share-current" title="Share Media" style="width: 44px; height: 44px; display: none; align-items: center; justify-content: center;"><i class="fa-solid fa-share-nodes"></i></button>
-            <button class="btn btn-danger" id="btn-stage-current" title="Stage Current Media to Executioner" style="width: 44px; height: 44px;"><i class="fa-solid fa-skull"></i></button>
-            <button class="btn" id="btn-toggle-fit" title="Cycle Media Fit" style="width: 44px; height: 44px;"><i class="fa-solid fa-compress"></i></button>
+            <button class="btn action-btn" id="btn-share-current" title="Share Media" style="display: none;"><i class="fa-solid fa-share-nodes"></i></button>
+            <button class="btn btn-danger action-btn" id="btn-stage-current" title="Stage Current Media to Executioner"><i class="fa-solid fa-skull"></i></button>
+            <button class="btn action-btn" id="btn-toggle-fit" title="Cycle Media Fit"><i class="fa-solid fa-compress"></i></button>
         </div>
     </div>
 
@@ -560,25 +580,25 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         <button class="modal-close" id="close-tools-modal"><i class="fa-solid fa-xmark"></i></button>
         <h2><i class="fa-solid fa-toolbox"></i> Tools & Layout</h2>
         <div class="modal-body" style="display: flex; flex-direction: column; gap: 10px;">
-            <div class="glass-panel" style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 12px;">
                 <h3 style="margin:0; font-size: 1rem; color: var(--accent-blue);">Load Media</h3>
                 <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('file-input').click(); document.getElementById('tools-modal').classList.remove('active');"><i class="fa-solid fa-file-image"></i> Load Files</button>
                 <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('folder-input').click(); document.getElementById('tools-modal').classList.remove('active');"><i class="fa-solid fa-folder-open"></i> Load Folder</button>
             </div>
-            <div class="glass-panel" style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 12px;">
                 <h3 style="margin:0; font-size: 1rem; color: var(--accent-blue);">App Modes</h3>
                 <button class="btn btn-primary" id="btn-open-leaderboard" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-ranking-star"></i> Leaderboard</button>
                 <button class="btn" id="btn-open-dashboard" style="width: 100%; justify-content: flex-start; background: rgba(255, 255, 255, 0.1);"><i class="fa-solid fa-chart-pie"></i> Analytics Dashboard</button>
                 <button class="btn" id="btn-curator" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-star" style="color: #ffd700;"></i> The Curator</button>
                 <button class="btn btn-danger" id="btn-purge" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-skull"></i> The Executioner</button>
             </div>
-            <div class="glass-panel" style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 12px;">
                 <h3 style="margin:0; font-size: 1rem; color: var(--accent-blue);">Data & Backup</h3>
-                <button class="btn" id="btn-export"><i class="fa-solid fa-upload"></i> Export Backup</button>
+                <button class="btn" id="btn-export" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-download"></i> Export Backup</button>
                 <input type="file" id="import-input" class="hidden" multiple>
-                <button class="btn" onclick="document.getElementById('import-input').click()"><i class="fa-solid fa-download"></i> Restore Backup</button>
+                <button class="btn" onclick="document.getElementById('import-input').click()" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-upload"></i> Restore Backup</button>
             </div>
-            <div class="glass-panel" style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 12px;">
                 <h3 style="margin:0; font-size: 1rem; color: var(--accent-blue);">Layout & Options</h3>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn" id="toggle-image" style="flex: 1; background: rgba(79, 172, 254, 0.4);"><i class="fa-solid fa-image"></i> Images</button>
@@ -648,29 +668,29 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 </div>
 
 <div class="modal-overlay" id="leaderboard-modal">
-    <div class="modal glass-panel" style="width: 90%; max-width: 700px; height: 80vh;">
+    <div class="modal glass-panel" style="width: 90%; max-width: 700px; height: 80vh; display: flex; flex-direction: column;">
         <button class="modal-close" id="close-leaderboard-modal"><i class="fa-solid fa-xmark"></i></button>
         <h2><i class="fa-solid fa-ranking-star"></i> Leaderboard</h2>
-        <div class="modal-body">
-            <div id="leaderboard-tabs" style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <div class="modal-body" style="overflow: hidden; display: flex; flex-direction: column; flex: 1; min-height: 0;">
+            <div id="leaderboard-tabs" style="display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0;">
                 <button class="btn btn-primary" id="btn-leaderboard-best" style="flex: 1;">Best</button>
-                <button class="btn" id="btn-leaderboard-worst" style="flex: 1; background: rgba(255, 255, 255, 0.1);">Worst</button>
+                <button class="btn btn-tab-inactive" id="btn-leaderboard-worst" style="flex: 1;">Worst</button>
             </div>
             
-            <div id="leaderboard-top-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div id="leaderboard-top-section" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-shrink: 0;">
                     <h3 style="margin: 0; color: var(--accent-green);">Top Tier</h3>
                     <button class="btn btn-primary" id="btn-view-top-cont">View Continuously</button>
                 </div>
-                <div id="leaderboard-top-list" class="leaderboard-list"></div>
+                <div id="leaderboard-top-list" class="leaderboard-list" style="overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px;"></div>
             </div>
             
-            <div id="leaderboard-bottom-section" class="hidden">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div id="leaderboard-bottom-section" class="hidden" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-shrink: 0;">
                     <h3 style="margin: 0; color: var(--accent-red);">Bottom Tier</h3>
                     <button class="btn btn-danger" id="btn-view-bottom-cont">View Continuously</button>
                 </div>
-                <div id="leaderboard-bottom-list" class="leaderboard-list"></div>
+                <div id="leaderboard-bottom-list" class="leaderboard-list" style="overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px;"></div>
             </div>
         </div>
     </div>
@@ -788,6 +808,8 @@ function showErrorToast(message) {
     setTimeout(() => {
         if (errDiv.parentElement) errDiv.remove();
     }, 8000);
+}
+
 const state = {
     images: [],
     videos: [],
@@ -1620,9 +1642,9 @@ function renderPlacementStrip() {
         let mediaEl;
         if (file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
             mediaEl = document.createElement('video');
-            mediaEl.controls = true;
             mediaEl.loop = true;
-            mediaEl.style.cssText = `width: 100%; height: calc(100% - 70px); object-fit: ${state.fitMode}; border-radius: 12px;`;
+            mediaEl.muted = true;
+            mediaEl.autoplay = true;
             mediaEl.playsInline = true;
         } else {
             mediaEl = document.createElement('img');
@@ -1752,6 +1774,12 @@ function renderExecutionerMedia() {
     if (objectUrlA) URL.revokeObjectURL(objectUrlA);
     elements.mediaContainer.innerHTML = '';
     const file = state.executionerQueue[state.executionerIndex];
+    if (!file) {
+        elements.mediaContainer.innerHTML = '<div class="empty-state glass-panel" style="padding: 40px;"><p>No staged files left to review.</p></div>';
+        elements.matchStatusIndicator.classList.add('hidden');
+        elements.executionerCheckContainer.classList.add('hidden');
+        return;
+    }
     const id = getFileId(file);
     objectUrlA = URL.createObjectURL(file);
     
@@ -1845,6 +1873,12 @@ function renderLeaderboardViewerMedia() {
     if (objectUrlA) URL.revokeObjectURL(objectUrlA);
     
     const file = state.leaderboardQueue[state.leaderboardIndex];
+    if (!file) {
+        elements.mediaContainer.innerHTML = '<div class="empty-state glass-panel" style="padding: 40px;"><p>No leaderboard items to view.</p></div>';
+        elements.matchStatusIndicator.classList.add('hidden');
+        elements.executionerCheckContainer.classList.add('hidden');
+        return;
+    }
     const id = getFileId(file);
     const rating = state.ratings[id];
     objectUrlA = URL.createObjectURL(file);
@@ -2070,9 +2104,9 @@ function setupEventListeners() {
         }
         
         if (replacement) {
-            if (state.matchupUrls && state.matchupUrls[state.activeViewIndex]) {
-                URL.revokeObjectURL(state.matchupUrls[state.activeViewIndex]);
-                state.matchupUrls[state.activeViewIndex] = null;
+            if (state.matchupUrls && state.matchupUrls[activeId]) {
+                URL.revokeObjectURL(state.matchupUrls[activeId]);
+                delete state.matchupUrls[activeId];
             }
             state.currentMatchup[state.activeViewIndex] = replacement;
             delete state.currentRankings[activeId];
@@ -2184,21 +2218,21 @@ function setupEventListeners() {
     if (elements.btnPurgeDirect) elements.btnPurgeDirect.addEventListener('click', deleteStagedFilesDirectly);
     
     if (elements.btnLeaderboardBest) {
-        elements.btnLeaderboardBest.addEventListener('click', (e) => {
-            e.target.classList.add('btn-primary');
-            e.target.style.background = '';
+        elements.btnLeaderboardBest.addEventListener('click', () => {
+            elements.btnLeaderboardBest.classList.add('btn-primary');
+            elements.btnLeaderboardBest.classList.remove('btn-tab-inactive');
             elements.btnLeaderboardWorst.classList.remove('btn-primary');
-            elements.btnLeaderboardWorst.style.background = 'rgba(255, 255, 255, 0.1)';
+            elements.btnLeaderboardWorst.classList.add('btn-tab-inactive');
             elements.leaderboardTopSection.classList.remove('hidden');
             elements.leaderboardBottomSection.classList.add('hidden');
         });
     }
     if (elements.btnLeaderboardWorst) {
-        elements.btnLeaderboardWorst.addEventListener('click', (e) => {
-            e.target.classList.add('btn-primary');
-            e.target.style.background = '';
+        elements.btnLeaderboardWorst.addEventListener('click', () => {
+            elements.btnLeaderboardWorst.classList.add('btn-primary');
+            elements.btnLeaderboardWorst.classList.remove('btn-tab-inactive');
             elements.btnLeaderboardBest.classList.remove('btn-primary');
-            elements.btnLeaderboardBest.style.background = 'rgba(255, 255, 255, 0.1)';
+            elements.btnLeaderboardBest.classList.add('btn-tab-inactive');
             elements.leaderboardBottomSection.classList.remove('hidden');
             elements.leaderboardTopSection.classList.add('hidden');
         });
@@ -2355,6 +2389,7 @@ async function importRatings(event) {
         await saveRatingsToStorage(); 
         showToast(`Restored ${processedFiles} backup(s)!`);
         event.target.value = '';
+        if (elements.toolsModal) elements.toolsModal.classList.remove('active');
         renderLeaderboard();
         pickNextMatchup();
     }
@@ -2381,8 +2416,8 @@ function renderDashboard() {
     elements.dashTotalMatches.textContent = state.sessionMatches;
 
     if (ordinals.length > 0) {
-        const min = Math.min(...ordinals);
-        const max = Math.max(...ordinals);
+        const min = ordinals.reduce((a, b) => Math.min(a, b), ordinals[0]);
+        const max = ordinals.reduce((a, b) => Math.max(a, b), ordinals[0]);
         const buckets = new Array(10).fill(0);
         const range = Math.max(0.1, max - min);
         
@@ -2395,7 +2430,7 @@ function renderDashboard() {
         const maxBucket = Math.max(...buckets);
         const reversedBuckets = [...buckets].reverse();
         elements.dashBellCurve.innerHTML = reversedBuckets.map((count, index) => {
-            const height = maxBucket > 0 ? (count / maxBucket) * 100 : 0;
+            const height = maxBucket > 0 ? (count / maxBucket) * 80 : 0;
             const r = Math.round(34 + (239 - 34) * (index / 9));
             const g = Math.round(197 + (68 - 197) * (index / 9));
             const b = Math.round(94 + (68 - 94) * (index / 9));
@@ -2407,7 +2442,7 @@ function renderDashboard() {
             </div>`;
         }).join('');
     } else {
-        elements.dashBellCurve.innerHTML = '';
+        elements.dashBellCurve.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 100%; width: 100%; opacity: 0.5; font-size: 0.9rem;">No match data available yet.</div>`;
     }
 }
 
@@ -2449,7 +2484,7 @@ if not os.path.exists(favorites_dir):
     os.makedirs(favorites_dir)
 
 files = [
-${names.map(n => '  ' + JSON.stringify(n) + ',').join('\\n')}
+${names.map(n => '  ' + JSON.stringify(n) + ',').join('\n')}
 ]
 
 def get_unique_path(dest):
@@ -2583,7 +2618,7 @@ async function copyFavoritesDirectly() {
 async function deleteStagedFilesDirectly() {
     if (!window.showDirectoryPicker) {
         showToast("Direct Delete is unsupported on Android browsers. Generating script instead...");
-        generateExecutionerScript();
+        generateScripts();
         return;
     }
     if(state.stagedFilesMap.size === 0) {
