@@ -465,6 +465,11 @@ function pickNextMatchup(isNewMatch = false) {
         if (localDidAdd && !state.ratings[id]) {
             state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
         }
+        
+        if (state.currentMatchup.length === 0) {
+            if (targetType === 'image' && state.videos.length >= 4) break;
+            if (targetType === 'video' && state.images.length >= 4) break;
+        }
     }
     
     const list = getActiveList();
