@@ -53,6 +53,7 @@ const state = {
     // Leaderboard Viewer State
     leaderboardQueue: [],
     leaderboardIndex: 0,
+    leaderboardUrls: [],
 
     isAnimating: false,
     infoVisible: false,
@@ -864,6 +865,11 @@ function renderLeaderboard() {
     const sorted = [...list].sort((a, b) => getOrdinal(state.ratings[getFileId(b)]) - getOrdinal(state.ratings[getFileId(a)]));
     const size = appSettings.leaderboardSize || 32;
     
+    if (state.leaderboardUrls) {
+        state.leaderboardUrls.forEach(url => URL.revokeObjectURL(url));
+    }
+    state.leaderboardUrls = [];
+    
     elements.leaderboardTopList.innerHTML = '';
     elements.leaderboardBottomList.innerHTML = '';
     
@@ -878,15 +884,29 @@ function renderLeaderboard() {
     
     const createItemHTML = (file, rank) => {
         const r = state.ratings[getFileId(file)];
+        const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i);
+        const objUrl = URL.createObjectURL(file);
+        state.leaderboardUrls.push(objUrl);
+        
+        let mediaHtml;
+        if (isVideo) {
+            mediaHtml = `<video src="${objUrl}#t=0.1" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; flex-shrink: 0;" preload="metadata" muted playsinline></video>`;
+        } else {
+            mediaHtml = `<img src="${objUrl}" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; flex-shrink: 0;">`;
+        }
+
         const row = document.createElement('div');
-        row.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--panel-border);";
+        row.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--panel-border); transition: background 0.2s ease;";
+        row.onmouseover = () => row.style.background = 'rgba(255,255,255,0.05)';
+        row.onmouseout = () => row.style.background = 'transparent';
         row.innerHTML = `
-            <div style="flex: 1; display: flex; align-items: center; gap: 15px; overflow: hidden;">
-                <div style="font-weight:bold; width: 30px; color: var(--accent-blue);">${rank}.</div>
-                <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;" class="leaderboard-item-name" title="${file.name}">${file.name}</div>
+            <div style="flex: 1; display: flex; align-items: center; gap: 15px; overflow: hidden; cursor:pointer;" onclick="openLeaderboardAt('${getFileId(file)}')">
+                <div style="font-weight:bold; width: 30px; color: var(--accent-blue); flex-shrink: 0;">${rank}.</div>
+                ${mediaHtml}
+                <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" class="leaderboard-item-name" title="${file.name}">${file.name}</div>
             </div>
-            <div style="font-size:0.8rem; color:var(--text-primary); opacity:0.7; margin-right:10px;">(μ: ${r.mu.toFixed(1)}, σ: ${r.sigma.toFixed(1)})</div>
-            <div style="font-family:monospace; font-weight:bold; width:60px; text-align:right; color:var(--accent-blue);">${Math.round(getOrdinal(r))}</div>
+            <div style="font-size:0.8rem; color:var(--text-primary); opacity:0.7; margin-right:10px; flex-shrink: 0; white-space: nowrap;">(μ: ${r.mu.toFixed(1)}, σ: ${r.sigma.toFixed(1)})</div>
+            <div style="font-family:monospace; font-weight:bold; width:60px; text-align:right; color:var(--accent-blue); flex-shrink: 0;">${Math.round(getOrdinal(r))}</div>
         `;
         return row;
     };
@@ -962,8 +982,18 @@ function renderExecutionerMedia() {
     };
 }
 
+window.openLeaderboardAt = function(fileId) {
+    const list = state.leaderboardType === 'image' ? state.images : state.videos;
+    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted && (!appSettings.skipUnmatched || state.ratings[getFileId(f)]?.matches > 0)).sort((a,b) => (getOrdinal(state.ratings[getFileId(b)]) || 0) - (getOrdinal(state.ratings[getFileId(a)]) || 0));
+    
+    const targetIdx = sorted.findIndex(f => getFileId(f) === fileId);
+    if (targetIdx === -1) return;
+    
+    startLeaderboardViewer(false, targetIdx);
+};
+
 // --- Continuous Leaderboard Viewer ---
-function startLeaderboardViewer(reverse) {
+function startLeaderboardViewer(reverse, startIndex = 0) {
     const list = state.leaderboardType === 'image' ? state.images : state.videos;
     const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted && (!appSettings.skipUnmatched || state.ratings[getFileId(f)]?.matches > 0)).sort((a,b) => (getOrdinal(state.ratings[getFileId(b)]) || 0) - (getOrdinal(state.ratings[getFileId(a)]) || 0));
     
@@ -980,7 +1010,7 @@ function startLeaderboardViewer(reverse) {
         return;
     }
     
-    state.leaderboardIndex = 0;
+    state.leaderboardIndex = startIndex;
     state.appMode = 'leaderboard_viewer';
     elements.leaderboardModal.classList.remove('active');
     
@@ -1364,7 +1394,13 @@ function setupEventListeners() {
     elements.closeToolsModal.addEventListener('click', closeTools);
 
     elements.btnOpenLeaderboard.addEventListener('click', () => { closeTools(); renderLeaderboard(); elements.leaderboardModal.classList.add('active'); });
-    elements.closeLeaderboardModal.addEventListener('click', () => elements.leaderboardModal.classList.remove('active'));
+    elements.closeLeaderboardModal.addEventListener('click', () => {
+        elements.leaderboardModal.classList.remove('active');
+        if (state.leaderboardUrls) {
+            state.leaderboardUrls.forEach(url => URL.revokeObjectURL(url));
+            state.leaderboardUrls = [];
+        }
+    });
     
     elements.btnOpenDashboard.addEventListener('click', () => { closeTools(); renderDashboard(); elements.dashboardModal.classList.add('active'); });
     elements.closeDashboardModal.addEventListener('click', () => elements.dashboardModal.classList.remove('active'));
@@ -1498,7 +1534,9 @@ function renderDashboard() {
 
     const remainingMatches = totalDeficit / 4; 
     const remainingSeconds = remainingMatches * 3; 
-    if (listToStage.length === 0) {
+    if (state.unparsedFiles.length > 0) {
+        elements.dashEta.textContent = "Force load all files to estimate";
+    } else if (listToStage.length === 0) {
         elements.dashEta.textContent = "Load media to estimate";
     } else if (remainingSeconds <= 0) {
         elements.dashEta.textContent = "Fully Sorted! 🎉";
@@ -1508,6 +1546,11 @@ function renderDashboard() {
         elements.dashEta.textContent = `~${Math.ceil(remainingSeconds / 60)} minutes`;
     } else {
         elements.dashEta.textContent = `~${(remainingSeconds / 3600).toFixed(1)} hours`;
+    }
+    
+    const subtext = document.getElementById('dash-eta-subtext');
+    if (subtext) {
+        subtext.style.display = (state.unparsedFiles.length > 0 || listToStage.length === 0 || remainingSeconds <= 0) ? 'none' : 'block';
     }
 
     if (ordinals.length > 0) {
@@ -1523,7 +1566,8 @@ function renderDashboard() {
         });
 
         const maxBucket = Math.max(...buckets);
-        elements.dashBellCurve.innerHTML = buckets.map(count => {
+        const reversedBuckets = [...buckets].reverse();
+        elements.dashBellCurve.innerHTML = reversedBuckets.map(count => {
             const height = maxBucket > 0 ? (count / maxBucket) * 100 : 0;
             return `<div class="dash-bar" style="height: ${height}%;" title="${count} items">${count > 0 ? count : ''}</div>`;
         }).join('');
