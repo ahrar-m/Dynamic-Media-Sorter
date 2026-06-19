@@ -23,7 +23,7 @@
     --accent-green: #00f2fe;
     --accent-red: #ff0844;
     --glass-blur: blur(12px);
-    --leaderboard-thumb-size: 80px;
+    --leaderboard-thumb-size: 140px;
 }
 
 * {
@@ -388,37 +388,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
     }
 }
 
-.leaderboard-columns {
-    display: flex;
-    flex-direction: row;
-}
-.leaderboard-col {
-    flex: 1;
-    overflow-y: auto;
-}
-.leaderboard-columns .leaderboard-col:first-child {
-    border-right: 1px solid var(--panel-border);
-    padding-right: 10px;
-}
-.leaderboard-columns .leaderboard-col:last-child {
-    padding-left: 10px;
-}
 
-@media (max-width: 600px) {
-    .leaderboard-columns {
-        flex-direction: column;
-    }
-    .leaderboard-columns .leaderboard-col:first-child {
-        border-right: none;
-        border-bottom: 1px solid var(--panel-border);
-        padding-right: 0;
-        padding-bottom: 10px;
-        margin-bottom: 10px;
-    }
-    .leaderboard-columns .leaderboard-col:last-child {
-        padding-left: 0;
-    }
-}
 
 :root {
     --thumb-size: 60px;
@@ -479,6 +449,8 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 /* Leaderboard Table Styles (with frozen headers and mobile optimizations) */
 .leaderboard-table {
     width: 100%;
+    max-width: 650px;
+    margin: 0 auto;
     border-collapse: separate;
     border-spacing: 0;
 }
@@ -506,10 +478,19 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 }
 .leaderboard-table tr {
     transition: background 0.2s ease;
+    cursor: pointer;
 }
 .leaderboard-table tr:hover {
     background: rgba(255, 255, 255, 0.05);
 }
+
+/* Leaderboard Columns Widths and Alignments */
+.col-rank { width: 35px; text-align: center; font-weight: bold; color: var(--accent-blue); }
+.col-media { text-align: center; }
+.col-matches { width: 50px; text-align: center; opacity: 0.8; }
+.col-mu { width: 40px; text-align: center; opacity: 0.8; font-family: monospace; }
+.col-sigma { width: 40px; text-align: center; opacity: 0.8; font-family: monospace; }
+.col-score { width: 55px; text-align: center; font-weight: bold; color: var(--accent-blue); font-size: 1.1rem; font-family: monospace; }
 
 .leaderboard-thumbnail {
     width: var(--leaderboard-thumb-size);
@@ -519,11 +500,16 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
     flex-shrink: 0;
     display: block;
     margin: 0 auto;
+    box-shadow: none; /* override heavy video/img box shadow */
 }
 
 @media (max-width: 600px) {
     .modal {
         padding: 14px !important;
+    }
+    .modal-close {
+        top: 14px;
+        right: 14px;
     }
     .leaderboard-table th {
         padding: 8px 2px;
@@ -534,10 +520,16 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         font-size: 0.8rem;
     }
     :root {
-        --leaderboard-thumb-size: 60px;
+        --leaderboard-thumb-size: 90px;
     }
+    .col-rank { width: 30px; }
+    .col-matches { width: 30px; }
+    .col-mu { width: 35px; }
+    .col-sigma { width: 35px; }
+    .col-score { width: 45px; font-size: 0.95rem; }
+    
     .leaderboard-list {
-        overflow-x: auto;
+        overflow-x: hidden;
     }
 }
 </style>
@@ -733,7 +725,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 </div>
 
 <div class="modal-overlay" id="leaderboard-modal">
-    <div class="modal glass-panel" style="width: 90%; max-width: 700px; height: 80vh; display: flex; flex-direction: column;">
+    <div class="modal glass-panel" style="width: 95%; max-width: 850px; max-height: 85vh; max-height: 85dvh; display: flex; flex-direction: column;">
         <button class="modal-close" id="close-leaderboard-modal"><i class="fa-solid fa-xmark"></i></button>
         <h2><i class="fa-solid fa-ranking-star"></i> Leaderboard</h2>
         <div class="modal-body" style="overflow: hidden; display: flex; flex-direction: column; flex: 1; min-height: 0;">
@@ -824,7 +816,7 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
         <h2><i class="fa-solid fa-skull"></i> The Executioner</h2>
         <div class="modal-body">
             <div style="display: flex; gap: 10px; align-items: center;">
-                <label>Stage files with Ordinal < </label>
+                <label>Stage files with Ordinal &lt; </label>
                 <input type="number" id="purge-threshold" class="form-input" value="0" style="width: 100px; margin:0;">
                 <button class="btn btn-primary" id="btn-stage-files">Stage Files</button>
             </div>
@@ -1804,12 +1796,12 @@ function renderLeaderboard() {
         table.innerHTML = `
             <thead>
                 <tr>
-                    <th style="width: 35px;">Rank</th>
+                    <th class="col-rank">Rank</th>
                     <th class="col-media">Media</th>
-                    <th style="width: 50px;">M</th>
-                    <th style="width: 40px;">&mu;</th>
-                    <th style="width: 40px;">&sigma;</th>
-                    <th style="width: 55px;">Score</th>
+                    <th class="col-matches">M</th>
+                    <th class="col-mu">&mu;</th>
+                    <th class="col-sigma">&sigma;</th>
+                    <th class="col-score">Score</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -1835,12 +1827,12 @@ function renderLeaderboard() {
             tr.onclick = () => window.openLeaderboardAt(getFileId(file));
             
             tr.innerHTML = `
-                <td style="text-align: center; font-weight: bold; color: var(--accent-blue);">${rank}</td>
-                <td style="padding: 6px 0; text-align: center; vertical-align: middle;">${mediaHtml}</td>
-                <td style="text-align: center; opacity: 0.8;">${r.matches || 0}</td>
-                <td style="text-align: center; opacity: 0.8; font-family: monospace;">${r.mu.toFixed(1)}</td>
-                <td style="text-align: center; opacity: 0.8; font-family: monospace;">${r.sigma.toFixed(1)}</td>
-                <td style="text-align: center; font-weight: bold; color: var(--accent-blue); font-size: 1.1rem; font-family: monospace;">${Math.round(getOrdinal(r))}</td>
+                <td class="col-rank">${rank}</td>
+                <td class="col-media">${mediaHtml}</td>
+                <td class="col-matches">${r.matches || 0}</td>
+                <td class="col-mu">${r.mu.toFixed(1)}</td>
+                <td class="col-sigma">${r.sigma.toFixed(1)}</td>
+                <td class="col-score">${Math.round(getOrdinal(r))}</td>
             `;
             tbody.appendChild(tr);
         });

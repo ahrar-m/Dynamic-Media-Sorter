@@ -957,12 +957,12 @@ function renderLeaderboard() {
         table.innerHTML = `
             <thead>
                 <tr>
-                    <th style="width: 35px;">Rank</th>
+                    <th class="col-rank">Rank</th>
                     <th class="col-media">Media</th>
-                    <th style="width: 50px;">M</th>
-                    <th style="width: 40px;">&mu;</th>
-                    <th style="width: 40px;">&sigma;</th>
-                    <th style="width: 55px;">Score</th>
+                    <th class="col-matches">M</th>
+                    <th class="col-mu">&mu;</th>
+                    <th class="col-sigma">&sigma;</th>
+                    <th class="col-score">Score</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -988,12 +988,12 @@ function renderLeaderboard() {
             tr.onclick = () => window.openLeaderboardAt(getFileId(file));
             
             tr.innerHTML = `
-                <td style="text-align: center; font-weight: bold; color: var(--accent-blue);">${rank}</td>
-                <td style="padding: 6px 0; text-align: center; vertical-align: middle;">${mediaHtml}</td>
-                <td style="text-align: center; opacity: 0.8;">${r.matches || 0}</td>
-                <td style="text-align: center; opacity: 0.8; font-family: monospace;">${r.mu.toFixed(1)}</td>
-                <td style="text-align: center; opacity: 0.8; font-family: monospace;">${r.sigma.toFixed(1)}</td>
-                <td style="text-align: center; font-weight: bold; color: var(--accent-blue); font-size: 1.1rem; font-family: monospace;">${Math.round(getOrdinal(r))}</td>
+                <td class="col-rank">${rank}</td>
+                <td class="col-media">${mediaHtml}</td>
+                <td class="col-matches">${r.matches || 0}</td>
+                <td class="col-mu">${r.mu.toFixed(1)}</td>
+                <td class="col-sigma">${r.sigma.toFixed(1)}</td>
+                <td class="col-score">${Math.round(getOrdinal(r))}</td>
             `;
             tbody.appendChild(tr);
         });
