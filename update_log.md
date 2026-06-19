@@ -119,10 +119,10 @@
   - Programmed the backup parser to automatically extract the prefix from imported filenames (e.g., stripping `_backup_` or `_autobackup_`), updating settings instantly on import.
   - Hardened settings saving to preserve empty backup prefixes without falling back to `dms_elo`.
 - **Leaderboard Visual Expansion & Optimization**:
-  - Expanded leaderboard media thumbnails to a larger size: 140px on desktop and 90px on mobile.
+  - Expanded leaderboard media thumbnails to a larger size: 160px on desktop and 130px on mobile.
   - Set the modal to 95% width, 850px max-width, and dynamic viewport max-height values (`85vh` / `85dvh`) to allow comfortable viewing of larger row sizes and prevent clipping on mobile browser toolbars.
   - Fixed desktop rendering layout gaps by centering and restricting the table container width to 650px, ensuring Rank and Score stay visually close and connected to the thumbnail preview.
-  - Eliminated mobile horizontal layout scrollbars by adjusting individual column widths (Rank, Matches, Stats, Score) and reducing paddings to fit 90px thumbnails on 360px viewports.
+  - Eliminated mobile horizontal layout scrollbars by adjusting individual column widths (Rank, Matches, Stats, Score) and reducing paddings to fit 130px thumbnails on 360px viewports (gained width by setting modal width to 98% and padding to 10px on mobile).
   - Added clickability cues (`cursor: pointer`) to table rows and cleaned up heavy drop shadows from thumbnails.
   - Escaped raw `<` signs in HTML to comply with strict validator standards.
   - Cleaned up deprecated layout classes and consolidated root CSS styles.
