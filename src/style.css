@@ -310,14 +310,16 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
     bottom: 15px;
     right: 15px;
     z-index: 200;
-    width: 32px;
-    height: 32px; 
+    width: auto;
+    height: auto; 
     display: flex;
     align-items: center; 
     gap: 10px;
     background: rgba(0,0,0,0.8); 
     padding: 10px 15px; 
     border-radius: 8px;
+    color: white;
+    white-space: nowrap;
     border: 1px solid var(--panel-border); 
     font-weight: bold; 
     cursor: pointer;

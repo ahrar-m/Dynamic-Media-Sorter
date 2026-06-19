@@ -32,8 +32,6 @@ function showErrorToast(message) {
     setTimeout(() => {
         if (errDiv.parentElement) errDiv.remove();
     }, 8000);
-}
-
 const state = {
     images: [],
     videos: [],
@@ -63,7 +61,10 @@ const state = {
     undoStack: [], // { matchup: [...files], prevStats: {id: {mu, sigma, matches}} }
     loadedIds: new Set(),
     userRanking: [], // Array of active matchup file IDs, ordered from best to worst
-    matchupUrls: {} // Cache for UI thumbnails
+    matchupUrls: {}, // Cache for UI thumbnails
+    stagedFilesMap: new Map(),
+    sessionMatches: 0,
+    infoHidden: false
 };
 
 function getOrdinal(rating) {
@@ -164,13 +165,16 @@ function bindElements() {
         closeDashboardModal: document.getElementById('close-dashboard-modal'),
         dashTotalMedia: document.getElementById('dash-total-media'),
         dashTotalMatches: document.getElementById('dash-total-matches'),
-        dashEta: document.getElementById('dash-eta'),
         dashBellCurve: document.getElementById('dash-bell-curve'),
         leaderboardModal: document.getElementById('leaderboard-modal'),
         closeLeaderboardModal: document.getElementById('close-leaderboard-modal'),
         btnOpenLeaderboard: document.getElementById('btn-open-leaderboard'),
         leaderboardTopList: document.getElementById('leaderboard-top-list'),
         leaderboardBottomList: document.getElementById('leaderboard-bottom-list'),
+        leaderboardTopSection: document.getElementById('leaderboard-top-section'),
+        leaderboardBottomSection: document.getElementById('leaderboard-bottom-section'),
+        btnLeaderboardBest: document.getElementById('btn-leaderboard-best'),
+        btnLeaderboardWorst: document.getElementById('btn-leaderboard-worst'),
         btnViewTopCont: document.getElementById('btn-view-top-cont'),
         btnViewBottomCont: document.getElementById('btn-view-bottom-cont'),
         
@@ -686,6 +690,7 @@ async function submitMatch() {
             });
         });
         
+        state.sessionMatches++;
         await saveRatingsToStorage(fileRanks.map(item => item.id));
         state.isAnimating = false;
         pickNextMatchup(true);
@@ -859,6 +864,10 @@ function renderPlacementStrip() {
         let mediaEl;
         if (file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
             mediaEl = document.createElement('video');
+            mediaEl.controls = true;
+            mediaEl.loop = true;
+            mediaEl.style.cssText = `width: 100%; height: calc(100% - 70px); object-fit: ${state.fitMode}; border-radius: 12px;`;
+            mediaEl.playsInline = true;
         } else {
             mediaEl = document.createElement('img');
         }
@@ -903,23 +912,29 @@ function renderPlacementStrip() {
 
 function renderLeaderboard() {
     if (state.appMode !== 'matchmaking') return;
-    const list = getActiveList();
-    const sorted = [...list].sort((a, b) => getOrdinal(state.ratings[getFileId(b)]) - getOrdinal(state.ratings[getFileId(a)]));
-    const size = appSettings.leaderboardSize || 32;
+    const list = state.leaderboardType === 'image' ? state.images : state.videos;
     
-    if (state.leaderboardUrls) {
-        state.leaderboardUrls.forEach(url => URL.revokeObjectURL(url));
-    }
-    state.leaderboardUrls = [];
-    
+    // Sort logic
+    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted && (!appSettings.skipUnmatched || state.ratings[getFileId(f)]?.matches > 0)).sort((a, b) => {
+        const oA = getOrdinal(state.ratings[getFileId(a)]) || 0;
+        const oB = getOrdinal(state.ratings[getFileId(b)]) || 0;
+        return oB - oA;
+    });
+
     elements.leaderboardTopList.innerHTML = '';
     elements.leaderboardBottomList.innerHTML = '';
     
+    const size = parseInt(appSettings.leaderboardSize, 10);
     if (sorted.length === 0) {
         elements.leaderboardTopList.innerHTML = 'No data.';
         elements.leaderboardBottomList.innerHTML = 'No data.';
         return;
     }
+    
+    if (state.leaderboardUrls) {
+        state.leaderboardUrls.forEach(url => URL.revokeObjectURL(url));
+    }
+    state.leaderboardUrls = [];
     
     const topItems = sorted.slice(0, size);
     const bottomItems = sorted.slice(-size).reverse(); // Worst at the top of the bottom list
@@ -932,9 +947,9 @@ function renderLeaderboard() {
         
         let mediaHtml;
         if (isVideo) {
-            mediaHtml = `<video src="${objUrl}#t=0.1" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; flex-shrink: 0;" preload="metadata" muted playsinline></video>`;
+            mediaHtml = `<video src="${objUrl}#t=0.1" style="width: 64px; height: 64px; object-fit: cover; border-radius: 8px; flex-shrink: 0;" preload="metadata" muted playsinline></video>`;
         } else {
-            mediaHtml = `<img src="${objUrl}" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; flex-shrink: 0;">`;
+            mediaHtml = `<img src="${objUrl}" style="width: 64px; height: 64px; object-fit: cover; border-radius: 8px; flex-shrink: 0;">`;
         }
 
         const row = document.createElement('div');
@@ -945,10 +960,12 @@ function renderLeaderboard() {
             <div style="flex: 1; display: flex; align-items: center; gap: 15px; overflow: hidden; cursor:pointer;" onclick="openLeaderboardAt('${getFileId(file)}')">
                 <div style="font-weight:bold; width: 30px; color: var(--accent-blue); flex-shrink: 0;">${rank}.</div>
                 ${mediaHtml}
-                <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" class="leaderboard-item-name" title="${file.name}">${file.name}</div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <div style="font-size:0.8rem; color:var(--text-primary); opacity:0.7;">Matches: ${r.matches || 0}</div>
+                    <div style="font-size:0.8rem; color:var(--text-primary); opacity:0.7;">μ: ${r.mu.toFixed(1)}, σ: ${r.sigma.toFixed(1)}</div>
+                </div>
             </div>
-            <div style="font-size:0.8rem; color:var(--text-primary); opacity:0.7; margin-right:10px; flex-shrink: 0; white-space: nowrap;">(μ: ${r.mu.toFixed(1)}, σ: ${r.sigma.toFixed(1)})</div>
-            <div style="font-family:monospace; font-weight:bold; width:60px; text-align:right; color:var(--accent-blue); flex-shrink: 0;">${Math.round(getOrdinal(r))}</div>
+            <div style="font-family:monospace; font-size: 1.2rem; font-weight:bold; width:80px; text-align:right; color:var(--accent-blue); flex-shrink: 0;">${Math.round(getOrdinal(r))}</div>
         `;
         return row;
     };
@@ -1318,8 +1335,8 @@ function setupEventListeners() {
     });
 
     elements.btnInfo.addEventListener('click', () => {
-        state.infoVisible = !state.infoVisible;
-        if (state.infoVisible) elements.fileInfoOverlay.classList.remove('hidden');
+        state.infoHidden = !state.infoHidden;
+        if (!state.infoHidden) elements.fileInfoOverlay.classList.remove('hidden');
         else elements.fileInfoOverlay.classList.add('hidden');
     });
 
@@ -1409,6 +1426,27 @@ function setupEventListeners() {
     elements.btnClearStaged.addEventListener('click', () => { state.stagedFilesMap.clear(); elements.purgeStats.textContent = `0 files staged.`; });
     elements.btnReviewStaged.addEventListener('click', startExecutionerReview);
     if (elements.btnPurgeDirect) elements.btnPurgeDirect.addEventListener('click', deleteStagedFilesDirectly);
+    
+    if (elements.btnLeaderboardBest) {
+        elements.btnLeaderboardBest.addEventListener('click', (e) => {
+            e.target.classList.add('btn-primary');
+            e.target.style.background = '';
+            elements.btnLeaderboardWorst.classList.remove('btn-primary');
+            elements.btnLeaderboardWorst.style.background = 'rgba(255, 255, 255, 0.1)';
+            elements.leaderboardTopSection.classList.remove('hidden');
+            elements.leaderboardBottomSection.classList.add('hidden');
+        });
+    }
+    if (elements.btnLeaderboardWorst) {
+        elements.btnLeaderboardWorst.addEventListener('click', (e) => {
+            e.target.classList.add('btn-primary');
+            e.target.style.background = '';
+            elements.btnLeaderboardBest.classList.remove('btn-primary');
+            elements.btnLeaderboardBest.style.background = 'rgba(255, 255, 255, 0.1)';
+            elements.leaderboardBottomSection.classList.remove('hidden');
+            elements.leaderboardTopSection.classList.add('hidden');
+        });
+    }
 
     elements.btnCopyScript.addEventListener('click', () => { elements.scriptOutput.select(); document.execCommand('copy'); showToast("Copied!"); });
 
@@ -1584,28 +1622,7 @@ function renderDashboard() {
         }
     });
     
-    elements.dashTotalMatches.textContent = Math.ceil(totalMatches / 4);
-
-    const remainingMatches = totalDeficit / 4; 
-    const remainingSeconds = remainingMatches * 3; 
-    if (state.unparsedFiles.length > 0) {
-        elements.dashEta.textContent = "Force load all files to estimate";
-    } else if (listToStage.length === 0) {
-        elements.dashEta.textContent = "Load media to estimate";
-    } else if (remainingSeconds <= 0) {
-        elements.dashEta.textContent = "Fully Sorted! 🎉";
-    } else if (remainingSeconds < 60) {
-        elements.dashEta.textContent = `< 1 minute`;
-    } else if (remainingSeconds < 3600) {
-        elements.dashEta.textContent = `~${Math.ceil(remainingSeconds / 60)} minutes`;
-    } else {
-        elements.dashEta.textContent = `~${(remainingSeconds / 3600).toFixed(1)} hours`;
-    }
-    
-    const subtext = document.getElementById('dash-eta-subtext');
-    if (subtext) {
-        subtext.style.display = (state.unparsedFiles.length > 0 || listToStage.length === 0 || remainingSeconds <= 0) ? 'none' : 'block';
-    }
+    elements.dashTotalMatches.textContent = state.sessionMatches;
 
     if (ordinals.length > 0) {
         const min = Math.min(...ordinals);
@@ -1621,9 +1638,17 @@ function renderDashboard() {
 
         const maxBucket = Math.max(...buckets);
         const reversedBuckets = [...buckets].reverse();
-        elements.dashBellCurve.innerHTML = reversedBuckets.map(count => {
+        elements.dashBellCurve.innerHTML = reversedBuckets.map((count, index) => {
             const height = maxBucket > 0 ? (count / maxBucket) * 100 : 0;
-            return `<div class="dash-bar" style="height: ${height}%;" title="${count} items">${count > 0 ? count : ''}</div>`;
+            const r = Math.round(34 + (239 - 34) * (index / 9));
+            const g = Math.round(197 + (68 - 197) * (index / 9));
+            const b = Math.round(94 + (68 - 94) * (index / 9));
+            const color = `rgba(${r}, ${g}, ${b}, 0.8)`;
+            
+            return `<div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; flex: 1;">
+                <div style="font-size: 0.7rem; color: var(--text-primary); margin-bottom: 4px; opacity: 0.8;">${count}</div>
+                <div class="dash-bar" style="height: ${height}%; width: 100%; background: ${color}; border-radius: 4px 4px 0 0;"></div>
+            </div>`;
         }).join('');
     } else {
         elements.dashBellCurve.innerHTML = '';
@@ -1801,7 +1826,8 @@ async function copyFavoritesDirectly() {
 
 async function deleteStagedFilesDirectly() {
     if (!window.showDirectoryPicker) {
-        showToast("File System Access API not supported by your browser.");
+        showToast("Direct Delete is unsupported on Android browsers. Generating script instead...");
+        generateExecutionerScript();
         return;
     }
     if(state.stagedFilesMap.size === 0) {
