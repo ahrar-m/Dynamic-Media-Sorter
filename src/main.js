@@ -54,6 +54,7 @@ const state = {
     leaderboardQueue: [],
     leaderboardIndex: 0,
     leaderboardUrls: [],
+    leaderboardSortKey: 'score',
 
     isAnimating: false,
     infoVisible: false,
@@ -927,9 +928,11 @@ function renderLeaderboard() {
     
     // Sort logic
     const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted && (!appSettings.skipUnmatched || state.ratings[getFileId(f)]?.matches > 0)).sort((a, b) => {
-        const oA = getOrdinal(state.ratings[getFileId(a)]) || 0;
-        const oB = getOrdinal(state.ratings[getFileId(b)]) || 0;
-        return oB - oA;
+        const rA = state.ratings[getFileId(a)];
+        const rB = state.ratings[getFileId(b)];
+        const valA = state.leaderboardSortKey === 'mu' ? (rA?.mu || 25.0) : (getOrdinal(rA) || 0);
+        const valB = state.leaderboardSortKey === 'mu' ? (rB?.mu || 25.0) : (getOrdinal(rB) || 0);
+        return valB - valA;
     });
 
     elements.leaderboardTopList.innerHTML = '';
@@ -960,13 +963,27 @@ function renderLeaderboard() {
                     <th class="col-rank">Rank</th>
                     <th class="col-media">Media</th>
                     <th class="col-matches">M</th>
-                    <th class="col-mu">&mu;</th>
-                    <th class="col-sigma">&sigma;</th>
-                    <th class="col-score">Score</th>
+                    <th class="col-mu sortable ${state.leaderboardSortKey === 'mu' ? 'active-sort' : ''}">μ${state.leaderboardSortKey === 'mu' ? ' ▼' : ''}</th>
+                    <th class="col-sigma">σ</th>
+                    <th class="col-score sortable ${state.leaderboardSortKey === 'score' ? 'active-sort' : ''}">Score${state.leaderboardSortKey === 'score' ? ' ▼' : ''}</th>
                 </tr>
             </thead>
             <tbody></tbody>
         `;
+        
+        const thMu = table.querySelector('.col-mu');
+        const thScore = table.querySelector('.col-score');
+        
+        thMu.onclick = (e) => {
+            e.stopPropagation();
+            state.leaderboardSortKey = 'mu';
+            renderLeaderboard();
+        };
+        thScore.onclick = (e) => {
+            e.stopPropagation();
+            state.leaderboardSortKey = 'score';
+            renderLeaderboard();
+        };
         
         const tbody = table.querySelector('tbody');
         
@@ -1080,7 +1097,13 @@ function renderExecutionerMedia() {
 
 window.openLeaderboardAt = function(fileId) {
     const list = state.leaderboardType === 'image' ? state.images : state.videos;
-    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted && (!appSettings.skipUnmatched || state.ratings[getFileId(f)]?.matches > 0)).sort((a,b) => (getOrdinal(state.ratings[getFileId(b)]) || 0) - (getOrdinal(state.ratings[getFileId(a)]) || 0));
+    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted && (!appSettings.skipUnmatched || state.ratings[getFileId(f)]?.matches > 0)).sort((a,b) => {
+        const rA = state.ratings[getFileId(a)];
+        const rB = state.ratings[getFileId(b)];
+        const valA = state.leaderboardSortKey === 'mu' ? (rA?.mu || 25.0) : (getOrdinal(rA) || 0);
+        const valB = state.leaderboardSortKey === 'mu' ? (rB?.mu || 25.0) : (getOrdinal(rB) || 0);
+        return valB - valA;
+    });
     
     const targetIdx = sorted.findIndex(f => getFileId(f) === fileId);
     if (targetIdx === -1) return;
@@ -1091,7 +1114,13 @@ window.openLeaderboardAt = function(fileId) {
 // --- Continuous Leaderboard Viewer ---
 function startLeaderboardViewer(reverse, startIndex = 0) {
     const list = state.leaderboardType === 'image' ? state.images : state.videos;
-    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted && (!appSettings.skipUnmatched || state.ratings[getFileId(f)]?.matches > 0)).sort((a,b) => (getOrdinal(state.ratings[getFileId(b)]) || 0) - (getOrdinal(state.ratings[getFileId(a)]) || 0));
+    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted && (!appSettings.skipUnmatched || state.ratings[getFileId(f)]?.matches > 0)).sort((a,b) => {
+        const rA = state.ratings[getFileId(a)];
+        const rB = state.ratings[getFileId(b)];
+        const valA = state.leaderboardSortKey === 'mu' ? (rA?.mu || 25.0) : (getOrdinal(rA) || 0);
+        const valB = state.leaderboardSortKey === 'mu' ? (rB?.mu || 25.0) : (getOrdinal(rB) || 0);
+        return valB - valA;
+    });
     
     state.leaderboardReverse = reverse;
 
@@ -1139,7 +1168,8 @@ function renderLeaderboardViewerMedia() {
     let rank = state.leaderboardReverse ? state.leaderboardQueue.length - state.leaderboardIndex : state.leaderboardIndex + 1;
     
     elements.matchStatusIndicator.classList.remove('hidden');
-    elements.matchStatusIndicator.textContent = `Ordinal: ${Math.round(getOrdinal(rating))} (Rank ${rank} of ${state.leaderboardQueue.length}) | Matches: ${rating.matches}`;
+    const metricText = state.leaderboardSortKey === 'mu' ? `μ: ${rating.mu.toFixed(1)}` : `Score: ${Math.round(getOrdinal(rating))}`;
+    elements.matchStatusIndicator.textContent = `${metricText} (Rank ${rank} of ${state.leaderboardQueue.length}) | Matches: ${rating.matches}`;
     elements.matchStatusIndicator.className = 'placement';
     
     elements.executionerCheckContainer.classList.add('hidden');

@@ -126,3 +126,9 @@
   - Added clickability cues (`cursor: pointer`) to table rows and cleaned up heavy drop shadows from thumbnails.
   - Escaped raw `<` signs in HTML to comply with strict validator standards.
   - Cleaned up deprecated layout classes and consolidated root CSS styles.
+- **Leaderboard Column Sorting & Greek Symbols**:
+  - Implemented dynamic column sorting by clicking either the `μ` (mu) or `Score` column headers.
+  - Added visual sort active indicators (downward arrow `▼`) and styled hover states to give clear interaction cues for sortable headers.
+  - Integrated dynamic sorting throughout the continuous leaderboard viewer and individual row navigation overlays, showing the active sorting metric (`μ` or `Score`) in the status bar.
+  - Used actual lowercase unicode Greek characters `μ` and `σ` for the table headers and viewer metadata to ensure clean browser rendering.
+

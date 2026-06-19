@@ -477,6 +477,21 @@ select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel
 .col-sigma { width: 40px; text-align: center; opacity: 0.8; font-family: monospace; }
 .col-score { width: 55px; text-align: center; font-weight: bold; color: var(--accent-blue); font-size: 1.1rem; font-family: monospace; }
 
+/* Leaderboard Sorting Headers */
+.leaderboard-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+.leaderboard-table th.sortable:hover {
+    color: var(--accent-blue);
+    background: rgba(255, 255, 255, 0.05);
+}
+.leaderboard-table th.active-sort {
+    color: var(--accent-blue) !important;
+    border-bottom: 2px solid var(--accent-blue) !important;
+}
+
 .leaderboard-thumbnail {
     width: var(--leaderboard-thumb-size);
     height: var(--leaderboard-thumb-size);
