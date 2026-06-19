@@ -786,6 +786,7 @@ function showErrorToast(message) {
 const state = {
     images: [],
     videos: [],
+    unparsedFiles: [], // Files selected but not yet parsed
     ratings: {}, // key: id -> { mu: 25.0, sigma: 8.333, matches: 0, history: [] }
     stagedFilesMap: new Map(), // id -> file object
     currentMatchup: [], // Array of file objects
@@ -1053,119 +1054,25 @@ async function saveRatingsToStorage(updatedIds = null) {
     }
 }
 
-// Background Loading Logic
-let loadingQueue = [];
-let totalLoading = 0;
-let loadedCount = 0;
-let loadingStartTime = 0;
-let isProcessRunning = false;
-
 function handleFilesSelected(event) {
     const fileList = event.target.files;
     if (!fileList || fileList.length === 0) return;
     
-    elements.loadingProgress.classList.remove('hidden');
-    elements.loadingPercent.textContent = "Processing...";
-    elements.loadingProgress.style.background = `conic-gradient(var(--accent-green) 0%, rgba(255,255,255,0.1) 0%)`;
+    elements.loadingProgress.classList.add('hidden');
     
-    setTimeout(() => {
-        const files = Array.from(fileList);
-        for (let i = files.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [files[i], files[j]] = [files[j], files[i]];
-        }
-        
-        if (isProcessRunning) {
-            for (let i = 0; i < files.length; i++) {
-                loadingQueue.push(files[i]);
-            }
-            totalLoading += files.length;
-            return;
-        }
-        
-        isProcessRunning = true;
-        loadingQueue = files;
-        totalLoading = files.length;
-        loadedCount = 0;
-        loadingStartTime = Date.now();
-        
-        processLoadingQueue();
-    }, 50);
-}
-
-async function processLoadingQueue() {
-    if (loadingQueue.length === 0) {
-        isProcessRunning = false;
-        elements.loadingProgress.classList.add('hidden');
-        await saveRatingsToStorage();
-        
-        const totalSecs = Math.round((Date.now() - loadingStartTime) / 1000);
-        const mm = String(Math.floor(totalSecs / 60)).padStart(2, '0');
-        const ss = String(totalSecs % 60).padStart(2, '0');
-        showToast(`Loaded ${totalLoading} files in ${mm}:${ss}.`);
-        return;
-    }
-
-    const batchStart = Date.now();
-    let loadedThisBatch = 0;
-    let didAdd = false;
-    let statsUpdated = false;
-    try {
-        while (loadingQueue.length > 0 && (Date.now() - batchStart < 16)) {
-            const f = loadingQueue.pop();
-            let isImage = false, isVideo = false;
-            if (f.type) {
-                isImage = f.type.startsWith('image/');
-                isVideo = f.type.startsWith('video/');
-            } else {
-                isImage = /\.(jpe?g|png|gif|webp)$/i.test(f.name);
-                isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(f.name);
-            }
-
-            const id = getFileId(f);
-            if (state.ratings[id] && state.ratings[id].blacklisted) {
-                if (!state.stagedFilesMap.has(id)) {
-                    state.stagedFilesMap.set(id, f);
-                    statsUpdated = true;
-                }
-                loadedThisBatch++;
-                continue;
-            }
-
-            let localDidAdd = false;
-            if (isImage) {
-                if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.images.push(f); didAdd = true; localDidAdd = true; }
-            } else if (isVideo) {
-                if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.videos.push(f); didAdd = true; localDidAdd = true; }
-            }
-
-            if (localDidAdd && !state.ratings[id]) {
-                state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
-            }
-            loadedThisBatch++;
-        }
-    } catch (e) {
-        console.error("Batch processing error:", e);
-    }
-
-    if (statsUpdated && elements.purgeStats) {
-        elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
-    }
-
-    loadedCount += loadedThisBatch;
-    const pct = Math.floor((loadedCount / totalLoading) * 100);
-    elements.loadingPercent.textContent = `${pct}%`;
-    elements.loadingProgress.style.background = `conic-gradient(var(--accent-green) ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
-
-    if ((didAdd || loadedCount === totalLoading) && state.currentMatchup.length === 0 && state.appMode === 'matchmaking') {
-        const baseList = state.leaderboardType === 'image' ? state.images : state.videos;
-        if ((baseList.length >= 4) || (baseList.length >= 2 && loadedCount === totalLoading)) {
-            const list = getActiveList();
-            if ((list.length >= 4) || (list.length >= 2 && loadedCount === totalLoading)) pickNextMatchup();
-        }
+    const newFiles = Array.from(fileList);
+    // Initial shuffle
+    for (let i = newFiles.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newFiles[i], newFiles[j]] = [newFiles[j], newFiles[i]];
     }
     
-    setTimeout(processLoadingQueue, 0);
+    state.unparsedFiles = state.unparsedFiles.concat(newFiles);
+    showToast(`Added ${newFiles.length} media files to the queue.`);
+    
+    if (state.currentMatchup.length === 0 && state.appMode === 'matchmaking') {
+        pickNextMatchup();
+    }
 }
 
 function getActiveList() {
@@ -1173,13 +1080,62 @@ function getActiveList() {
     return baseList.filter(file => !state.stagedFilesMap.has(getFileId(file)));
 }
 
-
 function pickNextMatchup() {
+    if (state.isAnimating) return;
+
+    const targetType = state.leaderboardType;
+    let baseList = targetType === 'image' ? state.images : state.videos;
+    
+    let parsedCount = 0;
+    // Lazy parse files if we have fewer than 20 active items in the pool
+    while (state.unparsedFiles.length > 0 && parsedCount < 1000) {
+        let activeValid = baseList.filter(f => !state.stagedFilesMap.has(getFileId(f)));
+        if (activeValid.length >= 20) break;
+        
+        const f = state.unparsedFiles.pop();
+        parsedCount++;
+        
+        let isImage = false, isVideo = false;
+        if (f.type) {
+            isImage = f.type.startsWith('image/');
+            isVideo = f.type.startsWith('video/');
+        } else {
+            isImage = /\.(jpe?g|png|gif|webp)$/i.test(f.name);
+            isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(f.name);
+        }
+
+        const id = getFileId(f);
+        if (state.ratings[id] && state.ratings[id].blacklisted) {
+            if (!state.stagedFilesMap.has(id)) {
+                state.stagedFilesMap.set(id, f);
+            }
+            continue;
+        }
+
+        let localDidAdd = false;
+        if (isImage) {
+            if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.images.push(f); localDidAdd = true; }
+        } else if (isVideo) {
+            if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.videos.push(f); localDidAdd = true; }
+        }
+
+        if (localDidAdd && !state.ratings[id]) {
+            state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
+        }
+    }
+    
     const list = getActiveList();
     if (list.length < 2) {
         state.currentMatchup = [];
         renderCurrentMedia();
         updateMatchupProgress();
+        
+        if (state.unparsedFiles.length > 0) {
+            elements.mediaContainer.innerHTML = '<div style="color:var(--text-secondary); padding: 20px; font-weight: 500; font-size: 1.2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2rem; margin-bottom: 1rem; color: var(--accent-blue);"></i> Scanning media pool...</div>';
+            setTimeout(pickNextMatchup, 10);
+        } else {
+            showToast("Not enough media to form a matchup.");
+        }
         return;
     }
 
@@ -2124,7 +2080,7 @@ async function importRatings(event) {
 
 function renderDashboard() {
     const listToStage = state.leaderboardType === 'image' ? state.images : state.videos;
-    elements.dashTotalMedia.textContent = listToStage.length;
+    elements.dashTotalMedia.textContent = listToStage.length + state.unparsedFiles.length;
     
     let totalMatches = 0;
     let totalDeficit = 0;
