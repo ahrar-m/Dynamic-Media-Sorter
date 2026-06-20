@@ -1188,6 +1188,19 @@ async function deleteLegacyKeyFromStorage(id) {
     }
 }
 
+async function batchDeleteLegacyKeys(keys) {
+    try {
+        const db = await openDB();
+        const tx = db.transaction('ratings', 'readwrite');
+        const store = tx.objectStore('ratings');
+        for (const key of keys) {
+            store.delete(key);
+        }
+    } catch (e) {
+        console.error("IndexedDB batch delete error:", e);
+    }
+}
+
 function handleFilesSelected(event) {
     const fileList = event.target.files;
     if (!fileList || fileList.length === 0) return;
@@ -1196,20 +1209,27 @@ function handleFilesSelected(event) {
     
     state.unparsedFiles = Array.from(fileList);
     let loadedCount = 0;
+    const totalFiles = state.unparsedFiles.length;
+    const legacyKeysToDelete = [];
     
     function parseBatch() {
-        if (state.unparsedFiles.length === 0) {
+        if (loadedCount >= totalFiles) {
             elements.loadingProgress.classList.add('hidden');
             renderCurrentMedia();
             renderLeaderboard();
             pickNextMatchup();
+            
+            // Purge migrated legacy keys in a single transaction
+            if (legacyKeysToDelete.length > 0) {
+                batchDeleteLegacyKeys(legacyKeysToDelete);
+            }
             return;
         }
         
-        const batch = state.unparsedFiles.splice(0, 100);
-        loadedCount += batch.length;
-        
-        for (const f of batch) {
+        // Process in batches of 250 files (faster throughput due to 0ms array shift overhead)
+        const limit = Math.min(loadedCount + 250, totalFiles);
+        for (let i = loadedCount; i < limit; i++) {
+            const f = state.unparsedFiles[i];
             let isImage = false;
             let isVideo = false;
             if (f.type) {
@@ -1238,15 +1258,15 @@ function handleFilesSelected(event) {
                 if (state.ratings[legacyKey]) {
                     state.ratings[id] = state.ratings[legacyKey];
                     delete state.ratings[legacyKey];
-                    deleteLegacyKeyFromStorage(legacyKey);
+                    legacyKeysToDelete.push(legacyKey);
                 } else {
                     state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
                 }
             }
         }
         
-        const currentTotal = loadedCount + state.unparsedFiles.length;
-        const pct = currentTotal === 0 ? 100 : Math.floor((loadedCount / currentTotal) * 100);
+        loadedCount = limit;
+        const pct = totalFiles === 0 ? 100 : Math.floor((loadedCount / totalFiles) * 100);
         elements.loadingPercent.textContent = `${pct}%`;
         elements.loadingProgress.style.background = `conic-gradient(var(--accent-green) ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
         
