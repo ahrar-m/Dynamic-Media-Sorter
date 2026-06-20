@@ -200,9 +200,24 @@ function bindElements() {
 
 function getFileId(file) { return `${file.name}_${file.size}`; }
 
+let perfMetrics = {
+    totalFiles: 0,
+    startTime: 0,
+    endTime: 0,
+    totalTime: 0,
+    fileTypeCheckTime: 0,
+    getFileIdTime: 0,
+    blacklistCheckTime: 0,
+    arrayPushTime: 0,
+    ratingsCheckTime: 0,
+    domUpdateTime: 0,
+    yieldTime: 0,
+    lastBatchEndTime: 0
+};
 function parseFile(file, legacyKeysToDelete, migratedRatingsToSave) {
     state.loadedLoadFiles++;
 
+    const t0 = performance.now();
     // Prioritize filename extension checks (extremely cheap in-memory operations)
     let isImage = /\.(jpe?g|png|gif|webp)$/i.test(file.name);
     let isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(file.name);
@@ -212,17 +227,27 @@ function parseFile(file, legacyKeysToDelete, migratedRatingsToSave) {
         isImage = file.type.startsWith('image/');
         isVideo = file.type.startsWith('video/');
     }
+    const t1 = performance.now();
+    perfMetrics.fileTypeCheckTime += (t1 - t0);
 
     if (!isImage && !isVideo) {
         return null;
     }
 
+    const t2 = performance.now();
     const id = getFileId(file);
+    const t3 = performance.now();
+    perfMetrics.getFileIdTime += (t3 - t2);
+
+    const t4 = performance.now();
     let isBlacklisted = state.ratings[id] && state.ratings[id].blacklisted;
     if (isBlacklisted && !state.stagedFilesMap.has(id)) {
         state.stagedFilesMap.set(id, file);
     }
+    const t5 = performance.now();
+    perfMetrics.blacklistCheckTime += (t5 - t4);
 
+    const t6 = performance.now();
     let added = false;
     if (isImage) {
         if (!state.loadedIds.has(id)) {
@@ -237,7 +262,10 @@ function parseFile(file, legacyKeysToDelete, migratedRatingsToSave) {
             added = true;
         }
     }
+    const t7 = performance.now();
+    perfMetrics.arrayPushTime += (t7 - t6);
 
+    const t8 = performance.now();
     if (added && !state.ratings[id]) {
         const legacyKey = file.name;
         if (state.ratings[legacyKey]) {
@@ -249,6 +277,8 @@ function parseFile(file, legacyKeysToDelete, migratedRatingsToSave) {
             state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
         }
     }
+    const t9 = performance.now();
+    perfMetrics.ratingsCheckTime += (t9 - t8);
 
     return {
         id,
@@ -261,11 +291,14 @@ function parseFile(file, legacyKeysToDelete, migratedRatingsToSave) {
 
 function updateLoadingProgress() {
     if (state.totalLoadFiles === 0) return;
+    const t0 = performance.now();
     const pct = Math.min(100, Math.floor((state.loadedLoadFiles / state.totalLoadFiles) * 100));
     elements.loadingPercent.textContent = `${pct}%`;
     if (elements.loadingCircle) {
         elements.loadingCircle.setAttribute('stroke-dasharray', `${pct}, 100`);
     }
+    const t1 = performance.now();
+    perfMetrics.domUpdateTime += (t1 - t0);
 }
 
 function showToast(msg) {
@@ -441,6 +474,22 @@ function handleFilesSelected(event) {
     const fileList = event.target.files;
     if (!fileList || fileList.length === 0) return;
     
+    // Reset performance metrics
+    perfMetrics = {
+        totalFiles: fileList.length,
+        startTime: performance.now(),
+        endTime: 0,
+        totalTime: 0,
+        fileTypeCheckTime: 0,
+        getFileIdTime: 0,
+        blacklistCheckTime: 0,
+        arrayPushTime: 0,
+        ratingsCheckTime: 0,
+        domUpdateTime: 0,
+        yieldTime: 0,
+        lastBatchEndTime: performance.now()
+    };
+    
     const session = ++state.currentLoadSession;
     if (!forceLoadingProcess) elements.loadingProgress.classList.remove('hidden');
     
@@ -453,7 +502,28 @@ function handleFilesSelected(event) {
     function parseBatch() {
         if (session !== state.currentLoadSession) return; // Abort if session changed
         
+        const now = performance.now();
+        perfMetrics.yieldTime += (now - perfMetrics.lastBatchEndTime);
+        
         if (state.unparsedFiles.length === 0) {
+            perfMetrics.endTime = performance.now();
+            perfMetrics.totalTime = perfMetrics.endTime - perfMetrics.startTime;
+            
+            const statsMessage = `Load Complete!\n` +
+                `Total files: ${perfMetrics.totalFiles}\n` +
+                `Total time: ${(perfMetrics.totalTime / 1000).toFixed(2)}s\n\n` +
+                `Breakdown:\n` +
+                `- File Type Check (MIME/Ext): ${perfMetrics.fileTypeCheckTime.toFixed(1)}ms\n` +
+                `- Get File ID (file.size): ${perfMetrics.getFileIdTime.toFixed(1)}ms\n` +
+                `- Blacklist Checks: ${perfMetrics.blacklistCheckTime.toFixed(1)}ms\n` +
+                `- Array Pushes: ${perfMetrics.arrayPushTime.toFixed(1)}ms\n` +
+                `- Ratings Check/Assign: ${perfMetrics.ratingsCheckTime.toFixed(1)}ms\n` +
+                `- DOM/Progress Updates: ${perfMetrics.domUpdateTime.toFixed(1)}ms\n` +
+                `- Async Yields (Throttling): ${perfMetrics.yieldTime.toFixed(1)}ms`;
+            
+            alert(statsMessage);
+            console.log(statsMessage);
+            
             elements.loadingProgress.classList.add('hidden');
             renderCurrentMedia();
             renderLeaderboard();
@@ -477,6 +547,7 @@ function handleFilesSelected(event) {
         
         updateLoadingProgress();
         
+        perfMetrics.lastBatchEndTime = performance.now();
         setTimeout(parseBatch, 0);
     }
     
