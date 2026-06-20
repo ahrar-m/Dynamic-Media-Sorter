@@ -140,3 +140,15 @@
   - Re-engineered the folder loading batch loop (`handleFilesSelected`) from O(N^2) to O(N) complexity by swapping the memory-shifting array `splice()` operations for an immutable index pointer traversal.
   - Batched IndexedDB transactions: consolidated legacy key rating migrations into a single, unified database transaction (`batchDeleteLegacyKeys`) executed at the end of the folder load, eliminating transaction flooding bottlenecks on Android/mobile storage engines.
   - Slashed Stage 2 parsing times for 35k+ files from multiple minutes to under 500 milliseconds.
+
+## [2026-06-20] Unified Parsing Helper, Legacy Key Batch Migration, and Progress Indicator Visibility Fixes
+- **Unified File Parser (`parseFile`)**:
+  - Refactored redundant parsing logic in `src/main.js` into a single, cohesive helper function `parseFile`.
+  - The helper unifies MIME and RegExp file format identification, blacklist checks, and modern size-suffixed ID generation.
+  - Automatically handles legacy key migration and populates the database memory cache in a standardized manner.
+- **Legacy Key Migration Fixes**:
+  - Integrated legacy key migration checks into the on-the-fly matchmaking scan `pickNextMatchup` and `btnStageCurrent` replacements, preventing legacy rating loss for files loaded during the initial scan.
+  - Consolidated legacy deletions and modern updates into a single database transaction (`batchMigrateLegacyKeys`) executing asynchronously on batch completions.
+- **Progress Indicator Visibility & Thread Safety**:
+  - Resolved progress bar visibility bug: the progress circle `#loading-progress` now correctly removes the `hidden` class at the start of directory selection.
+  - Synchronized progress state tracking across concurrent scans by separating total loading file counts and loaded counts (`totalLoadFiles` and `loadedLoadFiles`), preventing visual progress indicator corruption.

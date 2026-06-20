@@ -27,8 +27,12 @@
     </div>
     <div class="header-right">
         <!-- Circular Progress Bar for Background Loading -->
-        <div class="progress-circle hidden" id="loading-progress" title="Loading Media...">
-            <span id="loading-percent">0%</span>
+        <div style="position: relative; width: 32px; height: 32px;" id="loading-progress" class="hidden" title="Loading Media...">
+            <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-90deg);">
+                <path style="fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3;" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path id="loading-circle" style="fill: none; stroke: var(--accent-green); stroke-width: 3; stroke-linecap: round; transition: stroke-dasharray 0.1s ease;" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            </svg>
+            <span id="loading-percent" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65rem; font-weight: bold;">0%</span>
         </div>
         
         <!-- Circular Progress Bar for Matchup Pool -->

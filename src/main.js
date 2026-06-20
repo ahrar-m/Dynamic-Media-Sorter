@@ -68,7 +68,10 @@ const state = {
     stagedFilesMap: new Map(),
     sessionMatches: 0,
     infoHidden: false,
-    sessionMediaViewed: new Set()
+    sessionMediaViewed: new Set(),
+    currentLoadSession: 0,
+    totalLoadFiles: 0,
+    loadedLoadFiles: 0
 };
 
 function getOrdinal(rating) {
@@ -190,11 +193,81 @@ function bindElements() {
         toggleVideo: document.getElementById('toggle-video'),
         
         loadingProgress: document.getElementById('loading-progress'),
-        loadingPercent: document.getElementById('loading-percent')
+        loadingPercent: document.getElementById('loading-percent'),
+        loadingCircle: document.getElementById('loading-circle')
     };
 }
 
 function getFileId(file) { return `${file.name}_${file.size}`; }
+
+function parseFile(file, legacyKeysToDelete, migratedRatingsToSave) {
+    state.loadedLoadFiles++;
+
+    let isImage = false;
+    let isVideo = false;
+    if (file.type) {
+        isImage = file.type.startsWith('image/');
+        isVideo = file.type.startsWith('video/');
+    } else {
+        isImage = /\.(jpe?g|png|gif|webp)$/i.test(file.name);
+        isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(file.name);
+    }
+
+    if (!isImage && !isVideo) {
+        return null;
+    }
+
+    const id = getFileId(file);
+    let isBlacklisted = state.ratings[id] && state.ratings[id].blacklisted;
+    if (isBlacklisted && !state.stagedFilesMap.has(id)) {
+        state.stagedFilesMap.set(id, file);
+    }
+
+    let added = false;
+    if (isImage) {
+        if (!state.loadedIds.has(id)) {
+            state.loadedIds.add(id);
+            state.images.push(file);
+            added = true;
+        }
+    } else if (isVideo) {
+        if (!state.loadedIds.has(id)) {
+            state.loadedIds.add(id);
+            state.videos.push(file);
+            added = true;
+        }
+    }
+
+    if (added && !state.ratings[id]) {
+        const legacyKey = file.name;
+        if (state.ratings[legacyKey]) {
+            state.ratings[id] = state.ratings[legacyKey];
+            delete state.ratings[legacyKey];
+            if (legacyKeysToDelete) legacyKeysToDelete.push(legacyKey);
+            if (migratedRatingsToSave) migratedRatingsToSave.push({ id: id, data: state.ratings[id] });
+        } else {
+            state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
+        }
+    }
+
+    return {
+        id,
+        isImage,
+        isVideo,
+        added,
+        isBlacklisted
+    };
+}
+
+function updateLoadingProgress() {
+    if (state.totalLoadFiles === 0) return;
+    const pct = Math.min(100, Math.floor((state.loadedLoadFiles / state.totalLoadFiles) * 100));
+    elements.loadingPercent.textContent = `${pct}%`;
+    if (elements.loadingCircle) {
+        elements.loadingCircle.setAttribute('stroke-dasharray', `${pct}, 100`);
+    }
+}
+
 function showToast(msg) {
     if(!elements.toast) return;
     elements.toast.innerHTML = msg;
@@ -256,7 +329,9 @@ function saveSettingsToStorage(skipRender = false) {
     }
 }
 
+let dbConnection = null;
 function openDB() {
+    if (dbConnection) return Promise.resolve(dbConnection);
     return new Promise((resolve, reject) => {
         const request = indexedDB.open('MediaSorterDB', 1);
         request.onupgradeneeded = (e) => {
@@ -265,7 +340,14 @@ function openDB() {
                 db.createObjectStore('ratings', { keyPath: 'id' });
             }
         };
-        request.onsuccess = () => resolve(request.result);
+        request.onsuccess = () => {
+            dbConnection = request.result;
+            dbConnection.onversionchange = () => {
+                dbConnection.close();
+                dbConnection = null;
+            };
+            resolve(dbConnection);
+        };
         request.onerror = () => reject(request.error);
     });
 }
@@ -333,16 +415,25 @@ async function deleteLegacyKeyFromStorage(id) {
     }
 }
 
-async function batchDeleteLegacyKeys(keys) {
+async function batchMigrateLegacyKeys(deletions, updates) {
     try {
         const db = await openDB();
         const tx = db.transaction('ratings', 'readwrite');
         const store = tx.objectStore('ratings');
-        for (const key of keys) {
+        
+        for (const key of deletions) {
             store.delete(key);
         }
+        for (const { id, data } of updates) {
+            store.put({ id, data });
+        }
+        
+        return new Promise((resolve, reject) => {
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
     } catch (e) {
-        console.error("IndexedDB batch delete error:", e);
+        console.error("IndexedDB batch migration error:", e);
     }
 }
 
@@ -350,70 +441,41 @@ function handleFilesSelected(event) {
     const fileList = event.target.files;
     if (!fileList || fileList.length === 0) return;
     
-    if (!forceLoadingProcess) elements.loadingProgress.classList.add('hidden');
+    const session = ++state.currentLoadSession;
+    if (!forceLoadingProcess) elements.loadingProgress.classList.remove('hidden');
     
     state.unparsedFiles = Array.from(fileList);
-    let loadedCount = 0;
-    const totalFiles = state.unparsedFiles.length;
+    state.totalLoadFiles = state.unparsedFiles.length;
+    state.loadedLoadFiles = 0;
     const legacyKeysToDelete = [];
+    const migratedRatingsToSave = [];
     
     function parseBatch() {
-        if (loadedCount >= totalFiles) {
+        if (session !== state.currentLoadSession) return; // Abort if session changed
+        
+        if (state.unparsedFiles.length === 0) {
             elements.loadingProgress.classList.add('hidden');
             renderCurrentMedia();
             renderLeaderboard();
-            pickNextMatchup();
+            if (state.currentMatchup.length === 0) {
+                pickNextMatchup();
+            }
             
-            // Purge migrated legacy keys in a single transaction
-            if (legacyKeysToDelete.length > 0) {
-                batchDeleteLegacyKeys(legacyKeysToDelete);
+            // Purge legacy keys and save new migrated keys in a single transaction
+            if (legacyKeysToDelete.length > 0 || migratedRatingsToSave.length > 0) {
+                batchMigrateLegacyKeys(legacyKeysToDelete, migratedRatingsToSave);
             }
             return;
         }
         
-        // Process in batches of 250 files (faster throughput due to 0ms array shift overhead)
-        const limit = Math.min(loadedCount + 250, totalFiles);
-        for (let i = loadedCount; i < limit; i++) {
-            const f = state.unparsedFiles[i];
-            let isImage = false;
-            let isVideo = false;
-            if (f.type) {
-                isImage = f.type.startsWith('image/');
-                isVideo = f.type.startsWith('video/');
-            } else {
-                isImage = /\.(jpe?g|png|gif|webp)$/i.test(f.name);
-                isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(f.name);
-            }
-
-            const id = getFileId(f);
-            let isBlacklisted = state.ratings[id] && state.ratings[id].blacklisted;
-            if (isBlacklisted && !state.stagedFilesMap.has(id)) {
-                state.stagedFilesMap.set(id, f);
-            }
-
-            let localDidAdd = false;
-            if (isImage) {
-                if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.images.push(f); localDidAdd = true; }
-            } else if (isVideo) {
-                if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.videos.push(f); localDidAdd = true; }
-            }
-
-            if (localDidAdd && !state.ratings[id]) {
-                const legacyKey = f.name;
-                if (state.ratings[legacyKey]) {
-                    state.ratings[id] = state.ratings[legacyKey];
-                    delete state.ratings[legacyKey];
-                    legacyKeysToDelete.push(legacyKey);
-                } else {
-                    state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
-                }
-            }
+        // Grab a batch of up to 250 files from the end (fast O(1) pops)
+        const batchSize = Math.min(250, state.unparsedFiles.length);
+        for (let i = 0; i < batchSize; i++) {
+            const f = state.unparsedFiles.pop();
+            parseFile(f, legacyKeysToDelete, migratedRatingsToSave);
         }
         
-        loadedCount = limit;
-        const pct = totalFiles === 0 ? 100 : Math.floor((loadedCount / totalFiles) * 100);
-        elements.loadingPercent.textContent = `${pct}%`;
-        elements.loadingProgress.style.background = `conic-gradient(var(--accent-green) ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
+        updateLoadingProgress();
         
         setTimeout(parseBatch, 0);
     }
@@ -430,19 +492,33 @@ function forceLoadAllFiles() {
     }
     if (forceLoadingProcess) return;
     
+    const session = ++state.currentLoadSession;
     forceLoadingProcess = true;
     document.getElementById('settings-modal').classList.remove('active');
     
-    let loadedCount = 0;
+    state.totalLoadFiles = state.unparsedFiles.length;
+    state.loadedLoadFiles = 0;
+    const legacyKeysToDelete = [];
+    const migratedRatingsToSave = [];
     
     elements.loadingProgress.classList.remove('hidden');
     
     function parseBatch() {
+        if (session !== state.currentLoadSession) {
+            forceLoadingProcess = false;
+            return;
+        }
         if (!forceLoadingProcess || state.unparsedFiles.length === 0) {
             forceLoadingProcess = false;
             elements.loadingProgress.classList.add('hidden');
             showToast("Force load complete!");
             updateMatchupProgress();
+            
+            // Run batch migration at the end of force loading
+            if (legacyKeysToDelete.length > 0 || migratedRatingsToSave.length > 0) {
+                batchMigrateLegacyKeys(legacyKeysToDelete, migratedRatingsToSave);
+            }
+            
             if (state.currentMatchup.length === 0 && state.appMode === 'matchmaking') {
                 pickNextMatchup(true);
             }
@@ -452,39 +528,10 @@ function forceLoadAllFiles() {
         const loopStart = Date.now();
         while (state.unparsedFiles.length > 0 && (Date.now() - loopStart < 16)) {
             const f = state.unparsedFiles.pop();
-            loadedCount++;
-            
-            let isImage = false, isVideo = false;
-            if (f.type) {
-                isImage = f.type.startsWith('image/');
-                isVideo = f.type.startsWith('video/');
-            } else {
-                isImage = /\.(jpe?g|png|gif|webp)$/i.test(f.name);
-                isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(f.name);
-            }
-
-            const id = getFileId(f);
-            let isBlacklisted = state.ratings[id] && state.ratings[id].blacklisted;
-            if (isBlacklisted && !state.stagedFilesMap.has(id)) {
-                state.stagedFilesMap.set(id, f);
-            }
-
-            let localDidAdd = false;
-            if (isImage) {
-                if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.images.push(f); localDidAdd = true; }
-            } else if (isVideo) {
-                if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.videos.push(f); localDidAdd = true; }
-            }
-
-            if (localDidAdd && !state.ratings[id]) {
-                state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
-            }
+            parseFile(f, legacyKeysToDelete, migratedRatingsToSave);
         }
         
-        const currentTotal = loadedCount + state.unparsedFiles.length;
-        const pct = currentTotal === 0 ? 100 : Math.floor((loadedCount / currentTotal) * 100);
-        elements.loadingPercent.textContent = `${pct}%`;
-        elements.loadingProgress.style.background = `conic-gradient(var(--accent-green) ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
+        updateLoadingProgress();
         
         setTimeout(parseBatch, 0);
     }
@@ -516,57 +563,40 @@ function pickNextMatchup(isNewMatch = false) {
     
     let newFilesAdded = [];
     let parsedCount = 0;
+    const legacyKeysToDelete = [];
+    const migratedRatingsToSave = [];
+    
+    const otherType = targetType === 'image' ? 'video' : 'image';
+    const otherList = otherType === 'image' ? state.images : state.videos;
+    let validOtherCount = otherList.filter(f => !state.stagedFilesMap.has(getFileId(f))).length;
     
     while (state.unparsedFiles.length > 0 && newFilesAdded.length < desiredNewFiles && parsedCount < 1000) {
         const f = state.unparsedFiles.pop();
         parsedCount++;
         
-        let isImage = false, isVideo = false;
-        if (f.type) {
-            isImage = f.type.startsWith('image/');
-            isVideo = f.type.startsWith('video/');
-        } else {
-            isImage = /\.(jpe?g|png|gif|webp)$/i.test(f.name);
-            isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(f.name);
-        }
-
-        const id = getFileId(f);
-        let isBlacklisted = state.ratings[id] && state.ratings[id].blacklisted;
-        if (isBlacklisted && !state.stagedFilesMap.has(id)) {
-            state.stagedFilesMap.set(id, f);
-        }
-
-        let localDidAdd = false;
-        if (isImage) {
-            if(!state.loadedIds.has(id)) { 
-                state.loadedIds.add(id); 
-                state.images.push(f); 
-                localDidAdd = true; 
-                if (targetType === 'image' && !isBlacklisted) newFilesAdded.push(f);
-            }
-        } else if (isVideo) {
-            if(!state.loadedIds.has(id)) { 
-                state.loadedIds.add(id); 
-                state.videos.push(f); 
-                localDidAdd = true; 
-                if (targetType === 'video' && !isBlacklisted) newFilesAdded.push(f);
-            }
-        }
-
-        if (localDidAdd && !state.ratings[id]) {
-            state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
+        const result = parseFile(f, legacyKeysToDelete, migratedRatingsToSave);
+        if (result && result.added && !result.isBlacklisted) {
+            if (targetType === 'image' && result.isImage) newFilesAdded.push(f);
+            if (targetType === 'video' && result.isVideo) newFilesAdded.push(f);
+            if (otherType === 'image' && result.isImage) validOtherCount++;
+            if (otherType === 'video' && result.isVideo) validOtherCount++;
         }
         
-        if (state.currentMatchup.length === 0) {
-            if (targetType === 'image' && state.videos.length >= 4) break;
-            if (targetType === 'video' && state.images.length >= 4) break;
+        if (state.currentMatchup.length === 0 && validOtherCount >= 4) {
+            break;
         }
     }
+    
+    if (legacyKeysToDelete.length > 0 || migratedRatingsToSave.length > 0) {
+        batchMigrateLegacyKeys(legacyKeysToDelete, migratedRatingsToSave);
+    }
+    
+    updateLoadingProgress();
     
     const list = getActiveList();
     
     // Auto-switch to the other media type during initial load/scan if a full matchup is available there
-    if (state.currentMatchup.length === 0 && list.length < 4) {
+    if (state.currentMatchup.length === 0 && list.length < 2) {
         if (targetType === 'image') {
             const validVideos = state.videos.filter(f => !state.stagedFilesMap.has(getFileId(f)));
             if (validVideos.length >= 4) {
@@ -1428,40 +1458,23 @@ function setupEventListeners() {
         if (!replacement && state.unparsedFiles.length > 0) {
             let parsedCount = 0;
             const targetType = state.leaderboardType;
+            const legacyKeysToDelete = [];
+            const migratedRatingsToSave = [];
             while (state.unparsedFiles.length > 0 && parsedCount < 1000) {
                 const f = state.unparsedFiles.pop();
                 parsedCount++;
-                let isImage = false, isVideo = false;
-                if (f.type) {
-                    isImage = f.type.startsWith('image/');
-                    isVideo = f.type.startsWith('video/');
-                } else {
-                    isImage = /\.(jpe?g|png|gif|webp)$/i.test(f.name);
-                    isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(f.name);
-                }
-
-                const id = getFileId(f);
-                if (state.ratings[id] && state.ratings[id].blacklisted) {
-                    if (!state.stagedFilesMap.has(id)) state.stagedFilesMap.set(id, f);
-                    continue;
-                }
-
-                let localDidAdd = false;
-                if (isImage) {
-                    if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.images.push(f); localDidAdd = true; }
-                } else if (isVideo) {
-                    if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.videos.push(f); localDidAdd = true; }
-                }
-
-                if (localDidAdd && !state.ratings[id]) {
-                    state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
-                }
-                
-                if (localDidAdd && ((isImage && targetType === 'image') || (isVideo && targetType === 'video'))) {
-                    replacement = f;
-                    break;
+                const result = parseFile(f, legacyKeysToDelete, migratedRatingsToSave);
+                if (result && result.added && !result.isBlacklisted) {
+                    if ((result.isImage && targetType === 'image') || (result.isVideo && targetType === 'video')) {
+                        replacement = f;
+                        break;
+                    }
                 }
             }
+            if (legacyKeysToDelete.length > 0 || migratedRatingsToSave.length > 0) {
+                batchMigrateLegacyKeys(legacyKeysToDelete, migratedRatingsToSave);
+            }
+            updateLoadingProgress();
         }
         
         if (replacement) {
@@ -1603,6 +1616,7 @@ function setupEventListeners() {
 
     elements.btnHardReset.addEventListener('click', async () => {
         if (!confirm("Are you sure? This will wipe all ratings completely!")) return;
+        state.currentLoadSession++;
         state.appMode = 'matchmaking';
         localStorage.removeItem('eloSorterRatings');
         try {
@@ -1724,8 +1738,9 @@ async function importRatings(event) {
                             const rating = newRatings[key];
                             
                             // Migrate name-only keys to size-suffixed keys if a matching file is currently loaded
-                            if (!id.includes('_') && loadedNameMap.has(id)) {
-                                id = loadedNameMap.get(id);
+                            const sizeSuffix = loadedNameMap.get(id);
+                            if (sizeSuffix && id !== sizeSuffix) {
+                                id = sizeSuffix;
                             }
                             
                             if (state.ratings[id]) {
