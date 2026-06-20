@@ -316,11 +316,18 @@ function updateLoadingProgress() {
     }
 }
 
-function showToast(msg) {
+let toastTimeout = null;
+function showToast(msg, duration = 3000) {
     if(!elements.toast) return;
+    if (toastTimeout) {
+        clearTimeout(toastTimeout);
+        toastTimeout = null;
+    }
     elements.toast.innerHTML = msg;
     elements.toast.classList.add('show');
-    setTimeout(() => elements.toast.classList.remove('show'), 3000);
+    if (duration > 0) {
+        toastTimeout = setTimeout(() => elements.toast.classList.remove('show'), duration);
+    }
 }
 
 function loadSettingsFromStorage() {
@@ -494,6 +501,8 @@ function handleFilesSelected(event) {
     const fileList = event.target.files;
     if (!fileList || fileList.length === 0) return;
     
+    showToast(`<i class="fa-solid fa-spinner fa-spin"></i> Importing ${fileList.length} files...`, 0);
+    
     const startTime = performance.now();
     const session = ++state.currentLoadSession;
     if (!forceLoadingProcess) elements.loadingProgress.classList.remove('hidden');
@@ -511,6 +520,7 @@ function handleFilesSelected(event) {
         
         if (state.unparsedFiles.length === 0) {
             const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
+            showToast(`Import Complete! Loaded ${state.totalLoadFiles} files in ${totalTime}s`, 3000);
             console.log(`Load Complete! Loaded ${state.totalLoadFiles} files in ${totalTime}s`);
             
             elements.loadingProgress.classList.add('hidden');
@@ -549,6 +559,8 @@ function forceLoadAllFiles() {
         return;
     }
     if (forceLoadingProcess) return;
+    
+    showToast(`<i class="fa-solid fa-spinner fa-spin"></i> Force loading ${state.unparsedFiles.length} files...`, 0);
     
     const session = ++state.currentLoadSession;
     forceLoadingProcess = true;
@@ -1412,6 +1424,13 @@ function setupEventListeners() {
     elements.folderInput.addEventListener('change', handleFilesSelected);
     elements.fileInput.addEventListener('change', handleFilesSelected);
     
+    elements.folderInput.addEventListener('click', () => {
+        showToast("Opening folder selector...", 15000);
+    });
+    elements.fileInput.addEventListener('click', () => {
+        showToast("Opening file selector...", 15000);
+    });
+    
     // Toggle Media Type
     const applyToggle = () => {
         elements.toggleImage.style.background = state.leaderboardType === 'image' ? 'rgba(79, 172, 254, 0.4)' : 'transparent';
@@ -1786,19 +1805,39 @@ async function importRatings(event) {
                     
                     const mergeRatings = (newRatings) => {
                         const allFiles = [...state.images, ...state.videos];
-                        const loadedNameMap = new Map();
+                        const loadedByName = new Map();
                         allFiles.forEach(f => {
-                            loadedNameMap.set(f.name, getFileId(f));
+                            if (!loadedByName.has(f.name)) {
+                                loadedByName.set(f.name, []);
+                            }
+                            loadedByName.get(f.name).push(f);
                         });
                         
                         for (const key in newRatings) {
                             let id = key.split('/').pop();
                             const rating = newRatings[key];
                             
-                            // Migrate name-only keys to size-suffixed keys if a matching file is currently loaded
-                            const sizeSuffix = loadedNameMap.get(id);
-                            if (sizeSuffix && id !== sizeSuffix) {
-                                id = sizeSuffix;
+                            // Check if the key has a size suffix (legacy key)
+                            const match = id.match(/^(.+)_(\d+)$/);
+                            let baseName = id;
+                            let sizeVal = null;
+                            if (match) {
+                                baseName = match[1];
+                                sizeVal = parseInt(match[2], 10);
+                            }
+                            
+                            let matchedFile = null;
+                            if (loadedByName.has(baseName)) {
+                                const candidates = loadedByName.get(baseName);
+                                if (sizeVal !== null) {
+                                    matchedFile = candidates.find(f => f.size === sizeVal);
+                                } else {
+                                    matchedFile = candidates[0];
+                                }
+                            }
+                            
+                            if (matchedFile) {
+                                id = getFileId(matchedFile);
                             }
                             
                             if (state.ratings[id]) {
