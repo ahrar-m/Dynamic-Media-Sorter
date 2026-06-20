@@ -203,14 +203,14 @@ function getFileId(file) { return `${file.name}_${file.size}`; }
 function parseFile(file, legacyKeysToDelete, migratedRatingsToSave) {
     state.loadedLoadFiles++;
 
-    let isImage = false;
-    let isVideo = false;
-    if (file.type) {
+    // Prioritize filename extension checks (extremely cheap in-memory operations)
+    let isImage = /\.(jpe?g|png|gif|webp)$/i.test(file.name);
+    let isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(file.name);
+
+    // Fall back to lazy file.type check only if the filename has no standard extension
+    if (!isImage && !isVideo && file.type) {
         isImage = file.type.startsWith('image/');
         isVideo = file.type.startsWith('video/');
-    } else {
-        isImage = /\.(jpe?g|png|gif|webp)$/i.test(file.name);
-        isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(file.name);
     }
 
     if (!isImage && !isVideo) {
