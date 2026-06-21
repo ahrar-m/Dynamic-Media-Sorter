@@ -8,13 +8,17 @@
     <style>
         :root {
             --bg-color: #000000;
+            --surface: #0f172a;
+            --surface-light: #1e293b;
             --text-color: #f8fafc;
             --primary: #6366f1;
             --primary-hover: #4f46e5;
             --danger: #ef4444;
-            --danger-hover: #dc2626;
-            --glass-bg: rgba(15, 23, 42, 0.6);
+            --success: #22c55e;
+            --glass-bg: rgba(15, 23, 42, 0.7);
             --glass-border: rgba(255, 255, 255, 0.1);
+            --nav-height: 65px;
+            --header-height: 60px;
         }
 
         * {
@@ -27,154 +31,141 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow-x: hidden;
-            /* overflow: hidden removed to allow normal scrolling */
+            overflow: hidden; /* Main scroll handled in sections */
         }
 
-        /* Utility Classes */
         .hidden { display: none !important; }
         .glass {
             background: var(--glass-bg);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid var(--glass-border);
-            border-radius: 12px;
         }
 
-        /* Buttons */
         button, .btn {
             background: var(--primary);
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 10px 16px;
             border-radius: 8px;
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            gap: 6px;
         }
-        button:hover, .btn:hover {
-            background: var(--primary-hover);
-            transform: translateY(-1px);
-        }
-        button.danger {
-            background: var(--danger);
-        }
-        button.danger:hover {
-            background: var(--danger-hover);
-        }
+        button:hover, .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        button.danger { background: var(--danger); }
+        button.success { background: var(--success); }
 
-        /* Screens */
-        main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-        }
-
-        .generic-header {
-            padding: 20px;
-            text-align: center;
-            background: rgba(15, 23, 42, 0.8);
-            border-bottom: 1px solid var(--glass-border);
-        }
-        .generic-header h1 {
-            font-size: 1.5rem;
-            background: linear-gradient(to right, #818cf8, #c084fc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        /* Home Screen */
-        #home-screen {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            gap: 30px;
-            padding: 20px;
-            background: radial-gradient(circle at top left, #1e1b4b, #000000 50%);
-        }
-
-        #home-screen .hero { max-width: 600px; }
-        #home-screen h2 { font-size: 2.5rem; margin-bottom: 16px; }
-        #home-screen p { color: #94a3b8; font-size: 1.1rem; line-height: 1.5; }
-
-        .action-cards {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-            width: 100%;
-        }
-
-        .card {
-            padding: 30px;
-            width: 300px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            text-align: center;
-        }
-        .card input[type="file"] { display: none; }
-        .progress-text { color: #94a3b8; font-size: 0.9rem; }
-
-        /* Compare Screen */
-        #compare-screen {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: #000;
-        }
-
-        /* Clean Top Bar (No Overlays) */
-        .compare-top-bar {
+        /* Header Segmented Control */
+        header {
+            height: var(--header-height);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 20px;
-            background: #0f172a;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            flex-wrap: wrap;
-            gap: 10px;
+            padding: 0 15px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--glass-border);
+            z-index: 50;
         }
 
-        .stats-badge {
-            font-size: 0.95rem;
-            color: #cbd5e1;
-            font-weight: 600;
+        .media-toggle {
+            display: flex;
+            background: var(--surface-light);
+            border-radius: 8px;
+            padding: 4px;
         }
-
-        .actions-group {
+        .media-toggle button {
+            background: transparent;
+            color: #94a3b8;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        .media-toggle button.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        .header-actions {
             display: flex;
             gap: 10px;
+            align-items: center;
         }
 
-        /* Media Layout (Stacked on mobile, side-by-side on desktop) */
-        .media-container {
+        /* Main Scrollable Area */
+        main {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        section {
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Bottom Nav */
+        nav {
+            height: var(--nav-height);
+            background: var(--surface);
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 50;
+        }
+        nav button {
+            background: transparent;
+            color: #94a3b8;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 0.75rem;
+            padding: 8px;
+            width: 100%;
+            border-radius: 0;
+        }
+        nav button:hover { transform: none; background: rgba(255,255,255,0.05); }
+        nav button.active { color: var(--primary); font-weight: 800; }
+        nav button.active span.icon { font-size: 1.2rem; }
+        nav span.icon { font-size: 1.1rem; }
+
+        /* Home Screen */
+        #home-screen {
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            background: radial-gradient(circle at top left, #1e1b4b, #000000 50%);
+        }
+        #home-screen h1 { font-size: 2rem; margin-bottom: 10px; background: linear-gradient(to right, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .action-cards { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 30px; }
+        .card { padding: 30px; width: 300px; display: flex; flex-direction: column; align-items: center; gap: 15px; border-radius: 12px; }
+        .card input[type="file"] { display: none; }
+
+        /* Arena Screen */
+        .arena-container {
             display: flex;
             flex: 1;
-            padding: 15px;
-            gap: 15px;
+            padding: 10px;
+            gap: 10px;
             align-items: stretch;
             justify-content: center;
         }
-
         @media (max-width: 768px) {
-            .media-container { flex-direction: column; }
+            .arena-container { flex-direction: column; }
         }
-
         .media-item {
             flex: 1;
             display: flex;
@@ -183,18 +174,8 @@
             border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.1);
             overflow: hidden;
-            max-width: 1000px; /* prevent ultra-wide distortion on big screens */
+            max-width: 1000px;
         }
-
-        .media-item.winner-anim {
-            animation: pulseWinner 0.4s ease-out;
-        }
-        @keyframes pulseWinner {
-            0% { box-shadow: 0 0 0 4px transparent; }
-            50% { box-shadow: 0 0 0 8px #22c55e; }
-            100% { box-shadow: 0 0 0 4px transparent; }
-        }
-
         .media-content {
             flex: 1;
             display: flex;
@@ -202,193 +183,103 @@
             justify-content: center;
             background: #000;
             padding: 10px;
-            min-height: 250px; /* Give it a decent min height on small screens */
+            min-height: 200px;
         }
-
         .media-content img, .media-content video {
             max-width: 100%;
-            max-height: 60vh; /* Limits height so both items + controls fit reasonably on screen, but allows scrolling if they don't */
+            max-height: 50vh;
             object-fit: contain;
             border-radius: 8px;
         }
-
-        /* Controls separated from media */
         .media-controls {
-            padding: 15px 20px;
-            background: #1e293b;
+            padding: 12px 15px;
+            background: var(--surface-light);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
             border-top: 1px solid rgba(255,255,255,0.05);
             flex-wrap: wrap;
         }
-
-        .filename {
-            font-size: 0.85rem;
-            color: #94a3b8;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            flex: 1;
-        }
-
-        .media-buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-pick {
-            background: #22c55e;
-            padding: 10px 24px;
-        }
-        .btn-pick:hover {
-            background: #16a34a;
-        }
+        .filename { font-size: 0.8rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+        .media-buttons { display: flex; gap: 8px; }
 
         .vs-divider {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            font-weight: 800;
-            color: #cbd5e1;
-            padding: 10px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            margin: auto 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; font-weight: 800; color: #cbd5e1;
+            padding: 10px; margin: auto 0;
         }
-        @media (max-width: 768px) {
-            .vs-divider {
-                padding: 5px;
-                margin: 0 auto;
-                width: 100%;
-            }
-        }
+        @media (max-width: 768px) { .vs-divider { padding: 0; margin: 0 auto; width: 100%; } }
 
-        /* Leaderboard Screen */
-        #leaderboard-screen {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            padding: 20px;
-            background: var(--bg-color);
+        /* Grids (Leaderboard & Trash) */
+        .grid-header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--glass-border); }
+        .grid-container { padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+        .grid-item { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 1; background: #111; border: 1px solid var(--glass-border); }
+        .grid-item img, .grid-item video { width: 100%; height: 100%; object-fit: cover; }
+        
+        .grid-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 40%, rgba(0,0,0,0.9) 100%);
+            display: flex; flex-direction: column; justify-content: space-between; padding: 8px;
         }
-
-        .leaderboard-controls {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
-        }
-
-        .grid-item {
-            position: relative;
-            border-radius: 12px;
-            overflow: hidden;
-            aspect-ratio: 1;
-            background: #111;
-        }
-
-        .grid-item img, .grid-item video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .grid-item .overlay-grid {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 50%, rgba(0,0,0,0.8) 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 10px;
-        }
-
-        .rank-badge {
-            align-self: flex-start;
-            background: var(--primary);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-
-        .item-actions {
-            display: flex;
-            justify-content: flex-end;
-        }
+        .grid-badge { align-self: flex-start; background: var(--primary); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .grid-score { font-size: 0.65rem; color: #94a3b8; background: rgba(0,0,0,0.5); padding: 2px 4px; border-radius: 2px; }
+        .grid-actions { display: flex; justify-content: flex-end; }
+        
+        .load-more-trigger { height: 20px; width: 100%; margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
-    <main>
+    <!-- Top Header -->
+    <header id="app-header" class="hidden">
+        <div class="media-toggle">
+            <button id="toggle-images" class="active">🖼️ Images</button>
+            <button id="toggle-videos">🎬 Videos</button>
+        </div>
+        <div class="header-actions" id="header-actions-container">
+            <!-- Dynamic buttons go here -->
+        </div>
+    </header>
+
+    <main id="main-scroll">
         <!-- Home Screen -->
         <section id="home-screen">
-            <div class="generic-header" style="border:none; background:transparent;">
-                <h1>Dynamic Media Sorter</h1>
-            </div>
-            <div class="hero">
-                <h2>Sort 50,000+ Media Files Smoothly</h2>
-                <p>Curate your best photos and videos using a smart comparison engine. Trash the worst, save your progress, and generate cleanup scripts.</p>
-            </div>
+            <h1>Dynamic Media Sorter</h1>
+            <p style="color:#94a3b8;">Sort 50,000+ files locally. Never crashes.</p>
 
             <div class="action-cards">
                 <div class="card glass">
-                    <h3>Start New</h3>
-                    <p>Select your media folder to begin sorting from scratch.</p>
-                    <label class="btn" for="folder-input">
-                        📁 Select Folder
-                    </label>
+                    <h3>New Session</h3>
+                    <label class="btn" for="folder-input">📁 Select Folder</label>
                     <input type="file" id="folder-input" webkitdirectory multiple accept="image/*,video/*">
                 </div>
 
                 <div class="card glass">
                     <h3>Resume Session</h3>
-                    <p>Upload a previous save file, then select your folder to continue.</p>
-                    <label class="btn" for="savefile-input">
-                        💾 Load Save File (.json)
-                    </label>
+                    <label class="btn" for="savefile-input">💾 Load Save File</label>
                     <input type="file" id="savefile-input" accept=".json">
-                    <span id="savefile-status" class="progress-text hidden">Save loaded. Now select folder above.</span>
+                    <span id="savefile-status" class="hidden" style="color:#94a3b8; font-size:0.8rem;">Save loaded. Select folder to continue.</span>
                 </div>
             </div>
         </section>
 
-        <!-- Compare Screen -->
-        <section id="compare-screen" class="hidden">
-            
-            <div class="compare-top-bar">
-                <div class="stats-badge" id="stats-text">
-                    Ranked: 0 | Trashed: 0 | Total: 0
-                </div>
-                <div class="actions-group">
-                    <button id="btn-leaderboard" class="btn">🏆 Leaderboard</button>
-                    <button id="btn-save" class="btn">💾 Save</button>
-                </div>
-            </div>
-
-            <div class="media-container" id="arena">
+        <!-- Arena Screen -->
+        <section id="arena-screen" class="hidden">
+            <div class="arena-container" id="arena">
                 <!-- Media 1 -->
                 <div class="media-item" id="media1-container">
                     <div class="media-content" id="media1-content"></div>
                     <div class="media-controls">
                         <span class="filename" id="media1-filename">file.jpg</span>
                         <div class="media-buttons">
-                            <button class="btn-trash" id="btn-trash1">🗑️ Trash</button>
-                            <button class="btn-pick" id="btn-pick1">🏆 Winner</button>
+                            <button class="btn danger" id="btn-trash1">🗑️</button>
+                            <button class="btn success" id="btn-pick1">🏆 Winner</button>
                         </div>
                     </div>
                 </div>
 
-                <div class="vs-divider" id="vs-text">VS</div>
+                <div class="vs-divider">VS</div>
 
                 <!-- Media 2 -->
                 <div class="media-item" id="media2-container">
@@ -396,8 +287,8 @@
                     <div class="media-controls">
                         <span class="filename" id="media2-filename">file.jpg</span>
                         <div class="media-buttons">
-                            <button class="btn-trash" id="btn-trash2">🗑️ Trash</button>
-                            <button class="btn-pick" id="btn-pick2">🏆 Winner</button>
+                            <button class="btn danger" id="btn-trash2">🗑️</button>
+                            <button class="btn success" id="btn-pick2">🏆 Winner</button>
                         </div>
                     </div>
                 </div>
@@ -406,74 +297,81 @@
 
         <!-- Leaderboard Screen -->
         <section id="leaderboard-screen" class="hidden">
-            <div class="generic-header glass" style="text-align: left; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                <h2 style="margin: 0;">Leaderboard & Cleanup</h2>
-                <div class="leaderboard-controls">
-                    <button id="btn-back-sort" class="btn">🔙 Back to Sorting</button>
-                    <button id="btn-export-script" class="btn danger">📜 Export Deletion Script</button>
+            <div class="grid-header">
+                <h3>Top Ranked</h3>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <label style="font-size:0.8rem; color:#94a3b8;"><input type="checkbox" id="show-scores-chk"> Show Scores</label>
                 </div>
             </div>
+            <div class="grid-container" id="leaderboard-grid"></div>
+            <div id="leaderboard-trigger" class="load-more-trigger"></div>
+        </section>
 
-            <div class="grid" id="leaderboard-grid"></div>
+        <!-- Trash Screen -->
+        <section id="trash-screen" class="hidden">
+            <div class="grid-header">
+                <h3>Trash Bin</h3>
+                <button class="btn danger" id="btn-export-script">📜 Export Script</button>
+            </div>
+            <div class="grid-container" id="trash-grid"></div>
+            <div id="trash-trigger" class="load-more-trigger"></div>
         </section>
     </main>
+
+    <!-- Bottom Navigation -->
+    <nav id="bottom-nav" class="hidden">
+        <button data-target="home"><span class="icon">📁</span><span>Load</span></button>
+        <button data-target="arena" class="active"><span class="icon">⚔️</span><span>Arena</span></button>
+        <button data-target="leaderboard"><span class="icon">🏆</span><span>Top</span></button>
+        <button data-target="trash"><span class="icon">🗑️</span><span>Trash</span></button>
+    </nav>
 
     <script type="module">
         import { rating, rate, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@5.0.1/+esm';
 
+        // --- State ---
         let mediaData = {};
         let mediaKeys = [];
-        let currentPair = null;
         let loadedSaveData = null; 
+        
+        let mediaMode = 'image'; // 'image' | 'video'
+        let currentScreen = 'home';
+        let currentPair = null;
 
+        // Undo State
+        let previousState = null; 
+
+        // Pagination State
+        const PAGE_SIZE = 16;
+        let leaderboardPage = 0;
+        let trashPage = 0;
+
+        // --- DOM ---
         const screens = {
             home: document.getElementById('home-screen'),
-            compare: document.getElementById('compare-screen'),
-            leaderboard: document.getElementById('leaderboard-screen')
+            arena: document.getElementById('arena-screen'),
+            leaderboard: document.getElementById('leaderboard-screen'),
+            trash: document.getElementById('trash-screen')
         };
+        const navButtons = document.querySelectorAll('#bottom-nav button');
+        const headerActionsContainer = document.getElementById('header-actions-container');
 
-        const inputs = {
-            folder: document.getElementById('folder-input'),
-            savefile: document.getElementById('savefile-input')
-        };
-
-        const UI = {
-            saveStatus: document.getElementById('savefile-status'),
-            statsText: document.getElementById('stats-text'),
-            m1Content: document.getElementById('media1-content'),
-            m2Content: document.getElementById('media2-content'),
-            m1Name: document.getElementById('media1-filename'),
-            m2Name: document.getElementById('media2-filename'),
-            btnPick1: document.getElementById('btn-pick1'),
-            btnPick2: document.getElementById('btn-pick2'),
-            btnTrash1: document.getElementById('btn-trash1'),
-            btnTrash2: document.getElementById('btn-trash2'),
-            m1Container: document.getElementById('media1-container'),
-            m2Container: document.getElementById('media2-container'),
-            leaderboardGrid: document.getElementById('leaderboard-grid'),
-            vsText: document.getElementById('vs-text')
-        };
-
-        inputs.savefile.addEventListener('change', async (e) => {
+        // --- Core Setup ---
+        document.getElementById('savefile-input').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
             try {
-                const text = await file.text();
-                loadedSaveData = JSON.parse(text);
-                UI.saveStatus.classList.remove('hidden');
-                UI.saveStatus.textContent = `Loaded ${Object.keys(loadedSaveData).length} ratings. Now select your media folder.`;
-            } catch (err) {
-                alert("Invalid save file.");
-            }
+                loadedSaveData = JSON.parse(await file.text());
+                document.getElementById('savefile-status').classList.remove('hidden');
+            } catch (err) { alert("Invalid save file."); }
         });
 
-        inputs.folder.addEventListener('change', (e) => {
+        document.getElementById('folder-input').addEventListener('change', (e) => {
             const files = e.target.files;
             if (files.length === 0) return;
 
             mediaData = {};
             mediaKeys = [];
-
             const mediaRegex = /\.(jpe?g|png|webp|gif|mp4|webm|mov)$/i;
 
             for (let i = 0; i < files.length; i++) {
@@ -481,298 +379,263 @@
                 if (mediaRegex.test(f.name)) {
                     const path = f.webkitRelativePath || f.name;
                     mediaKeys.push(path);
-                    
                     let r = rating();
-                    let trashed = false;
-                    let matches = 0;
+                    let t = false;
+                    let m = 0;
                     
                     if (loadedSaveData && loadedSaveData[path]) {
                         r.mu = loadedSaveData[path].mu;
                         r.sigma = loadedSaveData[path].sigma;
-                        trashed = loadedSaveData[path].trashed || false;
-                        matches = loadedSaveData[path].matches || 0;
+                        t = loadedSaveData[path].trashed || false;
+                        m = loadedSaveData[path].matches || 0;
                     }
-
-                    mediaData[path] = {
-                        file: f,
-                        mu: r.mu,
-                        sigma: r.sigma,
-                        trashed: trashed,
-                        matches: matches
-                    };
+                    mediaData[path] = { file: f, mu: r.mu, sigma: r.sigma, trashed: t, matches: m };
                 }
             }
+            if (mediaKeys.length < 2) return alert("Need at least 2 media files.");
 
-            if (mediaKeys.length < 2) {
-                alert("Need at least 2 media files in the folder.");
-                return;
-            }
-
-            showScreen('compare');
-            pickNextPair();
+            document.getElementById('app-header').classList.remove('hidden');
+            document.getElementById('bottom-nav').classList.remove('hidden');
+            switchScreen('arena');
         });
 
-        function showScreen(screenName) {
+        // --- Navigation & Header ---
+        document.getElementById('toggle-images').addEventListener('click', () => setMode('image'));
+        document.getElementById('toggle-videos').addEventListener('click', () => setMode('video'));
+
+        function setMode(mode) {
+            mediaMode = mode;
+            document.getElementById('toggle-images').classList.toggle('active', mode === 'image');
+            document.getElementById('toggle-videos').classList.toggle('active', mode === 'video');
+            refreshCurrentScreen();
+        }
+
+        navButtons.forEach(btn => {
+            btn.addEventListener('click', () => switchScreen(btn.dataset.target));
+        });
+
+        function switchScreen(screenName) {
+            currentScreen = screenName;
             Object.values(screens).forEach(s => s.classList.add('hidden'));
             screens[screenName].classList.remove('hidden');
-            if (screenName === 'compare') updateStats();
-            if (screenName === 'leaderboard') renderLeaderboard();
+            
+            navButtons.forEach(b => b.classList.toggle('active', b.dataset.target === screenName));
+            
+            document.getElementById('app-header').classList.toggle('hidden', screenName === 'home');
+            document.getElementById('bottom-nav').classList.toggle('hidden', screenName === 'home');
+            
+            updateHeaderActions();
+            refreshCurrentScreen();
         }
 
-        function getActiveKeys() {
-            return mediaKeys.filter(k => !mediaData[k].trashed);
+        function refreshCurrentScreen() {
+            document.getElementById('main-scroll').scrollTo(0,0);
+            if (currentScreen === 'arena') pickNextPair();
+            if (currentScreen === 'leaderboard') { leaderboardPage = 0; document.getElementById('leaderboard-grid').innerHTML = ''; loadLeaderboardPage(); }
+            if (currentScreen === 'trash') { trashPage = 0; document.getElementById('trash-grid').innerHTML = ''; loadTrashPage(); }
         }
 
-        function isVideo(file) {
-            return file.type.startsWith('video/');
+        function updateHeaderActions() {
+            headerActionsContainer.innerHTML = '';
+            
+            // Global Save Button
+            const btnSave = document.createElement('button');
+            btnSave.className = 'btn';
+            btnSave.innerHTML = '💾 Save';
+            btnSave.onclick = exportSave;
+            headerActionsContainer.appendChild(btnSave);
+
+            if (currentScreen === 'arena') {
+                const btnUndo = document.createElement('button');
+                btnUndo.className = 'btn';
+                btnUndo.innerHTML = '↩️ Undo';
+                btnUndo.disabled = !previousState;
+                btnUndo.onclick = undoAction;
+                headerActionsContainer.appendChild(btnUndo);
+            }
         }
+
+        // --- Arena Logic ---
+        function isVideo(file) { return file.type.startsWith('video/'); }
+        function getActiveKeys() { return mediaKeys.filter(k => !mediaData[k].trashed && (mediaMode === 'video' ? isVideo(mediaData[k].file) : !isVideo(mediaData[k].file))); }
 
         function pickNextPair() {
             const active = getActiveKeys();
-            
-            const images = active.filter(k => !isVideo(mediaData[k].file));
-            const videos = active.filter(k => isVideo(mediaData[k].file));
-
-            const validGroups = [];
-            if (images.length >= 2) validGroups.push(images);
-            if (videos.length >= 2) validGroups.push(videos);
-
-            if (validGroups.length === 0) {
-                alert("No more valid pairs of the same media type left!");
-                showScreen('leaderboard');
+            if (active.length < 2) {
+                document.getElementById('arena').innerHTML = `<div style="margin:auto; text-align:center; padding:50px;"><h3>No more ${mediaMode}s left to sort!</h3></div>`;
                 return;
             }
-
-            const groupIndex = Math.floor(Math.random() * validGroups.length);
-            const group = validGroups[groupIndex];
-
-            let idx1 = Math.floor(Math.random() * group.length);
-            let k1 = group[idx1];
             
-            let idx2 = Math.floor(Math.random() * group.length);
-            while (idx2 === idx1) {
-                idx2 = Math.floor(Math.random() * group.length);
-            }
-            let k2 = group[idx2];
+            // Re-render template if we overwrote it with the empty message
+            if(!document.getElementById('media1-container')) location.reload(); // Quick hack for resetting, ideally recreate DOM
+
+            let idx1 = Math.floor(Math.random() * active.length);
+            let k1 = active[idx1];
+            let idx2 = Math.floor(Math.random() * active.length);
+            while (idx2 === idx1) idx2 = Math.floor(Math.random() * active.length);
+            let k2 = active[idx2];
 
             currentPair = [k1, k2];
-            
-            UI.vsText.textContent = isVideo(mediaData[k1].file) ? 'VIDEO VS' : 'IMG VS';
-            
             renderPair(k1, k2);
+            updateHeaderActions(); // update Undo button state
         }
 
         function createMediaElement(file) {
-            const url = URL.createObjectURL(file);
-            let el;
-            if (isVideo(file)) {
-                el = document.createElement('video');
-                el.src = url;
-                el.controls = true; 
-                el.autoplay = true;
-                el.loop = true;
-                el.muted = true; 
-                el.playsInline = true;
-            } else {
-                el = document.createElement('img');
-                el.src = url;
-            }
+            let el = document.createElement(isVideo(file) ? 'video' : 'img');
+            el.src = URL.createObjectURL(file);
+            if (isVideo(file)) { el.controls = true; el.autoplay = true; el.loop = true; el.muted = true; el.playsInline = true; }
             return el;
         }
 
-        function cleanupMediaElements() {
-            [UI.m1Content, UI.m2Content].forEach(container => {
-                const el = container.firstChild;
-                if (el && el.src) {
-                    URL.revokeObjectURL(el.src);
-                }
-                container.innerHTML = '';
-            });
-            UI.m1Container.classList.remove('winner-anim');
-            UI.m2Container.classList.remove('winner-anim');
-        }
-
         function renderPair(k1, k2) {
-            cleanupMediaElements();
-            
-            const f1 = mediaData[k1].file;
-            const f2 = mediaData[k2].file;
-
-            UI.m1Content.appendChild(createMediaElement(f1));
-            UI.m2Content.appendChild(createMediaElement(f2));
-
-            UI.m1Name.textContent = f1.name;
-            UI.m2Name.textContent = f2.name;
+            [1, 2].forEach(i => {
+                const contentDiv = document.getElementById(`media${i}-content`);
+                if(contentDiv.firstChild) URL.revokeObjectURL(contentDiv.firstChild.src);
+                contentDiv.innerHTML = '';
+                contentDiv.appendChild(createMediaElement(mediaData[i===1?k1:k2].file));
+                document.getElementById(`media${i}-filename`).textContent = mediaData[i===1?k1:k2].file.name;
+            });
         }
 
-        function handleMatch(winnerIndex) {
-            if (!currentPair) return;
-            
+        function saveHistory() {
+            if(!currentPair) return;
             const [k1, k2] = currentPair;
-            const item1 = mediaData[k1];
-            const item2 = mediaData[k2];
-
-            let r1 = { mu: item1.mu, sigma: item1.sigma };
-            let r2 = { mu: item2.mu, sigma: item2.sigma };
-
-            let team1 = [r1];
-            let team2 = [r2];
-
-            let newRatings;
-            if (winnerIndex === 1) {
-                newRatings = rate([team1, team2]);
-            } else {
-                newRatings = rate([team2, team1]);
-            }
-
-            if (winnerIndex === 1) {
-                item1.mu = newRatings[0][0].mu; item1.sigma = newRatings[0][0].sigma;
-                item2.mu = newRatings[1][0].mu; item2.sigma = newRatings[1][0].sigma;
-            } else {
-                item2.mu = newRatings[0][0].mu; item2.sigma = newRatings[0][0].sigma;
-                item1.mu = newRatings[1][0].mu; item1.sigma = newRatings[1][0].sigma;
-            }
-
-            item1.matches++;
-            item2.matches++;
-
-            if (winnerIndex === 1) {
-                UI.m1Container.classList.add('winner-anim');
-            } else {
-                UI.m2Container.classList.add('winner-anim');
-            }
-
-            updateStats();
-
-            setTimeout(() => {
-                pickNextPair();
-            }, 350);
+            previousState = {
+                k1, k2,
+                d1: { ...mediaData[k1] },
+                d2: { ...mediaData[k2] }
+            };
+            updateHeaderActions();
         }
 
-        function handleTrash(index) {
-            if (!currentPair) return;
-            const key = currentPair[index - 1];
-            mediaData[key].trashed = true;
-            updateStats();
+        function undoAction() {
+            if(!previousState) return;
+            const {k1, k2, d1, d2} = previousState;
+            mediaData[k1].mu = d1.mu; mediaData[k1].sigma = d1.sigma; mediaData[k1].trashed = d1.trashed; mediaData[k1].matches = d1.matches;
+            mediaData[k2].mu = d2.mu; mediaData[k2].sigma = d2.sigma; mediaData[k2].trashed = d2.trashed; mediaData[k2].matches = d2.matches;
+            
+            currentPair = [k1, k2];
+            previousState = null;
+            renderPair(k1, k2);
+            updateHeaderActions();
+        }
+
+        function handleMatch(winnerIdx) {
+            saveHistory();
+            const [k1, k2] = currentPair;
+            let team1 = [{ mu: mediaData[k1].mu, sigma: mediaData[k1].sigma }];
+            let team2 = [{ mu: mediaData[k2].mu, sigma: mediaData[k2].sigma }];
+            let newR = winnerIdx === 1 ? rate([team1, team2]) : rate([team2, team1]);
+            
+            if(winnerIdx === 1) {
+                mediaData[k1].mu = newR[0][0].mu; mediaData[k1].sigma = newR[0][0].sigma;
+                mediaData[k2].mu = newR[1][0].mu; mediaData[k2].sigma = newR[1][0].sigma;
+            } else {
+                mediaData[k2].mu = newR[0][0].mu; mediaData[k2].sigma = newR[0][0].sigma;
+                mediaData[k1].mu = newR[1][0].mu; mediaData[k1].sigma = newR[1][0].sigma;
+            }
+            mediaData[k1].matches++; mediaData[k2].matches++;
             pickNextPair();
         }
 
-        function updateStats() {
-            const total = mediaKeys.length;
-            const trashed = mediaKeys.filter(k => mediaData[k].trashed).length;
-            const ranked = mediaKeys.filter(k => mediaData[k].matches > 0).length;
-            UI.statsText.textContent = `Ranked: ${ranked} | Trashed: ${trashed} | Total: ${total}`;
+        function handleTrash(idx) {
+            saveHistory();
+            mediaData[currentPair[idx-1]].trashed = true;
+            pickNextPair();
         }
 
-        UI.btnPick1.addEventListener('click', () => handleMatch(1));
-        UI.btnPick2.addEventListener('click', () => handleMatch(2));
-        
-        UI.btnTrash1.addEventListener('click', () => handleTrash(1));
-        UI.btnTrash2.addEventListener('click', () => handleTrash(2));
+        document.getElementById('btn-pick1').addEventListener('click', () => handleMatch(1));
+        document.getElementById('btn-pick2').addEventListener('click', () => handleMatch(2));
+        document.getElementById('btn-trash1').addEventListener('click', () => handleTrash(1));
+        document.getElementById('btn-trash2').addEventListener('click', () => handleTrash(2));
 
-        document.getElementById('btn-leaderboard').addEventListener('click', () => showScreen('leaderboard'));
-
-        document.getElementById('btn-save').addEventListener('click', () => {
-            const saveObj = {};
-            mediaKeys.forEach(k => {
-                const item = mediaData[k];
-                if (item.matches > 0 || item.trashed) {
-                    saveObj[k] = { mu: item.mu, sigma: item.sigma, trashed: item.trashed, matches: item.matches };
-                }
-            });
-
-            const blob = new Blob([JSON.stringify(saveObj)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `media_sort_save_${new Date().getTime()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        });
-
-        // --- Leaderboard ---
-
-        function renderLeaderboard() {
-            UI.leaderboardGrid.innerHTML = '';
+        // --- Grids (Leaderboard & Trash) ---
+        function renderGridItems(keys, containerId, page, isTrash) {
+            const container = document.getElementById(containerId);
+            const showScores = document.getElementById('show-scores-chk') && document.getElementById('show-scores-chk').checked;
             
-            const sorted = getActiveKeys().map(k => {
+            const slice = keys.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+            if(slice.length === 0) return false; // No more items
+
+            slice.forEach((k, index) => {
                 const item = mediaData[k];
-                const ord = ordinal({mu: item.mu, sigma: item.sigma});
-                return { key: k, item, ord };
-            }).sort((a, b) => b.ord - a.ord);
-
-            const topN = sorted.slice(0, 100);
-
-            topN.forEach((data, index) => {
-                const el = document.createElement('div');
-                el.className = 'grid-item glass';
-                
-                const file = data.item.file;
-                const mediaEl = createMediaElement(file);
-                
-                if (mediaEl.tagName === 'VIDEO') {
-                    mediaEl.removeAttribute('controls');
-                }
-
+                const el = document.createElement('div'); el.className = 'grid-item glass';
+                const mediaEl = createMediaElement(item.file);
+                if(mediaEl.tagName === 'VIDEO') mediaEl.removeAttribute('controls');
                 el.appendChild(mediaEl);
 
-                const overlay = document.createElement('div');
-                overlay.className = 'overlay-grid';
-
-                const rank = document.createElement('span');
-                rank.className = 'rank-badge';
-                rank.textContent = `#${index + 1}`;
+                const overlay = document.createElement('div'); overlay.className = 'grid-overlay';
                 
-                const actions = document.createElement('div');
-                actions.className = 'item-actions';
+                const topRow = document.createElement('div'); topRow.style.display = 'flex'; topRow.style.flexDirection = 'column'; topRow.style.gap = '4px';
+                if(!isTrash) {
+                    const rank = document.createElement('span'); rank.className = 'grid-badge'; rank.textContent = `#${page * PAGE_SIZE + index + 1}`;
+                    topRow.appendChild(rank);
+                }
                 
-                const shareBtn = document.createElement('button');
-                shareBtn.className = 'btn';
-                shareBtn.style.padding = '4px 8px';
-                shareBtn.style.fontSize = '0.8rem';
-                shareBtn.textContent = 'Share';
-                shareBtn.onclick = async () => {
-                    if (navigator.share) {
-                        try {
-                            await navigator.share({
-                                files: [file],
-                                title: file.name
-                            });
-                        } catch (err) {}
-                    } else {
-                        alert("Web Share API not supported on this device.");
-                    }
-                };
+                if(showScores || isTrash) {
+                    const sc = document.createElement('span'); sc.className = 'grid-score'; 
+                    sc.textContent = `μ: ${item.mu.toFixed(1)} | σ: ${item.sigma.toFixed(1)} | ⚔️ ${item.matches}`;
+                    topRow.appendChild(sc);
+                }
+                overlay.appendChild(topRow);
 
-                actions.appendChild(shareBtn);
-                overlay.appendChild(rank);
-                overlay.appendChild(actions);
-                el.appendChild(overlay);
+                const actions = document.createElement('div'); actions.className = 'grid-actions';
+                
+                if (isTrash) {
+                    const resBtn = document.createElement('button'); resBtn.className = 'btn success'; resBtn.style.padding = '4px 8px'; resBtn.textContent = '♻️ Restore';
+                    resBtn.onclick = () => { mediaData[k].trashed = false; el.remove(); };
+                    actions.appendChild(resBtn);
+                } else {
+                    const shareBtn = document.createElement('button'); shareBtn.className = 'btn'; shareBtn.style.padding = '4px 8px'; shareBtn.textContent = 'Share';
+                    shareBtn.onclick = async () => { if(navigator.share) await navigator.share({files: [item.file]}).catch(e=>{}); };
+                    actions.appendChild(shareBtn);
+                }
 
-                UI.leaderboardGrid.appendChild(el);
+                overlay.appendChild(actions); el.appendChild(overlay);
+                container.appendChild(el);
             });
+            return true; // Loaded something
         }
 
-        document.getElementById('btn-back-sort').addEventListener('click', () => showScreen('compare'));
+        function loadLeaderboardPage() {
+            const keys = mediaKeys.filter(k => !mediaData[k].trashed && (mediaMode === 'video' ? isVideo(mediaData[k].file) : !isVideo(mediaData[k].file)))
+                .sort((a, b) => ordinal(mediaData[b]) - ordinal(mediaData[a]));
+            if(renderGridItems(keys, 'leaderboard-grid', leaderboardPage, false)) leaderboardPage++;
+        }
+
+        function loadTrashPage() {
+            const keys = mediaKeys.filter(k => mediaData[k].trashed && (mediaMode === 'video' ? isVideo(mediaData[k].file) : !isVideo(mediaData[k].file)));
+            if(renderGridItems(keys, 'trash-grid', trashPage, true)) trashPage++;
+        }
+
+        document.getElementById('show-scores-chk').addEventListener('change', () => refreshCurrentScreen());
+
+        // Intersection Observers for Pagination
+        const lbObserver = new IntersectionObserver((ents) => { if(ents[0].isIntersecting && currentScreen === 'leaderboard') loadLeaderboardPage(); });
+        lbObserver.observe(document.getElementById('leaderboard-trigger'));
+
+        const trObserver = new IntersectionObserver((ents) => { if(ents[0].isIntersecting && currentScreen === 'trash') loadTrashPage(); });
+        trObserver.observe(document.getElementById('trash-trigger'));
+
+        // --- Export Save / Script ---
+        function exportSave() {
+            const saveObj = {};
+            mediaKeys.forEach(k => { if(mediaData[k].matches > 0 || mediaData[k].trashed) saveObj[k] = { mu: mediaData[k].mu, sigma: mediaData[k].sigma, trashed: mediaData[k].trashed, matches: mediaData[k].matches }; });
+            downloadBlob(JSON.stringify(saveObj), 'application/json', `save_${Date.now()}.json`);
+        }
 
         document.getElementById('btn-export-script').addEventListener('click', () => {
-            const trashedKeys = mediaKeys.filter(k => mediaData[k].trashed);
-            
-            let scriptContent = "#!/bin/bash\n\n# Generated Deletion Script\n# Run this in the root of your media folder to delete useless files.\n\n";
-            
-            trashedKeys.forEach(k => {
-                const safePath = k.replace(/"/g, '\\"');
-                scriptContent += `rm "${safePath}"\n`;
-            });
-
-            const blob = new Blob([scriptContent], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `cleanup_script.sh`;
-            a.click();
-            URL.revokeObjectURL(url);
+            let script = "#!/bin/bash\n\n";
+            mediaKeys.filter(k => mediaData[k].trashed).forEach(k => script += `rm "${k.replace(/"/g, '\\"')}"\n`);
+            downloadBlob(script, 'text/plain', `cleanup_script.sh`);
         });
+
+        function downloadBlob(content, type, filename) {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+            URL.revokeObjectURL(url);
+        }
 
     </script>
 </body>
