@@ -141,10 +141,10 @@
         .grid-item img, .grid-item video { width: 100%; height: 100%; object-fit: cover; }
         
         .grid-footer {
-            padding: 8px; background: rgba(10,15,30,0.9); border-top: 1px solid var(--glass-border);
+            padding: 8px 4px 10px 4px; background: transparent; border-top: none;
             display: flex; flex-direction: column; gap: 4px; flex: 1; justify-content: center;
         }
-        .grid-badge { background: rgba(0,240,255,0.1); padding: 2px 4px; border-radius: 4px; font-size: 0.75rem; color: var(--primary); align-self: flex-start; }
+        .grid-badge { font-size: 0.75rem; color: var(--primary); font-family: 'Orbitron'; font-weight: bold; align-self: flex-start; }
         .grid-score { font-size: 0.65rem; color: #94a3b8; font-family: 'Orbitron'; }
         
         .load-more-trigger { height: 20px; width: 100%; margin-bottom: 40px; }
@@ -220,7 +220,6 @@
                         <option value="desc" style="background:#000;">HIGHEST FIRST</option>
                         <option value="asc" style="background:#000;">LOWEST FIRST</option>
                     </select>
-                    <label style="font-size:0.75rem; color:#94a3b8; cursor:pointer;"><input type="checkbox" id="show-scores-chk"> SCORES</label>
                 </div>
             </div>
             <div class="grid-container" id="leaderboard-grid"></div>
@@ -1007,7 +1006,6 @@
         // --- Grids & Feed View ---
         function renderGridItems(keys, containerId, page, isTrash) {
             const container = document.getElementById(containerId);
-            const showScores = document.getElementById('show-scores-chk') && document.getElementById('show-scores-chk').checked;
             const slice = keys.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
             if(slice.length === 0) return false;
 
@@ -1046,7 +1044,7 @@
                 const rankText = isTrash ? 'TRASHED' : `#${page * PAGE_SIZE + index + 1}`;
                 footer.innerHTML = `<span class="grid-badge">${rankText}</span>`;
                 
-                if(showScores || isTrash) { const sc = document.createElement('span'); sc.className = 'grid-score'; sc.textContent = `μ:${item.mu.toFixed(1)} σ:${item.sigma.toFixed(1)} ⚔️${item.matches}`; footer.appendChild(sc); }
+                const sc = document.createElement('span'); sc.className = 'grid-score'; sc.textContent = `μ:${item.mu.toFixed(1)} σ:${item.sigma.toFixed(1)} ⚔️${item.matches}`; footer.appendChild(sc);
                 
                 if (isTrash) {
                     const resBtn = document.createElement('button'); resBtn.className = 'btn success'; resBtn.textContent = '♻️ RESTORE'; resBtn.style.padding='4px'; resBtn.style.fontSize='0.65rem';
@@ -1080,7 +1078,7 @@
             if(renderGridItems(keys, 'trash-grid', trashPage, true)) trashPage++;
         }
 
-        document.getElementById('show-scores-chk').addEventListener('change', () => refreshCurrentScreen());
+
         const lbObserver = new IntersectionObserver((ents) => { if(ents[0].isIntersecting && currentScreen === 'leaderboard') loadLeaderboardPage(); }); lbObserver.observe(document.getElementById('leaderboard-trigger'));
         const trObserver = new IntersectionObserver((ents) => { if(ents[0].isIntersecting && currentScreen === 'trash') loadTrashPage(); }); trObserver.observe(document.getElementById('trash-trigger'));
 
