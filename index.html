@@ -402,6 +402,7 @@
                 const match = nameWithoutExt.match(/^(.*)_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})$/);
                 currentSaveName = match ? match[1] : nameWithoutExt;
             } catch (err) { alert("Invalid save file."); }
+            e.target.value = ''; // Clear input files list
         });
 
         document.getElementById('folder-input').addEventListener('change', (e) => {
@@ -445,6 +446,7 @@
                 }
             }
             if (mediaKeys.length < 2) return alert("Need at least 2 media files.");
+            e.target.value = ''; // Clear input files list to avoid history serialization lag with large folders
             document.getElementById('app-header').classList.remove('hidden');
             document.getElementById('bottom-nav').classList.remove('hidden');
             switchScreen('arena');
