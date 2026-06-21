@@ -132,15 +132,22 @@
         .load-more-trigger { height: 20px; width: 100%; margin-bottom: 40px; }
         .stats-text { text-align: center; padding: 10px; color: var(--primary); font-family: 'Orbitron'; font-size: 0.7rem; text-shadow: var(--glow); }
 
-        /* Detail View Modal */
+        /* Detail Feed Modal */
         #detail-view-modal {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
-            background: #000; z-index: 1000; display: flex; flex-direction: column;
+            background: #000; z-index: 1000; overflow-y: auto; overflow-x: hidden;
+            scroll-snap-type: y mandatory;
         }
-        .detail-header { height: var(--header-height); display: flex; justify-content: space-between; align-items: center; padding: 0 15px; background: rgba(0,0,0,0.9); border-bottom: 1px solid var(--glass-border); }
-        .detail-content { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; touch-action: none; background: #000; overflow: hidden; }
+        .detail-header { position: fixed; top: 0; left: 0; width: 100%; height: var(--header-height); display: flex; justify-content: space-between; align-items: center; padding: 0 15px; background: rgba(0,0,0,0.9); border-bottom: 1px solid var(--glass-border); z-index: 1010; }
+        
+        .detail-feed-item {
+            height: 100dvh; width: 100vw; scroll-snap-align: start; position: relative;
+            display: flex; flex-direction: column; touch-action: pan-y;
+            transition: height 0.3s ease, opacity 0.3s ease;
+        }
+        .detail-content { flex: 1; display: flex; align-items: center; justify-content: center; margin-top: var(--header-height); background: #000; overflow: hidden; }
         .detail-content img, .detail-content video { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: auto; }
-        .detail-footer { padding: 15px; background: rgba(0,0,0,0.9); text-align: center; border-top: 1px solid var(--glass-border); }
+        .detail-footer { height: 60px; padding: 10px; background: rgba(0,0,0,0.9); text-align: center; border-top: 1px solid var(--glass-border); flex-shrink: 0; }
     </style>
 </head>
 <body>
@@ -228,18 +235,15 @@
         <button data-target="trash"><span class="icon">TRASH</span></button>
     </nav>
 
-    <!-- Detail View Modal -->
+    <!-- Detail Feed Modal -->
     <div id="detail-view-modal" class="hidden">
         <div class="detail-header">
             <button class="btn" id="btn-close-detail" style="border-color:var(--primary); color:var(--primary);">BACK</button>
-            <div id="detail-rank" style="color:var(--primary); font-family:Orbitron; font-size:1.2rem; text-shadow:var(--glow);">#1</div>
+            <div id="detail-rank-header" style="color:var(--primary); font-family:Orbitron; font-size:1rem; text-shadow:var(--glow);">RANKING FEED</div>
             <div style="width:60px;"></div> <!-- Spacer -->
         </div>
-        <div class="detail-content" id="detail-media-container"></div>
-        <div class="detail-footer">
-            <div id="detail-scores" style="color:var(--primary); font-family:Orbitron; font-size:0.85rem; margin-bottom: 8px;"></div>
-            <div style="color:var(--danger); font-size:0.75rem; font-family:Orbitron; letter-spacing: 1px;">⇦ TRASH &nbsp; | &nbsp; ⇧ NEXT</div>
-        </div>
+        <div id="detail-feed-container"></div>
+        <div id="detail-feed-trigger" class="load-more-trigger"></div>
     </div>
 
     <script type="module">
@@ -456,9 +460,7 @@
             });
         });
 
-        // --- Grids & Detail View ---
-        let detailKeys = []; let detailIndex = 0;
-
+        // --- Grids & Feed View ---
         function renderGridItems(keys, containerId, page, isTrash) {
             const container = document.getElementById(containerId);
             const showScores = document.getElementById('show-scores-chk') && document.getElementById('show-scores-chk').checked;
@@ -505,65 +507,90 @@
         const lbObserver = new IntersectionObserver((ents) => { if(ents[0].isIntersecting && currentScreen === 'leaderboard') loadLeaderboardPage(); }); lbObserver.observe(document.getElementById('leaderboard-trigger'));
         const trObserver = new IntersectionObserver((ents) => { if(ents[0].isIntersecting && currentScreen === 'trash') loadTrashPage(); }); trObserver.observe(document.getElementById('trash-trigger'));
 
-        // Detail View Logic
+        // --- Detail Feed View ---
+        let detailKeys = []; let feedStartIndex = 0; let feedCurrentRendered = 0;
+        
+        const feedVideoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const vid = entry.target.querySelector('video');
+                if (vid) { if (entry.isIntersecting) vid.play().catch(e=>{}); else vid.pause(); }
+                if (entry.isIntersecting) { document.getElementById('detail-rank-header').textContent = `RANK #${parseInt(entry.target.dataset.index) + 1}`; }
+            });
+        }, { threshold: 0.5 });
+
+        const feedLoadObserver = new IntersectionObserver((ents) => {
+            if(ents[0].isIntersecting && !document.getElementById('detail-view-modal').classList.contains('hidden')) {
+                loadMoreFeed();
+            }
+        }, {rootMargin: "500px"});
+        feedLoadObserver.observe(document.getElementById('detail-feed-trigger'));
+
         function openDetailView(keys, index) {
-            detailKeys = keys; detailIndex = index;
-            document.getElementById('detail-view-modal').classList.remove('hidden'); renderDetailView();
+            detailKeys = keys; feedStartIndex = index; feedCurrentRendered = 0;
+            document.getElementById('detail-feed-container').innerHTML = '';
+            document.getElementById('detail-view-modal').classList.remove('hidden');
+            loadMoreFeed();
+            document.getElementById('detail-view-modal').scrollTop = 0;
         }
-        function renderDetailView() {
-            if (detailIndex < 0 || detailIndex >= detailKeys.length) return;
-            const k = detailKeys[detailIndex]; const item = mediaData[k];
-            const container = document.getElementById('detail-media-container');
-            if(container.firstChild) URL.revokeObjectURL(container.firstChild.src);
-            container.innerHTML = ''; container.appendChild(createMediaElement(item.file));
-            
-            document.getElementById('detail-rank').textContent = `#${detailIndex + 1}`;
-            document.getElementById('detail-scores').textContent = `μ: ${item.mu.toFixed(2)} | σ: ${item.sigma.toFixed(2)} | ⚔️: ${item.matches}`;
+
+        function loadMoreFeed() {
+            const container = document.getElementById('detail-feed-container');
+            const end = Math.min(feedStartIndex + feedCurrentRendered + PAGE_SIZE, detailKeys.length);
+            for (let i = feedStartIndex + feedCurrentRendered; i < end; i++) {
+                const k = detailKeys[i]; const item = mediaData[k];
+                const feedItem = document.createElement('div'); feedItem.className = 'detail-feed-item';
+                feedItem.dataset.index = i; feedItem.dataset.key = k;
+
+                const content = document.createElement('div'); content.className = 'detail-content';
+                content.appendChild(createMediaElement(item.file)); feedItem.appendChild(content);
+
+                const footer = document.createElement('div'); footer.className = 'detail-footer';
+                footer.innerHTML = `<div style="color:var(--primary); font-family:Orbitron; font-size:0.85rem; margin-bottom: 5px;">μ: ${item.mu.toFixed(2)} | σ: ${item.sigma.toFixed(2)} | ⚔️: ${item.matches}</div><div style="color:var(--danger); font-size:0.75rem; font-family:Orbitron; letter-spacing: 1px;">⇦ SWIPE LEFT TO TRASH</div>`;
+                feedItem.appendChild(footer); container.appendChild(feedItem);
+
+                feedVideoObserver.observe(feedItem);
+                attachFeedGestures(feedItem, i);
+            }
+            feedCurrentRendered += (end - (feedStartIndex + feedCurrentRendered));
         }
+
         document.getElementById('btn-close-detail').addEventListener('click', () => {
             document.getElementById('detail-view-modal').classList.add('hidden');
-            const container = document.getElementById('detail-media-container');
-            if(container.firstChild) URL.revokeObjectURL(container.firstChild.src); container.innerHTML = '';
+            document.getElementById('detail-feed-container').innerHTML = '';
             refreshCurrentScreen();
         });
 
-        // Detail View Gestures
-        const dContainer = document.getElementById('detail-media-container');
-        let dStartX=0, dStartY=0, dCurX=0, dCurY=0, dIsDragging=false, dIsH=false, dIsV=false;
-        dContainer.addEventListener('touchstart', e => {
-            if(e.target.tagName === 'VIDEO' && e.touches[0].clientY > dContainer.getBoundingClientRect().bottom - 60) return;
-            dStartX = e.touches[0].clientX; dStartY = e.touches[0].clientY; dCurX = dStartX; dCurY = dStartY;
-            dIsDragging = true; dIsH = false; dIsV = false; dContainer.style.transition = 'none';
-        }, {passive: true});
-        dContainer.addEventListener('touchmove', e => {
-            if(!dIsDragging) return;
-            dCurX = e.touches[0].clientX; dCurY = e.touches[0].clientY; let diffX = dCurX - dStartX; let diffY = dCurY - dStartY;
-            if(!dIsH && !dIsV) { if(Math.abs(diffX) > 20) dIsH = true; else if(Math.abs(diffY) > 20) dIsV = true; }
-            if(dIsV || dIsH) { if(e.cancelable) e.preventDefault(); }
-            if(dIsH) { dContainer.style.transform = `translateX(${diffX}px) rotate(${diffX*0.02}deg)`; }
-            if(dIsV) { dContainer.style.transform = `translateY(${diffY}px)`; }
-        }, {passive: false});
-        dContainer.addEventListener('touchend', e => {
-            if(!dIsDragging) return; dIsDragging = false;
-            let diffX = dCurX - dStartX; let diffY = dCurY - dStartY; dContainer.style.transition = 'transform 0.3s ease';
-            if (dIsH && diffX < -100) {
-                // TRASH
-                dContainer.style.transform = `translateX(-100vw)`;
-                setTimeout(() => {
-                    mediaData[detailKeys[detailIndex]].trashed = true;
-                    detailKeys.splice(detailIndex, 1);
-                    if (detailIndex >= detailKeys.length) detailIndex = detailKeys.length - 1;
-                    if (detailKeys.length === 0) document.getElementById('btn-close-detail').click();
-                    else { dContainer.style.transition='none'; dContainer.style.transform=''; renderDetailView(); }
-                }, 300);
-            } else if (dIsV) {
-                if (diffY < -100 && detailIndex < detailKeys.length - 1) {
-                    dContainer.style.transform = `translateY(-100vh)`; setTimeout(() => { detailIndex++; dContainer.style.transition='none'; dContainer.style.transform=''; renderDetailView(); }, 300);
-                } else if (diffY > 100 && detailIndex > 0) {
-                    dContainer.style.transform = `translateY(100vh)`; setTimeout(() => { detailIndex--; dContainer.style.transition='none'; dContainer.style.transform=''; renderDetailView(); }, 300);
-                } else { dContainer.style.transform = ''; }
-            } else { dContainer.style.transform = ''; }
-        });
+        function attachFeedGestures(el, index) {
+            let startX=0, startY=0, curX=0, curY=0, isDrag=false, isH=false, isV=false;
+            el.addEventListener('touchstart', e => {
+                if(e.target.tagName === 'VIDEO' && e.touches[0].clientY > el.getBoundingClientRect().bottom - 90) return;
+                startX = e.touches[0].clientX; startY = e.touches[0].clientY; curX = startX; curY = startY;
+                isDrag = true; isH = false; isV = false; el.style.transition = 'none';
+            }, {passive: true});
+            el.addEventListener('touchmove', e => {
+                if(!isDrag) return;
+                curX = e.touches[0].clientX; curY = e.touches[0].clientY; let diffX = curX - startX; let diffY = curY - startY;
+                if(!isH && !isV) { if(Math.abs(diffX) > 20) isH = true; else if(Math.abs(diffY) > 20) isV = true; }
+                if(isH) { if(e.cancelable) e.preventDefault(); el.style.transform = `translateX(${diffX}px) rotate(${diffX*0.02}deg)`; }
+            }, {passive: false});
+            el.addEventListener('touchend', e => {
+                if(!isDrag) return; isDrag = false; let diffX = curX - startX; el.style.transition = 'transform 0.3s ease, height 0.3s ease, opacity 0.3s ease';
+                if (isH && diffX < -100) {
+                    el.style.transform = `translateX(-100vw)`;
+                    setTimeout(() => {
+                        mediaData[el.dataset.key].trashed = true; updateStats();
+                        el.style.height = '0'; el.style.opacity = '0';
+                        setTimeout(() => {
+                            el.remove();
+                            // If we trashed the last item and feed is empty, close.
+                            if(document.getElementById('detail-feed-container').children.length === 0) {
+                                document.getElementById('btn-close-detail').click();
+                            }
+                        }, 300);
+                    }, 300);
+                } else { el.style.transform = ''; }
+            });
+        }
 
         // --- Export ---
         function exportSave() {
