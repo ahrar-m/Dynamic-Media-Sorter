@@ -299,6 +299,44 @@
         let isAnimating = false;
 
         const screens = { home: document.getElementById('home-screen'), arena: document.getElementById('arena-screen'), leaderboard: document.getElementById('leaderboard-screen'), trash: document.getElementById('trash-screen') };
+        // --- IndexedDB Setup ---
+        let db;
+        const request = indexedDB.open('DynamicMediaSorterDB', 1);
+        request.onupgradeneeded = function(e) {
+            db = e.target.result;
+            if (!db.objectStoreNames.contains('saves')) { db.createObjectStore('saves', { keyPath: 'id' }); }
+        };
+        request.onsuccess = function(e) {
+            db = e.target.result;
+            loadFromDB();
+        };
+
+        function loadFromDB() {
+            if(!db) return;
+            const tx = db.transaction(['saves'], 'readonly');
+            const req = tx.objectStore('saves').get('currentSave');
+            req.onsuccess = function() {
+                if (req.result && req.result.data) {
+                    loadedSaveData = req.result.data;
+                    console.log("Loaded save from IndexedDB.");
+                }
+            };
+        }
+
+        function autoSaveToDB() {
+            if (!db) return;
+            const saveObj = {}; 
+            mediaKeys.forEach(k => { 
+                if((mediaData[k].matches > 0 || mediaData[k].trashed) && mediaData[k].hash) {
+                    const h = mediaData[k].hash;
+                    if (!saveObj[h]) saveObj[h] = { mu: mediaData[k].mu, sigma: mediaData[k].sigma, trashed: mediaData[k].trashed, matches: mediaData[k].matches, known_paths: [] };
+                    saveObj[h].known_paths.push(k);
+                }
+            });
+            const tx = db.transaction(['saves'], 'readwrite');
+            tx.objectStore('saves').put({ id: 'currentSave', data: saveObj, timestamp: Date.now() });
+        }
+
         const navButtons = document.querySelectorAll('#bottom-nav button');
         const headerActionsContainer = document.getElementById('header-actions-container');
 
@@ -374,8 +412,8 @@
         function refreshCurrentScreen() {
             document.getElementById('main-scroll').scrollTo(0,0);
             if (currentScreen === 'arena') pickNextBatch();
-            if (currentScreen === 'leaderboard') { leaderboardPage = 0; document.getElementById('leaderboard-grid').innerHTML = ''; loadLeaderboardPage(); }
-            if (currentScreen === 'trash') { trashPage = 0; document.getElementById('trash-grid').innerHTML = ''; loadTrashPage(); }
+            if (currentScreen === 'leaderboard') { leaderboardPage = 0; clearContainerAndRevoke('leaderboard-grid'); loadLeaderboardPage(); }
+            if (currentScreen === 'trash') { trashPage = 0; clearContainerAndRevoke('trash-grid'); loadTrashPage(); }
             updateStats();
         }
 
@@ -412,7 +450,7 @@
                 isScanning = false;
                 modal.classList.add('hidden');
                 updateStats();
-                alert(`Deep Scan Complete! Hashed ${count} files.`);
+                autoSaveToDB(); alert(`Deep Scan Complete! Hashed ${count} files.`);
             };
             headerActionsContainer.appendChild(btnScan);
             
@@ -465,9 +503,20 @@
         }
 
         function createMediaElement(file) {
-            let el = document.createElement(isVideo(file) ? 'video' : 'img'); el.src = URL.createObjectURL(file);
+            let el = document.createElement(isVideo(file) ? 'video' : 'img'); 
+            const url = URL.createObjectURL(file);
+            el.src = url;
+            el.dataset.blobUrl = url;
             if (isVideo(file)) { el.controls = true; el.autoplay = true; el.loop = true; el.muted = true; el.playsInline = true; }
             return el;
+        }
+
+        function clearContainerAndRevoke(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const elements = container.querySelectorAll('[data-blob-url]');
+            elements.forEach(el => { URL.revokeObjectURL(el.dataset.blobUrl); });
+            container.innerHTML = '';
         }
 
         function renderArenaGrid() {
@@ -556,7 +605,7 @@
         function openFullscreen(file) {
             const modal = document.getElementById('fullscreen-view-modal');
             const content = document.getElementById('fullscreen-content');
-            content.innerHTML = '';
+            clearContainerAndRevoke('fullscreen-content');
             
             document.getElementById('fullscreen-dropdown').classList.add('hidden');
             document.getElementById('fullscreen-info-path').textContent = file.webkitRelativePath || file.name;
@@ -626,7 +675,7 @@
                 });
             } else if (teams.length === 1) { mediaData[teams[0][0].key].matches++; }
             
-            isAnimating = false; pickNextBatch(); updateStats();
+            isAnimating = false; pickNextBatch(); updateStats(); autoSaveToDB();
         }
 
         function saveHistory() {
@@ -669,7 +718,12 @@
                 
                 if (isTrash) {
                     const resBtn = document.createElement('button'); resBtn.className = 'btn success'; resBtn.textContent = '♻️ RESTORE'; resBtn.style.padding='4px'; resBtn.style.fontSize='0.65rem';
-                    resBtn.onclick = (e) => { e.stopPropagation(); mediaData[k].trashed = false; el.remove(); updateStats(); }; footer.appendChild(resBtn);
+                    resBtn.onclick = (e) => { 
+                        e.stopPropagation(); mediaData[k].trashed = false; 
+                        const blobEl = el.querySelector('[data-blob-url]');
+                        if (blobEl) URL.revokeObjectURL(blobEl.dataset.blobUrl);
+                        el.remove(); updateStats(); autoSaveToDB();
+                    }; footer.appendChild(resBtn);
                 }
                 el.appendChild(footer); container.appendChild(el);
             });
@@ -710,7 +764,7 @@
 
         function openDetailView(keys, index) {
             detailKeys = keys; feedStartIndex = index; feedCurrentRendered = 0;
-            document.getElementById('detail-feed-container').innerHTML = '';
+            clearContainerAndRevoke('detail-feed-container');
             document.getElementById('detail-view-modal').classList.remove('hidden');
             loadMoreFeed();
             document.getElementById('detail-view-modal').scrollTop = 0;
@@ -739,7 +793,7 @@
 
         document.getElementById('btn-close-detail').addEventListener('click', () => {
             document.getElementById('detail-view-modal').classList.add('hidden');
-            document.getElementById('detail-feed-container').innerHTML = '';
+            clearContainerAndRevoke('detail-feed-container');
             refreshCurrentScreen();
         });
 
@@ -761,7 +815,9 @@
                 if (isH && diffX < -100) {
                     el.style.transform = `translateX(-100vw)`;
                     setTimeout(() => {
-                        mediaData[el.dataset.key].trashed = true; updateStats();
+                        mediaData[el.dataset.key].trashed = true; updateStats(); autoSaveToDB();
+                        const blobEl = el.querySelector('[data-blob-url]');
+                        if (blobEl) URL.revokeObjectURL(blobEl.dataset.blobUrl);
                         el.style.height = '0'; el.style.opacity = '0';
                         setTimeout(() => {
                             el.remove();
@@ -803,14 +859,25 @@
             downloadBlob(JSON.stringify(saveObj), 'application/json', `${baseName}_${getFormattedDateTime()}.json`);
         }
 
-        setInterval(() => {
-            const hasData = mediaKeys.some(k => mediaData[k].matches > 0 || mediaData[k].trashed);
-            if (hasData) exportSave(true);
-        }, 5 * 60 * 1000);
+
 
         document.getElementById('btn-export-script').addEventListener('click', () => {
-            let script = "import os\n\nfiles_to_delete = [\n"; mediaKeys.filter(k => mediaData[k].trashed).forEach(k => script += `    r"${k.replace(/"/g, '\\"')}",\n`);
-            script += "]\n\nfor f in files_to_delete:\n    try:\n        os.remove(f)\n        print(f'Deleted: {f}')\n    except Exception as e:\n        print(f'Error deleting {f}: {e}')\n";
+            let script = `import os
+
+# Run this script inside your selected media folder!
+files_to_delete = [
+`; 
+            mediaKeys.filter(k => mediaData[k].trashed).forEach(k => script += `    r'''${k}''',
+`);
+            script += `]
+
+for f in files_to_delete:
+    try:
+        os.remove(f)
+        print(f'Deleted: {f}')
+    except Exception as e:
+        print(f'Error deleting {f}: {e}')
+`;
             downloadBlob(script, 'text/plain', `cleanup_script.py`);
         });
         function downloadBlob(content, type, filename) { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
