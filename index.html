@@ -130,7 +130,7 @@
         .grid-score { font-size: 0.65rem; color: #94a3b8; font-family: 'Orbitron'; }
         
         .load-more-trigger { height: 20px; width: 100%; margin-bottom: 40px; }
-        .stats-text { text-align: center; padding: 10px; color: var(--primary); font-family: 'Orbitron'; font-size: 0.7rem; text-shadow: var(--glow); }
+        .stats-text { text-align: center; padding: 10px; color: var(--primary); font-family: 'Orbitron'; font-size: 0.65rem; line-height: 1.5; text-shadow: var(--glow); }
 
         /* Detail Feed Modal */
         #detail-view-modal {
@@ -339,8 +339,19 @@
         document.addEventListener('fullscreenchange', updateHeaderActions);
 
         function updateStats() {
-            const total = mediaKeys.length; const trashed = mediaKeys.filter(k => mediaData[k].trashed).length; const ranked = mediaKeys.filter(k => mediaData[k].matches > 0).length;
-            document.getElementById('stats-text').textContent = `RANKED: ${ranked} | TRASHED: ${trashed} | TOTAL: ${total}`;
+            let imgRanked = 0, imgTrashed = 0, imgTotal = 0;
+            let vidRanked = 0, vidTrashed = 0, vidTotal = 0;
+
+            mediaKeys.forEach(k => {
+                const item = mediaData[k];
+                const isVid = isVideo(item.file);
+                if (isVid) { vidTotal++; if (item.trashed) vidTrashed++; if (!item.trashed && item.matches > 0) vidRanked++; }
+                else { imgTotal++; if (item.trashed) imgTrashed++; if (!item.trashed && item.matches > 0) imgRanked++; }
+            });
+
+            document.getElementById('stats-text').innerHTML = 
+                `IMG - RANKED: ${imgRanked} | TRASHED: ${imgTrashed} | TOTAL: ${imgTotal}<br>` +
+                `VID - RANKED: ${vidRanked} | TRASHED: ${vidTrashed} | TOTAL: ${vidTotal}`;
         }
 
         function isVideo(file) { return file.type.startsWith('video/'); }
