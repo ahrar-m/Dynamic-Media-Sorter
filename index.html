@@ -22,274 +22,129 @@
             --header-height: 60px;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', sans-serif;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
 
-        h1, h2, h3, .grid-badge, .swipe-hint {
-            font-family: 'Orbitron', sans-serif;
-            letter-spacing: 1px;
-        }
+        h1, h2, h3, .grid-badge, .swipe-hint { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            height: 100vh;
-            height: 100dvh;
-            width: 100vw;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            background-image: 
-                linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+            background-color: var(--bg-color); color: var(--text-color);
+            height: 100vh; height: 100dvh; width: 100vw;
+            display: flex; flex-direction: column; overflow: hidden;
+            background-image: linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
             background-size: 30px 30px;
         }
 
         .hidden { display: none !important; }
-        
-        .glass {
-            background: var(--surface);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-        }
+        .glass { background: var(--surface); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); }
 
-        /* Futuristic Buttons */
         button, .btn {
-            background: rgba(0, 240, 255, 0.05);
-            border: 1px solid var(--primary);
-            color: var(--primary);
-            padding: 8px 16px;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: inset 0 0 5px rgba(0,240,255,0.1);
+            background: rgba(0, 240, 255, 0.05); border: 1px solid var(--primary); color: var(--primary);
+            padding: 8px 16px; border-radius: 4px; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; cursor: pointer; transition: all 0.2s ease; box-shadow: inset 0 0 5px rgba(0,240,255,0.1);
         }
-        button:hover, .btn:hover {
-            background: var(--primary);
-            color: #000;
-            box-shadow: var(--glow);
-        }
-        button.danger {
-            border-color: var(--danger);
-            color: var(--danger);
-            box-shadow: inset 0 0 5px rgba(255,0,60,0.1);
-        }
-        button.danger:hover {
-            background: var(--danger);
-            color: #fff;
-            box-shadow: var(--danger-glow);
-        }
+        button:hover, .btn:hover { background: var(--primary); color: #000; box-shadow: var(--glow); }
+        button.danger { border-color: var(--danger); color: var(--danger); box-shadow: inset 0 0 5px rgba(255,0,60,0.1); }
+        button.danger:hover { background: var(--danger); color: #fff; box-shadow: var(--danger-glow); }
+        button.success { border-color: var(--success); color: var(--success); box-shadow: inset 0 0 5px rgba(57,255,20,0.1); }
+        button.success:hover { background: var(--success); color: #000; box-shadow: inset 0 0 20px rgba(57,255,20,0.5), 0 0 10px rgba(57,255,20,0.5); }
 
-        /* Overlay Icons */
         .icon-btn {
-            position: absolute;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 100;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-            padding: 10px 15px; /* Pad out to corner */
-            border: none;
-            background: transparent;
+            position: absolute; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100;
+            font-size: 0.9rem; transition: all 0.2s; padding: 10px 15px; border: none; background: transparent;
         }
         .icon-trash { right: 0; top: 0; color: var(--danger); background: radial-gradient(circle at top right, rgba(0,0,0,0.85) 0%, transparent 80%); }
         .icon-trash:hover { text-shadow: var(--danger-glow); }
         .icon-menu { left: 0; top: 0; color: var(--primary); background: radial-gradient(circle at top left, rgba(0,0,0,0.85) 0%, transparent 80%); }
         .icon-menu:hover { text-shadow: var(--glow); }
 
-        /* Info Dropdown Modal */
         .info-dropdown {
-            position: absolute;
-            top: 60px;
-            left: 12px;
-            background: rgba(5, 10, 15, 0.95);
-            border: 1px solid var(--primary);
-            box-shadow: var(--glow);
-            padding: 15px;
-            border-radius: 8px;
-            z-index: 200;
-            width: 80%;
-            max-width: 300px;
-            backdrop-filter: blur(10px);
-            pointer-events: auto;
+            position: absolute; top: 60px; left: 12px; background: rgba(5, 10, 15, 0.95);
+            border: 1px solid var(--primary); box-shadow: var(--glow); padding: 15px; border-radius: 8px; z-index: 200;
+            width: 80%; max-width: 300px; backdrop-filter: blur(10px); pointer-events: auto;
         }
-        .info-row {
-            margin-bottom: 10px;
-            font-size: 0.85rem;
-            line-height: 1.4;
-            color: #94a3b8;
-            word-break: break-all;
-        }
+        .info-row { margin-bottom: 10px; font-size: 0.85rem; line-height: 1.4; color: #94a3b8; word-break: break-all; }
         .info-row b { color: var(--primary); font-family: 'Orbitron', sans-serif; font-size: 0.75rem; text-transform: uppercase; }
 
-        /* Header Segmented Control */
-        header {
-            flex-shrink: 0;
-            height: var(--header-height);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 15px;
-            background: var(--surface);
-            border-bottom: 1px solid var(--glass-border);
-            z-index: 50;
-        }
-
-        .media-toggle {
-            display: flex;
-            background: rgba(0,0,0,0.5);
-            border: 1px solid var(--glass-border);
-            border-radius: 4px;
-        }
-        .media-toggle button {
-            border: none;
-            box-shadow: none;
-            color: #475569;
-            padding: 8px 12px;
-        }
-        .media-toggle button.active {
-            background: var(--primary);
-            color: #000;
-            box-shadow: var(--glow);
-        }
-        
+        header { flex-shrink: 0; height: var(--header-height); display: flex; justify-content: space-between; align-items: center; padding: 0 15px; background: var(--surface); border-bottom: 1px solid var(--glass-border); z-index: 50; }
+        .media-toggle { display: flex; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); border-radius: 4px; }
+        .media-toggle button { border: none; box-shadow: none; color: #475569; padding: 8px 12px; }
+        .media-toggle button.active { background: var(--primary); color: #000; box-shadow: var(--glow); }
         .header-actions { display: flex; gap: 10px; align-items: center; }
 
-        /* Main Scrollable Area */
-        main {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            position: relative;
-            padding-bottom: calc(var(--nav-height) + 40px);
-        }
-
+        main { flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; padding-bottom: calc(var(--nav-height) + 40px); }
         section { min-height: 100%; display: flex; flex-direction: column; }
 
-        /* Bottom Nav */
         nav {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            height: var(--nav-height);
-            background: var(--bg-color); /* completely opaque */
-            border-top: 1px solid var(--glass-border);
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 100;
+            position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-height);
+            background: var(--bg-color); border-top: 1px solid var(--glass-border);
+            display: flex; justify-content: space-around; align-items: center; z-index: 100;
         }
-        nav button {
-            border: none; box-shadow: none; background: transparent;
-            color: #475569;
-            flex-direction: column; gap: 2px; font-size: 0.6rem; padding: 4px; width: 100%;
-        }
+        nav button { border: none; box-shadow: none; background: transparent; color: #475569; flex-direction: column; gap: 2px; font-size: 0.6rem; padding: 4px; width: 100%; }
         nav button:hover { background: rgba(0,240,255,0.05); }
         nav button.active { color: var(--primary); text-shadow: 0 0 8px rgba(0,240,255,0.5); }
         nav span.icon { font-size: 1.1rem; }
 
-        /* Home Screen */
         #home-screen { align-items: center; justify-content: center; text-align: center; padding: 20px; }
         #home-screen h1 { font-size: 2.5rem; margin-bottom: 15px; color: var(--primary); text-shadow: var(--glow); }
         .action-cards { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 30px; }
         .card { padding: 30px; width: 300px; border-radius: 8px; }
         .card input[type="file"] { display: none; }
 
-        /* Arena Screen */
-        .arena-container {
-            display: flex;
-            flex: 1;
-            padding: 10px;
-            gap: 10px;
-            align-items: stretch;
-            justify-content: center;
-        }
+        .arena-container { display: flex; flex: 1; padding: 10px; gap: 10px; align-items: stretch; justify-content: center; }
         @media (max-width: 768px) { .arena-container { flex-direction: column; } }
         
         .media-item {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: rgba(0,0,0,0.8);
-            border-radius: 12px;
-            border: 1px solid var(--glass-border);
-            overflow: hidden;
-            max-width: 1000px;
-            position: relative;
-            transform-origin: 50% 100%;
-            touch-action: pan-y;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.8);
+            border-radius: 12px; border: 1px solid var(--glass-border); overflow: hidden; max-width: 1000px;
+            position: relative; transform-origin: 50% 100%; touch-action: pan-y; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            transition: box-shadow 0.2s, border-color 0.2s;
         }
 
+        .glow-win { box-shadow: inset 0 0 60px rgba(57,255,20,0.5), 0 0 20px rgba(57,255,20,0.5) !important; border-color: var(--success) !important; }
+        .glow-lose { box-shadow: inset 0 0 60px rgba(255,0,60,0.5), 0 0 20px rgba(255,0,60,0.5) !important; border-color: var(--danger) !important; }
+        
         .swipe-right-win { transform: translateX(120vw) rotate(15deg) !important; opacity: 0; pointer-events: none; }
         .swipe-left-lose { transform: translateX(-120vw) rotate(-15deg) !important; opacity: 0; pointer-events: none; }
 
-        .media-content {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-        }
-        .media-content img, .media-content video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            pointer-events: auto; /* Allow native video controls */
-        }
-
-        .vs-divider {
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem; font-family: 'Orbitron'; color: var(--primary);
-            text-shadow: var(--glow); padding: 10px; margin: auto 0; pointer-events: none;
-        }
+        .media-content { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+        .media-content img, .media-content video { width: 100%; height: 100%; object-fit: contain; pointer-events: auto; }
+        .vs-divider { display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-family: 'Orbitron'; color: var(--primary); text-shadow: var(--glow); padding: 10px; margin: auto 0; pointer-events: none; }
         @media (max-width: 768px) { .vs-divider { display: none; } }
 
-        /* Gesture visual hints */
-        .swipe-hint {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 3rem; padding: 10px 30px; border-radius: 8px;
-            opacity: 0; transition: opacity 0.1s; pointer-events: none; z-index: 10;
-            background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
-        }
-        .hint-win { color: var(--success); border: 2px solid var(--success); text-shadow: 0 0 15px var(--success); box-shadow: inset 0 0 20px rgba(57,255,20,0.3); }
-        .hint-lose { color: var(--danger); border: 2px solid var(--danger); text-shadow: 0 0 15px var(--danger); box-shadow: inset 0 0 20px rgba(255,0,60,0.3); }
-
-        /* Grids (Leaderboard & Trash) */
+        /* Leaderboard / Grid */
         .grid-header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--glass-border); }
         .grid-container { padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
-        .grid-item { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 1; border: 1px solid var(--glass-border); }
+        
+        .grid-item { 
+            position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--glass-border); 
+            display: flex; flex-direction: column; background: #000; cursor: pointer; transition: border-color 0.2s;
+        }
+        .grid-item:hover { border-color: var(--primary); }
+        .grid-item .media-thumb { height: 140px; width: 100%; overflow: hidden; }
         .grid-item img, .grid-item video { width: 100%; height: 100%; object-fit: cover; }
         
-        .grid-overlay {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 40%, rgba(0,0,0,0.9) 100%);
-            display: flex; flex-direction: column; justify-content: space-between; padding: 8px;
+        .grid-footer {
+            padding: 8px; background: rgba(10,15,30,0.9); border-top: 1px solid var(--glass-border);
+            display: flex; flex-direction: column; gap: 4px; flex: 1; justify-content: center;
         }
-        .grid-badge { align-self: flex-start; background: rgba(0,240,255,0.2); border: 1px solid var(--primary); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; color: var(--primary); }
-        .grid-score { font-size: 0.65rem; color: #94a3b8; font-family: 'Orbitron'; margin-top: 4px; }
-        .grid-actions { display: flex; justify-content: flex-end; }
+        .grid-badge { background: rgba(0,240,255,0.1); padding: 2px 4px; border-radius: 4px; font-size: 0.75rem; color: var(--primary); align-self: flex-start; }
+        .grid-score { font-size: 0.65rem; color: #94a3b8; font-family: 'Orbitron'; }
         
         .load-more-trigger { height: 20px; width: 100%; margin-bottom: 40px; }
-
         .stats-text { text-align: center; padding: 10px; color: var(--primary); font-family: 'Orbitron'; font-size: 0.7rem; text-shadow: var(--glow); }
+
+        /* Detail View Modal */
+        #detail-view-modal {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
+            background: #000; z-index: 1000; display: flex; flex-direction: column;
+        }
+        .detail-header { height: var(--header-height); display: flex; justify-content: space-between; align-items: center; padding: 0 15px; background: rgba(0,0,0,0.9); border-bottom: 1px solid var(--glass-border); }
+        .detail-content { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; touch-action: none; background: #000; overflow: hidden; }
+        .detail-content img, .detail-content video { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: auto; }
+        .detail-footer { padding: 15px; background: rgba(0,0,0,0.9); text-align: center; border-top: 1px solid var(--glass-border); }
     </style>
 </head>
 <body>
 
-    <!-- Top Header -->
     <header id="app-header" class="hidden">
         <div class="media-toggle">
             <button id="toggle-images" class="active">IMG</button>
@@ -299,16 +154,15 @@
     </header>
 
     <main id="main-scroll">
-        <!-- Home Screen -->
         <section id="home-screen">
             <h1>Dynamic Media Sorter</h1>
             <p style="color:#94a3b8;">Let the math do the ranking for your media.</p>
             <div class="action-cards">
-                <div class="card glass">
+                <div class="card glass" id="folder-card">
                     <label class="btn" for="folder-input">Select Media Folder</label>
                     <input type="file" id="folder-input" webkitdirectory multiple accept="image/*,video/*">
                 </div>
-                <div class="card glass">
+                <div class="card glass" id="resume-card">
                     <label class="btn" for="savefile-input">Resume Session</label>
                     <input type="file" id="savefile-input" accept=".json">
                     <span id="savefile-status" class="hidden" style="color:var(--primary); font-size:0.75rem; margin-top:10px;">Save loaded. Select folder to continue.</span>
@@ -316,55 +170,48 @@
             </div>
         </section>
 
-        <!-- Arena Screen -->
         <section id="arena-screen" class="hidden">
             <div class="arena-container" id="arena">
-                <!-- Media 1 -->
                 <div class="media-item" id="media1-container">
                     <div class="icon-btn icon-menu" id="btn-menu1">⋮</div>
                     <div class="icon-btn icon-trash" id="btn-trash1">🗑️</div>
-                    
                     <div class="info-dropdown hidden glass" id="dropdown1">
                         <div class="info-row"><b>Path:</b> <span id="info-path1"></span></div>
                         <button class="btn" id="btn-share1" style="width:100%; margin-top:10px;">Share</button>
                     </div>
-
-                    <div class="swipe-hint hint-win" id="hint-win1">WIN</div>
-                    <div class="swipe-hint hint-lose" id="hint-lose1">LOSE</div>
                     <div class="media-content" id="media1-content"></div>
                 </div>
 
                 <div class="vs-divider">VS</div>
 
-                <!-- Media 2 -->
                 <div class="media-item" id="media2-container">
                     <div class="icon-btn icon-menu" id="btn-menu2">⋮</div>
                     <div class="icon-btn icon-trash" id="btn-trash2">🗑️</div>
-                    
                     <div class="info-dropdown hidden glass" id="dropdown2">
                         <div class="info-row"><b>Path:</b> <span id="info-path2"></span></div>
                         <button class="btn" id="btn-share2" style="width:100%; margin-top:10px;">Share</button>
                     </div>
-
-                    <div class="swipe-hint hint-win" id="hint-win2">WIN</div>
-                    <div class="swipe-hint hint-lose" id="hint-lose2">LOSE</div>
                     <div class="media-content" id="media2-content"></div>
                 </div>
             </div>
             <div class="stats-text" id="stats-text">RANKED: 0 | TRASHED: 0 | TOTAL: 0</div>
         </section>
 
-        <!-- Leaderboard Screen -->
         <section id="leaderboard-screen" class="hidden">
             <div class="grid-header glass">
-                <h3 style="color:var(--primary); text-shadow:var(--glow);">TOP RANKED</h3>
-                <label style="font-size:0.8rem; color:#94a3b8; cursor:pointer;"><input type="checkbox" id="show-scores-chk"> SHOW METRICS</label>
+                <h3 style="color:var(--primary); text-shadow:var(--glow);">RANKINGS</h3>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <select id="sort-order" style="background:transparent; color:var(--primary); border:1px solid var(--glass-border); padding:4px; font-family:Orbitron; border-radius:4px; cursor:pointer;">
+                        <option value="desc" style="background:#000;">HIGHEST FIRST</option>
+                        <option value="asc" style="background:#000;">LOWEST FIRST</option>
+                    </select>
+                    <label style="font-size:0.75rem; color:#94a3b8; cursor:pointer;"><input type="checkbox" id="show-scores-chk"> SCORES</label>
+                </div>
             </div>
             <div class="grid-container" id="leaderboard-grid"></div>
             <div id="leaderboard-trigger" class="load-more-trigger"></div>
         </section>
 
-        <!-- Trash Screen -->
         <section id="trash-screen" class="hidden">
             <div class="grid-header glass">
                 <h3 style="color:var(--danger); text-shadow:var(--danger-glow);">TRASH BIN</h3>
@@ -375,12 +222,25 @@
         </section>
     </main>
 
-    <!-- Bottom Navigation -->
     <nav id="bottom-nav" class="hidden">
         <button data-target="arena"><span class="icon">ARENA</span></button>
-        <button data-target="leaderboard"><span class="icon">LDRBRD</span></button>
+        <button data-target="leaderboard"><span class="icon">RANKING</span></button>
         <button data-target="trash"><span class="icon">TRASH</span></button>
     </nav>
+
+    <!-- Detail View Modal -->
+    <div id="detail-view-modal" class="hidden">
+        <div class="detail-header">
+            <button class="btn" id="btn-close-detail" style="border-color:var(--primary); color:var(--primary);">BACK</button>
+            <div id="detail-rank" style="color:var(--primary); font-family:Orbitron; font-size:1.2rem; text-shadow:var(--glow);">#1</div>
+            <div style="width:60px;"></div> <!-- Spacer -->
+        </div>
+        <div class="detail-content" id="detail-media-container"></div>
+        <div class="detail-footer">
+            <div id="detail-scores" style="color:var(--primary); font-family:Orbitron; font-size:0.85rem; margin-bottom: 8px;"></div>
+            <div style="color:var(--danger); font-size:0.75rem; font-family:Orbitron; letter-spacing: 1px;">⇦ TRASH &nbsp; | &nbsp; ⇧ NEXT</div>
+        </div>
+    </div>
 
     <script type="module">
         import { rating, rate, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@5.0.1/+esm';
@@ -389,6 +249,7 @@
         let mediaMode = 'image'; let currentScreen = 'home'; let currentPair = null;
         let previousState = null; 
         const PAGE_SIZE = 16; let leaderboardPage = 0; let trashPage = 0;
+        let sortOrder = 'desc';
         let isAnimating = false;
 
         const screens = { home: document.getElementById('home-screen'), arena: document.getElementById('arena-screen'), leaderboard: document.getElementById('leaderboard-screen'), trash: document.getElementById('trash-screen') };
@@ -397,7 +258,11 @@
 
         document.getElementById('savefile-input').addEventListener('change', async (e) => {
             const file = e.target.files[0]; if (!file) return;
-            try { loadedSaveData = JSON.parse(await file.text()); document.getElementById('savefile-status').classList.remove('hidden'); } catch (err) { alert("Invalid save file."); }
+            try { 
+                loadedSaveData = JSON.parse(await file.text()); 
+                document.getElementById('savefile-status').classList.remove('hidden'); 
+                document.getElementById('resume-card').classList.add('hidden');
+            } catch (err) { alert("Invalid save file."); }
         });
 
         document.getElementById('folder-input').addEventListener('change', (e) => {
@@ -421,6 +286,7 @@
 
         document.getElementById('toggle-images').addEventListener('click', () => setMode('image'));
         document.getElementById('toggle-videos').addEventListener('click', () => setMode('video'));
+        document.getElementById('sort-order').addEventListener('change', (e) => { sortOrder = e.target.value; refreshCurrentScreen(); });
 
         function setMode(mode) {
             mediaMode = mode;
@@ -464,9 +330,7 @@
         document.addEventListener('fullscreenchange', updateHeaderActions);
 
         function updateStats() {
-            const total = mediaKeys.length;
-            const trashed = mediaKeys.filter(k => mediaData[k].trashed).length;
-            const ranked = mediaKeys.filter(k => mediaData[k].matches > 0).length;
+            const total = mediaKeys.length; const trashed = mediaKeys.filter(k => mediaData[k].trashed).length; const ranked = mediaKeys.filter(k => mediaData[k].matches > 0).length;
             document.getElementById('stats-text').textContent = `RANKED: ${ranked} | TRASHED: ${trashed} | TOTAL: ${total}`;
         }
 
@@ -476,10 +340,7 @@
         function pickNextPair() {
             if(isAnimating) return;
             const active = getActiveKeys();
-            if (active.length < 2) {
-                document.getElementById('arena').innerHTML = `<div style="margin:auto; text-align:center; padding:50px;"><h3 style="color:var(--primary); text-shadow:var(--glow);">NO MORE ${mediaMode.toUpperCase()}S LEFT</h3></div>`;
-                return;
-            }
+            if (active.length < 2) { document.getElementById('arena').innerHTML = `<div style="margin:auto; text-align:center; padding:50px;"><h3 style="color:var(--primary); text-shadow:var(--glow);">NO MORE ${mediaMode.toUpperCase()}S LEFT</h3></div>`; return; }
             if(!document.getElementById('media1-container')) location.reload();
             
             let idx1 = Math.floor(Math.random() * active.length); let k1 = active[idx1];
@@ -488,8 +349,7 @@
         }
 
         function createMediaElement(file) {
-            let el = document.createElement(isVideo(file) ? 'video' : 'img');
-            el.src = URL.createObjectURL(file);
+            let el = document.createElement(isVideo(file) ? 'video' : 'img'); el.src = URL.createObjectURL(file);
             if (isVideo(file)) { el.controls = true; el.autoplay = true; el.loop = true; el.muted = true; el.playsInline = true; }
             return el;
         }
@@ -506,23 +366,16 @@
                 
                 const container = document.getElementById(`media${i}-container`);
                 container.style.transition = 'none'; container.style.transform = ''; container.style.opacity = '1';
-                container.classList.remove('swipe-right-win', 'swipe-left-lose');
-                document.getElementById(`hint-win${i}`).style.opacity = '0'; document.getElementById(`hint-lose${i}`).style.opacity = '0';
+                container.classList.remove('swipe-right-win', 'swipe-left-lose', 'glow-win', 'glow-lose');
                 document.getElementById(`dropdown${i}`).classList.add('hidden');
             });
         }
 
-        function saveHistory() {
-            if(!currentPair) return;
-            const [k1, k2] = currentPair;
-            previousState = { k1, k2, d1: { ...mediaData[k1] }, d2: { ...mediaData[k2] } };
-            updateHeaderActions();
-        }
+        function saveHistory() { if(!currentPair) return; const [k1, k2] = currentPair; previousState = { k1, k2, d1: { ...mediaData[k1] }, d2: { ...mediaData[k2] } }; updateHeaderActions(); }
 
         function undoAction() {
             if(!previousState || isAnimating) return;
-            const {k1, k2, d1, d2} = previousState;
-            Object.assign(mediaData[k1], d1); Object.assign(mediaData[k2], d2);
+            const {k1, k2, d1, d2} = previousState; Object.assign(mediaData[k1], d1); Object.assign(mediaData[k2], d2);
             currentPair = [k1, k2]; previousState = null; renderPair(k1, k2); updateHeaderActions(); updateStats();
         }
 
@@ -532,15 +385,12 @@
 
             const m1 = document.getElementById('media1-container'); const m2 = document.getElementById('media2-container');
             m1.style.transition = 'all 0.4s ease'; m2.style.transition = 'all 0.4s ease';
-            if (winnerIdx === 1) { m1.classList.add('swipe-right-win'); m2.classList.add('swipe-left-lose'); }
-            else { m2.classList.add('swipe-right-win'); m1.classList.add('swipe-left-lose'); }
+            if (winnerIdx === 1) { m1.classList.add('swipe-right-win'); m2.classList.add('swipe-left-lose'); } else { m2.classList.add('swipe-right-win'); m1.classList.add('swipe-left-lose'); }
 
-            const [k1, k2] = currentPair;
-            let team1 = [{ mu: mediaData[k1].mu, sigma: mediaData[k1].sigma }]; let team2 = [{ mu: mediaData[k2].mu, sigma: mediaData[k2].sigma }];
+            const [k1, k2] = currentPair; let team1 = [{ mu: mediaData[k1].mu, sigma: mediaData[k1].sigma }]; let team2 = [{ mu: mediaData[k2].mu, sigma: mediaData[k2].sigma }];
             let newR = winnerIdx === 1 ? rate([team1, team2]) : rate([team2, team1]);
             
-            if(winnerIdx === 1) { Object.assign(mediaData[k1], newR[0][0]); Object.assign(mediaData[k2], newR[1][0]); }
-            else { Object.assign(mediaData[k2], newR[0][0]); Object.assign(mediaData[k1], newR[1][0]); }
+            if(winnerIdx === 1) { Object.assign(mediaData[k1], newR[0][0]); Object.assign(mediaData[k2], newR[1][0]); } else { Object.assign(mediaData[k2], newR[0][0]); Object.assign(mediaData[k1], newR[1][0]); }
             mediaData[k1].matches++; mediaData[k2].matches++;
 
             setTimeout(() => { isAnimating = false; pickNextPair(); updateStats(); }, 400);
@@ -554,8 +404,7 @@
             const choices = getActiveKeys().filter(k => k !== remainingKey && k !== trashedKey);
             
             if (choices.length === 0) { pickNextPair(); return; }
-            const newKey = choices[Math.floor(Math.random() * choices.length)];
-            currentPair[idx - 1] = newKey;
+            const newKey = choices[Math.floor(Math.random() * choices.length)]; currentPair[idx - 1] = newKey;
             
             const cDiv = document.getElementById(`media${idx}-content`);
             if(cDiv.firstChild) URL.revokeObjectURL(cDiv.firstChild.src);
@@ -565,60 +414,51 @@
             updateStats();
         }
 
-        // Swipe & UI logic
         [1, 2].forEach(idx => {
-            const el = document.getElementById(`media${idx}-container`);
-            const hintWin = document.getElementById(`hint-win${idx}`); const hintLose = document.getElementById(`hint-lose${idx}`);
-            let startX = 0, startY = 0, currentX = 0, currentY = 0;
-            let isDragging = false, isVerticalScroll = false, isHorizontalSwipe = false;
+            const el = document.getElementById(`media${idx}-container`); const otherEl = document.getElementById(`media${idx===1?2:1}-container`);
+            let startX = 0, startY = 0, currentX = 0, currentY = 0; let isDragging = false, isVerticalScroll = false, isHorizontalSwipe = false;
 
             document.getElementById(`btn-menu${idx}`).addEventListener('click', (e) => { e.stopPropagation(); document.getElementById(`dropdown${idx}`).classList.toggle('hidden'); });
             document.getElementById(`btn-trash${idx}`).addEventListener('click', (e) => { e.stopPropagation(); handleTrash(idx); });
 
             el.addEventListener('touchstart', e => {
-                if(isAnimating) return;
-                if(e.target.closest('.icon-btn') || e.target.closest('.info-dropdown')) return;
+                if(isAnimating) return; if(e.target.closest('.icon-btn') || e.target.closest('.info-dropdown')) return;
                 if(e.target.tagName === 'VIDEO' && e.touches[0].clientY > el.getBoundingClientRect().bottom - 60) return;
                 
-                startX = e.touches[0].clientX; startY = e.touches[0].clientY;
-                currentX = startX; currentY = startY;
-                isDragging = true; isVerticalScroll = false; isHorizontalSwipe = false;
-                el.style.transition = 'none';
+                startX = e.touches[0].clientX; startY = e.touches[0].clientY; currentX = startX; currentY = startY;
+                isDragging = true; isVerticalScroll = false; isHorizontalSwipe = false; el.style.transition = 'none';
             }, {passive: true});
 
             el.addEventListener('touchmove', e => {
                 if(!isDragging || isAnimating) return;
-                currentX = e.touches[0].clientX; currentY = e.touches[0].clientY;
-                let diffX = currentX - startX; let diffY = currentY - startY;
+                currentX = e.touches[0].clientX; currentY = e.touches[0].clientY; let diffX = currentX - startX; let diffY = currentY - startY;
 
                 if (!isHorizontalSwipe && !isVerticalScroll) {
-                    if (Math.abs(diffY) > 15) isVerticalScroll = true;
-                    else if (Math.abs(diffX) > 15) isHorizontalSwipe = true;
+                    if (Math.abs(diffY) > 15) isVerticalScroll = true; else if (Math.abs(diffX) > 15) isHorizontalSwipe = true;
                 }
                 if (isVerticalScroll) return;
 
                 if (isHorizontalSwipe) {
                     if (e.cancelable) e.preventDefault();
                     el.style.transform = `translateX(${diffX}px) rotate(${diffX * 0.05}deg)`;
-                    if(diffX > 50) { hintWin.style.opacity = Math.min((diffX-50)/100, 1); hintLose.style.opacity = '0'; }
-                    else if(diffX < -50) { hintLose.style.opacity = Math.min((Math.abs(diffX)-50)/100, 1); hintWin.style.opacity = '0'; }
-                    else { hintWin.style.opacity = '0'; hintLose.style.opacity = '0'; }
+                    if(diffX > 50) { el.classList.add('glow-win'); el.classList.remove('glow-lose'); otherEl.classList.add('glow-lose'); otherEl.classList.remove('glow-win'); }
+                    else if(diffX < -50) { el.classList.add('glow-lose'); el.classList.remove('glow-win'); otherEl.classList.add('glow-win'); otherEl.classList.remove('glow-lose'); }
+                    else { el.classList.remove('glow-win', 'glow-lose'); otherEl.classList.remove('glow-win', 'glow-lose'); }
                 }
             }, {passive: false});
 
             el.addEventListener('touchend', e => {
                 if(!isDragging || isAnimating || isVerticalScroll) { isDragging = false; return; }
                 isDragging = false; let diffX = currentX - startX;
-                el.style.transition = 'transform 0.3s ease'; hintWin.style.opacity = '0'; hintLose.style.opacity = '0';
-                if (isHorizontalSwipe) {
-                    if (diffX > 100) triggerWin(idx);
-                    else if (diffX < -100) triggerWin(idx === 1 ? 2 : 1);
-                    else el.style.transform = '';
-                } else { el.style.transform = ''; }
+                el.style.transition = 'transform 0.3s ease'; 
+                el.classList.remove('glow-win', 'glow-lose'); otherEl.classList.remove('glow-win', 'glow-lose');
+                if (isHorizontalSwipe) { if (diffX > 100) triggerWin(idx); else if (diffX < -100) triggerWin(idx === 1 ? 2 : 1); else el.style.transform = ''; } else { el.style.transform = ''; }
             });
         });
 
-        // --- Grids ---
+        // --- Grids & Detail View ---
+        let detailKeys = []; let detailIndex = 0;
+
         function renderGridItems(keys, containerId, page, isTrash) {
             const container = document.getElementById(containerId);
             const showScores = document.getElementById('show-scores-chk') && document.getElementById('show-scores-chk').checked;
@@ -627,32 +467,33 @@
 
             slice.forEach((k, index) => {
                 const item = mediaData[k];
-                const el = document.createElement('div'); el.className = 'grid-item';
+                const el = document.createElement('div'); el.className = 'grid-item glass';
+                
+                const thumb = document.createElement('div'); thumb.className = 'media-thumb';
                 const mediaEl = createMediaElement(item.file);
                 if(mediaEl.tagName === 'VIDEO') mediaEl.removeAttribute('controls');
-                el.appendChild(mediaEl);
+                thumb.appendChild(mediaEl); el.appendChild(thumb);
 
-                const overlay = document.createElement('div'); overlay.className = 'grid-overlay';
-                const topRow = document.createElement('div'); topRow.style.display = 'flex'; topRow.style.flexDirection = 'column'; topRow.style.gap = '4px';
-                if(!isTrash) { const rank = document.createElement('span'); rank.className = 'grid-badge'; rank.textContent = `#${page * PAGE_SIZE + index + 1}`; topRow.appendChild(rank); }
-                if(showScores || isTrash) { const sc = document.createElement('span'); sc.className = 'grid-score'; sc.textContent = `μ:${item.mu.toFixed(1)} σ:${item.sigma.toFixed(1)} ⚔️${item.matches}`; topRow.appendChild(sc); }
-                overlay.appendChild(topRow);
+                if(!isTrash) el.onclick = () => openDetailView(keys, page * PAGE_SIZE + index);
 
-                const actions = document.createElement('div'); actions.className = 'grid-actions';
+                const footer = document.createElement('div'); footer.className = 'grid-footer';
+                const rankText = isTrash ? 'TRASHED' : `#${page * PAGE_SIZE + index + 1}`;
+                footer.innerHTML = `<span class="grid-badge">${rankText}</span>`;
+                
+                if(showScores || isTrash) { const sc = document.createElement('span'); sc.className = 'grid-score'; sc.textContent = `μ:${item.mu.toFixed(1)} σ:${item.sigma.toFixed(1)} ⚔️${item.matches}`; footer.appendChild(sc); }
+                
                 if (isTrash) {
-                    const resBtn = document.createElement('button'); resBtn.className = 'btn success'; resBtn.textContent = '♻️'; resBtn.title='Restore';
-                    resBtn.onclick = () => { mediaData[k].trashed = false; el.remove(); updateStats(); }; actions.appendChild(resBtn);
-                } else {
-                    const shareBtn = document.createElement('button'); shareBtn.className = 'btn'; shareBtn.textContent = '➦'; shareBtn.title='Share';
-                    shareBtn.onclick = async () => { if(navigator.share) await navigator.share({files: [item.file]}).catch(e=>{}); }; actions.appendChild(shareBtn);
+                    const resBtn = document.createElement('button'); resBtn.className = 'btn success'; resBtn.textContent = '♻️ RESTORE'; resBtn.style.padding='4px'; resBtn.style.fontSize='0.65rem';
+                    resBtn.onclick = (e) => { e.stopPropagation(); mediaData[k].trashed = false; el.remove(); updateStats(); }; footer.appendChild(resBtn);
                 }
-                overlay.appendChild(actions); el.appendChild(overlay); container.appendChild(el);
+                el.appendChild(footer); container.appendChild(el);
             });
             return true;
         }
 
         function loadLeaderboardPage() {
-            const keys = mediaKeys.filter(k => !mediaData[k].trashed && (mediaMode === 'video' ? isVideo(mediaData[k].file) : !isVideo(mediaData[k].file))).sort((a, b) => ordinal(mediaData[b]) - ordinal(mediaData[a]));
+            let keys = mediaKeys.filter(k => !mediaData[k].trashed && (mediaMode === 'video' ? isVideo(mediaData[k].file) : !isVideo(mediaData[k].file))).sort((a, b) => ordinal(mediaData[b]) - ordinal(mediaData[a]));
+            if (sortOrder === 'asc') keys.reverse();
             if(renderGridItems(keys, 'leaderboard-grid', leaderboardPage, false)) leaderboardPage++;
         }
         function loadTrashPage() {
@@ -664,14 +505,73 @@
         const lbObserver = new IntersectionObserver((ents) => { if(ents[0].isIntersecting && currentScreen === 'leaderboard') loadLeaderboardPage(); }); lbObserver.observe(document.getElementById('leaderboard-trigger'));
         const trObserver = new IntersectionObserver((ents) => { if(ents[0].isIntersecting && currentScreen === 'trash') loadTrashPage(); }); trObserver.observe(document.getElementById('trash-trigger'));
 
+        // Detail View Logic
+        function openDetailView(keys, index) {
+            detailKeys = keys; detailIndex = index;
+            document.getElementById('detail-view-modal').classList.remove('hidden'); renderDetailView();
+        }
+        function renderDetailView() {
+            if (detailIndex < 0 || detailIndex >= detailKeys.length) return;
+            const k = detailKeys[detailIndex]; const item = mediaData[k];
+            const container = document.getElementById('detail-media-container');
+            if(container.firstChild) URL.revokeObjectURL(container.firstChild.src);
+            container.innerHTML = ''; container.appendChild(createMediaElement(item.file));
+            
+            document.getElementById('detail-rank').textContent = `#${detailIndex + 1}`;
+            document.getElementById('detail-scores').textContent = `μ: ${item.mu.toFixed(2)} | σ: ${item.sigma.toFixed(2)} | ⚔️: ${item.matches}`;
+        }
+        document.getElementById('btn-close-detail').addEventListener('click', () => {
+            document.getElementById('detail-view-modal').classList.add('hidden');
+            const container = document.getElementById('detail-media-container');
+            if(container.firstChild) URL.revokeObjectURL(container.firstChild.src); container.innerHTML = '';
+            refreshCurrentScreen();
+        });
+
+        // Detail View Gestures
+        const dContainer = document.getElementById('detail-media-container');
+        let dStartX=0, dStartY=0, dCurX=0, dCurY=0, dIsDragging=false, dIsH=false, dIsV=false;
+        dContainer.addEventListener('touchstart', e => {
+            if(e.target.tagName === 'VIDEO' && e.touches[0].clientY > dContainer.getBoundingClientRect().bottom - 60) return;
+            dStartX = e.touches[0].clientX; dStartY = e.touches[0].clientY; dCurX = dStartX; dCurY = dStartY;
+            dIsDragging = true; dIsH = false; dIsV = false; dContainer.style.transition = 'none';
+        }, {passive: true});
+        dContainer.addEventListener('touchmove', e => {
+            if(!dIsDragging) return;
+            dCurX = e.touches[0].clientX; dCurY = e.touches[0].clientY; let diffX = dCurX - dStartX; let diffY = dCurY - dStartY;
+            if(!dIsH && !dIsV) { if(Math.abs(diffX) > 20) dIsH = true; else if(Math.abs(diffY) > 20) dIsV = true; }
+            if(dIsV || dIsH) { if(e.cancelable) e.preventDefault(); }
+            if(dIsH) { dContainer.style.transform = `translateX(${diffX}px) rotate(${diffX*0.02}deg)`; }
+            if(dIsV) { dContainer.style.transform = `translateY(${diffY}px)`; }
+        }, {passive: false});
+        dContainer.addEventListener('touchend', e => {
+            if(!dIsDragging) return; dIsDragging = false;
+            let diffX = dCurX - dStartX; let diffY = dCurY - dStartY; dContainer.style.transition = 'transform 0.3s ease';
+            if (dIsH && diffX < -100) {
+                // TRASH
+                dContainer.style.transform = `translateX(-100vw)`;
+                setTimeout(() => {
+                    mediaData[detailKeys[detailIndex]].trashed = true;
+                    detailKeys.splice(detailIndex, 1);
+                    if (detailIndex >= detailKeys.length) detailIndex = detailKeys.length - 1;
+                    if (detailKeys.length === 0) document.getElementById('btn-close-detail').click();
+                    else { dContainer.style.transition='none'; dContainer.style.transform=''; renderDetailView(); }
+                }, 300);
+            } else if (dIsV) {
+                if (diffY < -100 && detailIndex < detailKeys.length - 1) {
+                    dContainer.style.transform = `translateY(-100vh)`; setTimeout(() => { detailIndex++; dContainer.style.transition='none'; dContainer.style.transform=''; renderDetailView(); }, 300);
+                } else if (diffY > 100 && detailIndex > 0) {
+                    dContainer.style.transform = `translateY(100vh)`; setTimeout(() => { detailIndex--; dContainer.style.transition='none'; dContainer.style.transform=''; renderDetailView(); }, 300);
+                } else { dContainer.style.transform = ''; }
+            } else { dContainer.style.transform = ''; }
+        });
+
         // --- Export ---
         function exportSave() {
             const saveObj = {}; mediaKeys.forEach(k => { if(mediaData[k].matches > 0 || mediaData[k].trashed) saveObj[k] = { mu: mediaData[k].mu, sigma: mediaData[k].sigma, trashed: mediaData[k].trashed, matches: mediaData[k].matches }; });
             downloadBlob(JSON.stringify(saveObj), 'application/json', `save_${Date.now()}.json`);
         }
         document.getElementById('btn-export-script').addEventListener('click', () => {
-            let script = "import os\n\nfiles_to_delete = [\n"; 
-            mediaKeys.filter(k => mediaData[k].trashed).forEach(k => script += `    r"${k.replace(/"/g, '\\"')}",\n`);
+            let script = "import os\n\nfiles_to_delete = [\n"; mediaKeys.filter(k => mediaData[k].trashed).forEach(k => script += `    r"${k.replace(/"/g, '\\"')}",\n`);
             script += "]\n\nfor f in files_to_delete:\n    try:\n        os.remove(f)\n        print(f'Deleted: {f}')\n    except Exception as e:\n        print(f'Error deleting {f}: {e}')\n";
             downloadBlob(script, 'text/plain', `cleanup_script.py`);
         });

@@ -9,8 +9,9 @@
   - **Video Seeking**: Videos have native controls.
   - **Trash Action & Partial Refresh**: Trashing a media instantly removes it and loads a single new replacement in its place, preserving the other media for a continued matchup.
   - **Undo Feature**: A simple "Undo" button allows reversing the very last match or trash action in case of an accidental tap.
-  - **Leaderboard**: View top media with their rankings, paginated 16 items at a time (infinite scroll or load more). Includes an option to toggle advanced scoring details (mu, sigma).
-  - **Export Deletion**: Export a script of the trashed media to easily delete them via a PC.
+  - **Interactive Leaderboard**: View media with their rankings and scores. Features an integrated sorting toggle (Highest/Lowest First).
+  - **Leaderboard Detail View**: Tapping a media opens a full-screen scrollable detail modal. Vertically swipe to quickly browse through ranks, or horizontally swipe left to instantly banish the media to the Trash Bin and auto-advance.
+  - **Export Deletion**: Export a Python script (`cleanup_script.py`) of the trashed media to easily delete them locally.
   - Share media directly from the app (using Web Share API).
 
 ## Technical Architecture & Design Decisions
