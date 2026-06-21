@@ -259,9 +259,33 @@
         <div class="info-dropdown hidden glass" id="fullscreen-dropdown" style="top: 65px; right: 15px; left: auto; position: absolute; max-width: 300px;">
             <div class="info-row"><b>Path:</b> <span id="fullscreen-info-path"></span></div>
             <button class="btn" id="btn-fullscreen-share" style="width:100%; margin-top:10px;">Share</button>
+            <button class="btn" id="btn-fullscreen-crop" style="width:100%; margin-top:10px;">Crop Thumbnail</button>
         </div>
 
-        <div id="fullscreen-content" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;"></div>
+        <div id="fullscreen-content" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;"></div>
+
+        <!-- Crop Overlay Frame (Hidden by default) -->
+        <div id="crop-frame-overlay" class="hidden" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 100;">
+            <div id="crop-frame-box" style="width: 280px; height: 280px; border: 2px solid var(--primary); box-shadow: 0 0 0 9999px rgba(0,0,0,0.7), 0 0 15px var(--primary); position: relative;">
+                <!-- Corner highlights for a crop aesthetic -->
+                <div style="position: absolute; top: -2px; left: -2px; width: 15px; height: 15px; border-top: 4px solid var(--primary); border-left: 4px solid var(--primary);"></div>
+                <div style="position: absolute; top: -2px; right: -2px; width: 15px; height: 15px; border-top: 4px solid var(--primary); border-right: 4px solid var(--primary);"></div>
+                <div style="position: absolute; bottom: -2px; left: -2px; width: 15px; height: 15px; border-bottom: 4px solid var(--primary); border-left: 4px solid var(--primary);"></div>
+                <div style="position: absolute; bottom: -2px; right: -2px; width: 15px; height: 15px; border-bottom: 4px solid var(--primary); border-right: 4px solid var(--primary);"></div>
+            </div>
+        </div>
+        
+        <!-- Crop Controls (Hidden by default) -->
+        <div id="crop-controls" class="hidden glass" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 15px; border-radius: 12px; z-index: 101; width: 90%; max-width: 400px; background: rgba(0,0,0,0.85);">
+            <div style="width: 100%; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 0.8rem; color: var(--primary); font-family: Orbitron; min-width: 40px;">ZOOM</span>
+                <input type="range" id="crop-zoom-slider" min="1" max="4" step="0.01" value="1" style="flex: 1; accent-color: var(--primary);">
+            </div>
+            <div style="display: flex; gap: 15px; width: 100%;">
+                <button class="btn danger" id="btn-crop-cancel" style="flex: 1;">Cancel</button>
+                <button class="btn success" id="btn-crop-save" style="flex: 1;">Save Crop</button>
+            </div>
+        </div>
     </div>
     
     <!-- Detail Feed Modal -->
@@ -290,6 +314,11 @@
         let trashedImageKeys = new Set();
         let trashedVideoKeys = new Set();
         let markedForTrash = new Set();
+        let currentFullscreenKey = null;
+        let isCropping = false;
+        let cropPanX = 0; let cropPanY = 0; let cropScale = 1;
+        let isDraggingCropImage = false;
+        let dragStartX = 0; let dragStartY = 0;
 
         function setItemTrashed(k, trashed) {
             const item = mediaData[k];
@@ -331,15 +360,17 @@
                 mediaData[k].mu = loadedSaveData[h].mu;
                 mediaData[k].sigma = loadedSaveData[h].sigma;
                 mediaData[k].matches = loadedSaveData[h].matches;
+                mediaData[k].crop = loadedSaveData[h].crop || null;
                 setItemTrashed(k, loadedSaveData[h].trashed || false);
                 healed = true;
             }
             if (!healed) {
-                const existing = mediaKeys.find(otherKey => otherKey !== k && mediaData[otherKey].hash === h && (mediaData[otherKey].matches > 0 || mediaData[otherKey].trashed));
+                const existing = mediaKeys.find(otherKey => otherKey !== k && mediaData[otherKey].hash === h && (mediaData[otherKey].matches > 0 || mediaData[otherKey].trashed || mediaData[otherKey].crop));
                 if (existing) {
                     mediaData[k].mu = mediaData[existing].mu;
                     mediaData[k].sigma = mediaData[existing].sigma;
                     mediaData[k].matches = mediaData[existing].matches;
+                    mediaData[k].crop = mediaData[existing].crop || null;
                     setItemTrashed(k, mediaData[existing].trashed);
                 }
             }
@@ -439,9 +470,9 @@
                     const isVid = f.type.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(f.name);
                     let item;
                     if (pathToHashStats[path]) {
-                        item = { file: f, isVid: isVid, hash: pathToHashStats[path].hash, mu: pathToHashStats[path].mu, sigma: pathToHashStats[path].sigma, trashed: pathToHashStats[path].trashed, matches: pathToHashStats[path].matches };
+                        item = { file: f, isVid: isVid, hash: pathToHashStats[path].hash, mu: pathToHashStats[path].mu, sigma: pathToHashStats[path].sigma, trashed: pathToHashStats[path].trashed, matches: pathToHashStats[path].matches, crop: pathToHashStats[path].crop || null };
                     } else {
-                        item = { file: f, isVid: isVid, hash: null, mu: 25, sigma: 8.333, trashed: false, matches: 0 };
+                        item = { file: f, isVid: isVid, hash: null, mu: 25, sigma: 8.333, trashed: false, matches: 0, crop: null };
                     }
                     mediaData[path] = item;
                     if (item.trashed) {
@@ -640,7 +671,16 @@
                 card.dataset.key = key;
                 
                 const mediaEl = createMediaElement(item.file);
-                if(mediaEl.tagName === 'VIDEO') mediaEl.removeAttribute('controls');
+                if(mediaEl.tagName === 'VIDEO') {
+                    mediaEl.removeAttribute('controls');
+                } else if (item.crop) {
+                    mediaEl.style.position = 'absolute';
+                    mediaEl.style.left = `${-item.crop.x / item.crop.w * 100}%`;
+                    mediaEl.style.top = `${-item.crop.y / item.crop.h * 100}%`;
+                    mediaEl.style.width = `${100 / item.crop.w * 100}%`;
+                    mediaEl.style.height = `${100 / item.crop.h * 100}%`;
+                    mediaEl.style.objectFit = 'fill';
+                }
                 card.appendChild(mediaEl);
                 
                 card.addEventListener('click', () => {
@@ -652,7 +692,7 @@
                 fsBtn.innerHTML = '⛶'; // Unicode for fullscreen icon
                 fsBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    openFullscreen(item.file, mediaEl.src);
+                    openFullscreen(item.file, mediaEl.src, key);
                 });
                 card.appendChild(fsBtn);
                 
@@ -711,7 +751,17 @@
             }
         });
 
-        function openFullscreen(file, existingSrc) {
+        function openFullscreen(file, existingSrc, key = null) {
+            currentFullscreenKey = key;
+            isCropping = false;
+            cropPanX = 0; cropPanY = 0; cropScale = 1;
+            isDraggingCropImage = false;
+            
+            document.getElementById('crop-frame-overlay').classList.add('hidden');
+            document.getElementById('crop-controls').classList.add('hidden');
+            document.getElementById('btn-close-fullscreen').classList.remove('hidden');
+            document.getElementById('btn-fullscreen-menu').classList.remove('hidden');
+
             const modal = document.getElementById('fullscreen-view-modal');
             const content = document.getElementById('fullscreen-content');
             content.innerHTML = '';
@@ -722,6 +772,12 @@
                 if(navigator.share) await navigator.share({files: [file]}).catch(e=>{});
                 else alert("Share not supported on this browser.");
             };
+
+            const cropBtn = document.getElementById('btn-fullscreen-crop');
+            if (cropBtn) {
+                if (isVideo(file) || !key) cropBtn.classList.add('hidden');
+                else cropBtn.classList.remove('hidden');
+            }
 
             const el = document.createElement(isVideo(file) ? 'video' : 'img');
             el.src = existingSrc || URL.createObjectURL(file);
@@ -734,12 +790,136 @@
         }
         
         function closeFullscreen() {
+            if (isCropping) exitCropMode();
             const modal = document.getElementById('fullscreen-view-modal');
             modal.classList.add('hidden');
             const content = document.getElementById('fullscreen-content');
             if(content.firstChild && content.firstChild.tagName === 'VIDEO') content.firstChild.pause();
             clearContainerAndRevoke('fullscreen-content');
         }
+
+        function exitCropMode() {
+            isCropping = false;
+            document.getElementById('crop-frame-overlay').classList.add('hidden');
+            document.getElementById('crop-controls').classList.add('hidden');
+            document.getElementById('btn-close-fullscreen').classList.remove('hidden');
+            document.getElementById('btn-fullscreen-menu').classList.remove('hidden');
+            
+            const content = document.getElementById('fullscreen-content');
+            const img = content.firstChild;
+            if (img && img.tagName === 'IMG') {
+                img.style.position = '';
+                img.style.objectFit = 'contain';
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.transform = '';
+            }
+        }
+
+        document.getElementById('btn-fullscreen-crop').addEventListener('click', () => {
+            const content = document.getElementById('fullscreen-content');
+            const img = content.firstChild;
+            if (!img || img.tagName !== 'IMG') return;
+            
+            isCropping = true;
+            document.getElementById('crop-frame-overlay').classList.remove('hidden');
+            document.getElementById('crop-controls').classList.remove('hidden');
+            document.getElementById('btn-close-fullscreen').classList.add('hidden');
+            document.getElementById('btn-fullscreen-menu').classList.add('hidden');
+            document.getElementById('fullscreen-dropdown').classList.add('hidden');
+            
+            document.getElementById('crop-zoom-slider').value = 1;
+            
+            img.style.position = 'absolute';
+            img.style.objectFit = 'contain';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.transform = 'translate(0px, 0px) scale(1)';
+        });
+
+        document.getElementById('btn-crop-cancel').addEventListener('click', exitCropMode);
+
+        document.getElementById('btn-crop-save').addEventListener('click', () => {
+            if (!currentFullscreenKey) return;
+            const content = document.getElementById('fullscreen-content');
+            const img = content.firstChild;
+            if (!img || img.tagName !== 'IMG') return;
+            
+            const imgRect = img.getBoundingClientRect();
+            const frameRect = document.getElementById('crop-frame-box').getBoundingClientRect();
+            
+            let x = ((frameRect.left - imgRect.left) / imgRect.width) * 100;
+            let y = ((frameRect.top - imgRect.top) / imgRect.height) * 100;
+            let w = (frameRect.width / imgRect.width) * 100;
+            let h = (frameRect.height / imgRect.height) * 100;
+            
+            if (x < 0) x = 0;
+            if (y < 0) y = 0;
+            if (x + w > 100) x = 100 - w;
+            if (y + h > 100) y = 100 - h;
+            
+            if (w <= 0 || h <= 0 || w > 100 || h > 100) {
+                alert("Invalid crop region. Please adjust the image to overlap with the center frame.");
+                return;
+            }
+            
+            mediaData[currentFullscreenKey].crop = { x, y, w, h };
+            autoSaveToDB();
+            exitCropMode();
+            refreshCurrentScreen();
+        });
+
+        document.getElementById('crop-zoom-slider').addEventListener('input', (e) => {
+            cropScale = parseFloat(e.target.value);
+            const content = document.getElementById('fullscreen-content');
+            const img = content.firstChild;
+            if (img) img.style.transform = `translate(${cropPanX}px, ${cropPanY}px) scale(${cropScale})`;
+        });
+
+        const fsContent = document.getElementById('fullscreen-content');
+        
+        fsContent.addEventListener('mousedown', (e) => {
+            if (!isCropping) return;
+            const img = fsContent.firstChild;
+            if (!img || img.tagName !== 'IMG') return;
+            isDraggingCropImage = true;
+            dragStartX = e.clientX - cropPanX;
+            dragStartY = e.clientY - cropPanY;
+            e.preventDefault();
+        });
+        
+        window.addEventListener('mousemove', (e) => {
+            if (!isCropping || !isDraggingCropImage) return;
+            cropPanX = e.clientX - dragStartX;
+            cropPanY = e.clientY - dragStartY;
+            const img = fsContent.firstChild;
+            if (img) img.style.transform = `translate(${cropPanX}px, ${cropPanY}px) scale(${cropScale})`;
+        });
+        
+        window.addEventListener('mouseup', () => {
+            isDraggingCropImage = false;
+        });
+
+        fsContent.addEventListener('touchstart', (e) => {
+            if (!isCropping) return;
+            const img = fsContent.firstChild;
+            if (!img || img.tagName !== 'IMG') return;
+            isDraggingCropImage = true;
+            dragStartX = e.touches[0].clientX - cropPanX;
+            dragStartY = e.touches[0].clientY - cropPanY;
+        }, { passive: true });
+        
+        fsContent.addEventListener('touchmove', (e) => {
+            if (!isCropping || !isDraggingCropImage) return;
+            cropPanX = e.touches[0].clientX - dragStartX;
+            cropPanY = e.touches[0].clientY - dragStartY;
+            const img = fsContent.firstChild;
+            if (img) img.style.transform = `translate(${cropPanX}px, ${cropPanY}px) scale(${cropScale})`;
+        }, { passive: true });
+        
+        fsContent.addEventListener('touchend', () => {
+            isDraggingCropImage = false;
+        });
 
         window.addEventListener('hashchange', (e) => {
             if (location.hash !== '#fullscreen' && !document.getElementById('fullscreen-view-modal').classList.contains('hidden')) {
@@ -837,7 +1017,16 @@
                 
                 const thumb = document.createElement('div'); thumb.className = 'media-thumb';
                 const mediaEl = createMediaElement(item.file);
-                if(mediaEl.tagName === 'VIDEO') mediaEl.removeAttribute('controls');
+                if(mediaEl.tagName === 'VIDEO') {
+                    mediaEl.removeAttribute('controls');
+                } else if (item.crop) {
+                    mediaEl.style.position = 'absolute';
+                    mediaEl.style.left = `${-item.crop.x / item.crop.w * 100}%`;
+                    mediaEl.style.top = `${-item.crop.y / item.crop.h * 100}%`;
+                    mediaEl.style.width = `${100 / item.crop.w * 100}%`;
+                    mediaEl.style.height = `${100 / item.crop.h * 100}%`;
+                    mediaEl.style.objectFit = 'fill';
+                }
                 thumb.appendChild(mediaEl); el.appendChild(thumb);
 
                 el.onclick = () => openDetailView(keys, page * PAGE_SIZE + index, isTrash);
@@ -848,7 +1037,7 @@
                     fsBtn.innerHTML = '⛶';
                     fsBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        openFullscreen(item.file, mediaEl.src);
+                        openFullscreen(item.file, mediaEl.src, k);
                     });
                     thumb.appendChild(fsBtn);
                 }
@@ -1040,9 +1229,9 @@
 
             const saveObj = {}; 
             mediaKeys.forEach(k => { 
-                if((mediaData[k].matches > 0 || mediaData[k].trashed) && mediaData[k].hash) {
+                if((mediaData[k].matches > 0 || mediaData[k].trashed || mediaData[k].crop) && mediaData[k].hash) {
                     const h = mediaData[k].hash;
-                    if (!saveObj[h]) saveObj[h] = { mu: mediaData[k].mu, sigma: mediaData[k].sigma, trashed: mediaData[k].trashed, matches: mediaData[k].matches, known_paths: [] };
+                    if (!saveObj[h]) saveObj[h] = { mu: mediaData[k].mu, sigma: mediaData[k].sigma, trashed: mediaData[k].trashed, matches: mediaData[k].matches, crop: mediaData[k].crop, known_paths: [] };
                     saveObj[h].known_paths.push(k);
                 }
             });
