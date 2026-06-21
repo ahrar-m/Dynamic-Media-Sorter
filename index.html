@@ -271,20 +271,81 @@
             } catch (err) { alert("Invalid save file."); }
         });
 
-        document.getElementById('folder-input').addEventListener('change', (e) => {
+        document.getElementById('folder-input').addEventListener('change', async (e) => {
             const files = e.target.files; if (files.length === 0) return;
-            mediaData = {}; mediaKeys = [];
+            
+            let log = `--- Diagnostic Report ---\nTotal files in FileList: ${files.length}\n`;
+            let t0 = performance.now();
+            let validFiles = [];
             const mediaRegex = /\.(jpe?g|png|webp|gif|mp4|webm|mov)$/i;
             for (let i = 0; i < files.length; i++) {
-                const f = files[i];
-                if (mediaRegex.test(f.name)) {
-                    const path = f.webkitRelativePath || f.name; mediaKeys.push(path);
-                    let r = rating(); let t = false; let m = 0;
-                    if (loadedSaveData && loadedSaveData[path]) { r.mu = loadedSaveData[path].mu; r.sigma = loadedSaveData[path].sigma; t = loadedSaveData[path].trashed || false; m = loadedSaveData[path].matches || 0; }
-                    mediaData[path] = { file: f, mu: r.mu, sigma: r.sigma, trashed: t, matches: m };
-                }
+                if (mediaRegex.test(files[i].name)) validFiles.push(files[i]);
             }
-            if (mediaKeys.length < 2) return alert("Need at least 2 media files.");
+            let t1 = performance.now();
+            log += `Regex filtering (${validFiles.length} valid media): ${(t1 - t0).toFixed(2)} ms\n`;
+            
+            t0 = performance.now();
+            let totalSize = 0;
+            for (let i = 0; i < validFiles.length; i++) {
+                totalSize += validFiles[i].size;
+                let modified = validFiles[i].lastModified;
+                let path = validFiles[i].webkitRelativePath || validFiles[i].name;
+            }
+            t1 = performance.now();
+            log += `Accessing .size, .lastModified, .name sequentially for all valid media: ${(t1 - t0).toFixed(2)} ms\n`;
+            
+            async function hashFile(f) {
+                const start = f.slice(0, 1024);
+                const middle = f.slice(Math.floor(f.size/2), Math.floor(f.size/2) + 1024);
+                const b1 = await start.arrayBuffer();
+                const b2 = await middle.arrayBuffer();
+                await crypto.subtle.digest('SHA-1', b1);
+                await crypto.subtle.digest('SHA-1', b2);
+            }
+            
+            const sampleSize1 = Math.min(10, validFiles.length);
+            t0 = performance.now();
+            for (let i = 0; i < sampleSize1; i++) await hashFile(validFiles[i]);
+            t1 = performance.now();
+            log += `Partial hashing 2KB (Start + Middle) sequentially for ${sampleSize1} files: ${(t1 - t0).toFixed(2)} ms (Avg: ${((t1-t0)/sampleSize1).toFixed(2)} ms/file)\n`;
+            
+            const sampleSize2 = Math.min(100, validFiles.length);
+            let timePerFile100 = 0;
+            if (sampleSize2 > 0) {
+                t0 = performance.now();
+                let promises = [];
+                for (let i = 0; i < sampleSize2; i++) promises.push(hashFile(validFiles[i]));
+                await Promise.all(promises);
+                t1 = performance.now();
+                timePerFile100 = (t1-t0)/sampleSize2;
+                log += `Partial hashing 2KB concurrently for ${sampleSize2} files: ${(t1 - t0).toFixed(2)} ms (Avg: ${timePerFile100.toFixed(2)} ms/file)\n`;
+            }
+            
+            log += `Estimated time to hash ALL ${validFiles.length} files: ${((timePerFile100 * validFiles.length) / 1000).toFixed(2)} seconds\n`;
+            
+            // Show Diagnostic UI
+            const logDiv = document.createElement('div');
+            logDiv.style = "position:fixed; top:20px; left:20px; right:20px; bottom:20px; background:rgba(0,0,0,0.95); border:2px solid var(--primary); z-index:9999; padding:20px; overflow-y:auto; color:#fff; border-radius:12px; font-family:monospace;";
+            const btn = document.createElement('button'); btn.className = 'btn'; btn.textContent = 'Copy Report & Continue to App';
+            btn.style.width = '100%'; btn.style.marginBottom = '20px';
+            btn.onclick = () => { 
+                navigator.clipboard.writeText(log).catch(err => alert('Failed to copy. Please manually copy the text.'));
+                logDiv.remove(); 
+            };
+            const pre = document.createElement('pre'); pre.textContent = log; pre.style = "white-space: pre-wrap; font-size: 14px;";
+            logDiv.appendChild(btn); logDiv.appendChild(pre);
+            document.body.appendChild(logDiv);
+
+            // Normal load sequence
+            mediaData = {}; mediaKeys = [];
+            for (let i = 0; i < validFiles.length; i++) {
+                const f = validFiles[i];
+                const path = f.webkitRelativePath || f.name; mediaKeys.push(path);
+                let r = rating(); let t = false; let m = 0;
+                if (loadedSaveData && loadedSaveData[path]) { r.mu = loadedSaveData[path].mu; r.sigma = loadedSaveData[path].sigma; t = loadedSaveData[path].trashed || false; m = loadedSaveData[path].matches || 0; }
+                mediaData[path] = { file: f, mu: r.mu, sigma: r.sigma, trashed: t, matches: m };
+            }
+            if (mediaKeys.length < 2) { alert("Need at least 2 media files."); return; }
             document.getElementById('app-header').classList.remove('hidden');
             document.getElementById('bottom-nav').classList.remove('hidden');
             switchScreen('arena');
