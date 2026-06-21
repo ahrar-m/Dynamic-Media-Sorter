@@ -549,19 +549,6 @@
             updateHeaderActions(); 
         }
 
-        function undoAction() {
-            if (!previousState) return;
-            previousState.keys.forEach(k => {
-                mediaData[k] = {...previousState.data[k]};
-            });
-            currentBatchKeys = [...previousState.keys];
-            rankedOrder = [];
-            previousState = null;
-            renderArenaGrid();
-            updateStats();
-            updateHeaderActions();
-            autoSaveToDB();
-        }
 
         function createMediaElement(file) {
             let el = document.createElement(isVideo(file) ? 'video' : 'img'); 
@@ -788,7 +775,7 @@
             const {keys, data} = previousState;
             keys.forEach(k => { Object.assign(mediaData[k], data[k]); });
             currentBatchKeys = keys; rankedOrder = []; previousState = null; 
-            renderArenaGrid(); updateHeaderActions(); updateStats();
+            renderArenaGrid(); updateHeaderActions(); updateStats(); autoSaveToDB();
         }
 
         // --- Grids & Feed View ---
