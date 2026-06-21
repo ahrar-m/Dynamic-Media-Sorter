@@ -40,6 +40,8 @@
         button, .btn {
             background: rgba(0, 240, 255, 0.05); border: 1px solid var(--primary); color: var(--primary);
             padding: 8px 16px; border-radius: 4px; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; cursor: pointer; transition: all 0.2s ease; box-shadow: inset 0 0 5px rgba(0,240,255,0.1);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
         button:hover, .btn:hover { background: var(--primary); color: #000; box-shadow: var(--glow); }
         button.danger { border-color: var(--danger); color: var(--danger); box-shadow: inset 0 0 5px rgba(255,0,60,0.1); }
@@ -50,6 +52,8 @@
         .icon-btn {
             position: absolute; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100;
             font-size: 0.9rem; transition: all 0.2s; padding: 10px 15px; border: none; background: transparent;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
         .icon-trash { right: 0; top: 0; color: var(--danger); background: radial-gradient(circle at top right, rgba(0,0,0,0.85) 0%, transparent 80%); }
         .icon-trash:hover { text-shadow: var(--danger-glow); }
@@ -96,6 +100,8 @@
             transition: opacity 0.2s, transform 0.2s;
             -webkit-touch-callout: none;
             user-select: none;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
         .arena-card img, .arena-card video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
         .arena-card.ranked { transform: scale(0.95); border-color: var(--primary); }
@@ -105,6 +111,14 @@
             font-size: 2.5rem; font-family: 'Orbitron'; font-weight: bold; color: var(--primary);
             text-shadow: 0 0 20px #000, var(--glow); pointer-events: none; z-index: 10;
         }
+        .btn-fs-overlay {
+            position: absolute; bottom: 8px; right: 8px; width: 36px; height: 36px;
+            border-radius: 50%; border: none; background: linear-gradient(135deg, rgba(79, 172, 254, 0.8) 0%, rgba(0, 242, 254, 0.8) 100%);
+            color: #fff; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 20; box-shadow: 0 2px 10px rgba(0,0,0,0.5); transition: all 0.2s ease;
+            touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+        }
+        .btn-fs-overlay:hover { transform: scale(1.1); filter: brightness(1.2); }
         .arena-controls { padding: 10px; display: flex; justify-content: center; gap: 15px; background: rgba(0,0,0,0.8); border-top: 1px solid var(--glass-border); flex-shrink: 0; }
 
         /* Leaderboard / Grid */
@@ -582,46 +596,18 @@
                 if(mediaEl.tagName === 'VIDEO') mediaEl.removeAttribute('controls');
                 card.appendChild(mediaEl);
                 
-                let pressTimer;
-                let isDragging = false;
-                let hasLongPressed = false;
-                let startX = 0, startY = 0;
-                
-                card.addEventListener('pointerdown', (e) => {
-                    if (e.button !== 0 && e.pointerType === 'mouse') return;
-                    startX = e.clientX;
-                    startY = e.clientY;
-                    isDragging = false;
-                    hasLongPressed = false;
-                    pressTimer = setTimeout(() => {
-                        hasLongPressed = true;
-                        openFullscreen(item.file, mediaEl.src);
-                    }, 250);
+                card.addEventListener('click', () => {
+                    handleArenaTap(key, card);
                 });
                 
-                card.addEventListener('pointermove', (e) => {
-                    if (hasLongPressed) return;
-                    let dx = Math.abs(e.clientX - startX);
-                    let dy = Math.abs(e.clientY - startY);
-                    if (dx > 15 || dy > 15) {
-                        isDragging = true;
-                        clearTimeout(pressTimer);
-                    }
+                const fsBtn = document.createElement('button');
+                fsBtn.className = 'btn-fs-overlay';
+                fsBtn.innerHTML = '⛶'; // Unicode for fullscreen icon
+                fsBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openFullscreen(item.file, mediaEl.src);
                 });
-                
-                card.addEventListener('pointerup', (e) => {
-                    clearTimeout(pressTimer);
-                    if(!isDragging && !hasLongPressed) { 
-                        handleArenaTap(key, card); 
-                    }
-                });
-                
-                card.addEventListener('pointercancel', () => {
-                    clearTimeout(pressTimer);
-                    isDragging = true;
-                });
-                
-                card.addEventListener('contextmenu', (e) => e.preventDefault());
+                card.appendChild(fsBtn);
                 
                 container.appendChild(card);
             });
@@ -682,7 +668,7 @@
             if(el.tagName === 'VIDEO') { el.controls = true; el.play().catch(()=>{}); }
             content.appendChild(el);
             modal.classList.remove('hidden');
-            history.pushState({ fullscreen: true }, '');
+            location.hash = 'fullscreen';
         }
         
         function closeFullscreen() {
@@ -693,12 +679,14 @@
             clearContainerAndRevoke('fullscreen-content');
         }
 
-        window.addEventListener('popstate', (e) => {
-            if (!document.getElementById('fullscreen-view-modal').classList.contains('hidden')) closeFullscreen();
+        window.addEventListener('hashchange', (e) => {
+            if (location.hash !== '#fullscreen' && !document.getElementById('fullscreen-view-modal').classList.contains('hidden')) {
+                closeFullscreen();
+            }
         });
         
         document.getElementById('btn-close-fullscreen').addEventListener('click', () => {
-            if (history.state && history.state.fullscreen) { history.back(); } else { closeFullscreen(); }
+            if (location.hash === '#fullscreen') { history.back(); } else { closeFullscreen(); }
         });
 
         document.getElementById('btn-arena-submit').addEventListener('click', () => submitBatch(false));
