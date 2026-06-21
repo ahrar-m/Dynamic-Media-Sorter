@@ -595,15 +595,16 @@
                     hasLongPressed = false;
                     pressTimer = setTimeout(() => {
                         hasLongPressed = true;
+                        if (navigator.vibrate) navigator.vibrate(50);
                         openFullscreen(item.file);
-                    }, 400);
+                    }, 250);
                 });
                 
                 card.addEventListener('pointermove', (e) => {
                     if (hasLongPressed) return;
                     let dx = Math.abs(e.clientX - startX);
                     let dy = Math.abs(e.clientY - startY);
-                    if (dx > 10 || dy > 10) {
+                    if (dx > 15 || dy > 15) {
                         isDragging = true;
                         clearTimeout(pressTimer);
                     }
