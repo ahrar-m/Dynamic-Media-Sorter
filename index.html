@@ -680,7 +680,13 @@
                     mediaEl.style.height = `${100 / item.crop.h * 100}%`;
                     mediaEl.style.objectFit = 'fill';
                 }
-                card.appendChild(mediaEl);
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'relative';
+                wrapper.style.width = '100%';
+                wrapper.style.height = '100%';
+                wrapper.style.overflow = 'hidden';
+                wrapper.appendChild(mediaEl);
+                card.appendChild(wrapper);
                 
                 card.addEventListener('click', () => {
                     handleArenaTap(key, card);
