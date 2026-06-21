@@ -89,20 +89,26 @@
         .card { padding: 30px; width: 300px; border-radius: 8px; }
         .card input[type="file"] { display: none; }
 
-                .arena-grid { padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; flex: 1; align-content: start; overflow-y: auto; }
-        .arena-card { 
-            position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--glass-border); 
-            display: flex; flex-direction: column; background: #000; cursor: pointer; aspect-ratio: 1/1;
-            transition: opacity 0.2s, transform 0.2s;
+        .arena-container { display: flex; flex: 1; padding: 10px; gap: 10px; align-items: stretch; justify-content: center; }
+        @media (max-width: 768px) { .arena-container { flex-direction: column; } }
+        
+        .media-item {
+            flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.8);
+            border-radius: 12px; border: 1px solid var(--glass-border); overflow: hidden; max-width: 1000px;
+            position: relative; transform-origin: 50% 100%; touch-action: pan-y; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            transition: box-shadow 0.2s, border-color 0.2s;
         }
-        .arena-card img, .arena-card video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-        .arena-card.ranked { opacity: 0.3; transform: scale(0.95); border-color: var(--primary); }
-        .arena-card .rank-badge {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 2.5rem; font-family: 'Orbitron'; font-weight: bold; color: var(--primary);
-            text-shadow: 0 0 20px #000, var(--glow); pointer-events: none; z-index: 10;
-        }
-        .arena-controls { padding: 10px; display: flex; justify-content: center; gap: 15px; background: rgba(0,0,0,0.8); border-top: 1px solid var(--glass-border); flex-shrink: 0; }
+
+        .glow-win { box-shadow: inset 0 0 60px rgba(57,255,20,0.5), 0 0 20px rgba(57,255,20,0.5) !important; border-color: var(--success) !important; }
+        .glow-lose { box-shadow: inset 0 0 60px rgba(255,0,60,0.5), 0 0 20px rgba(255,0,60,0.5) !important; border-color: var(--danger) !important; }
+        
+        .swipe-right-win { transform: translateX(120vw) rotate(15deg) !important; opacity: 0; pointer-events: none; }
+        .swipe-left-lose { transform: translateX(-120vw) rotate(-15deg) !important; opacity: 0; pointer-events: none; }
+
+        .media-content { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+        .media-content img, .media-content video { width: 100%; height: 100%; object-fit: contain; pointer-events: auto; }
+        .vs-divider { display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-family: 'Orbitron'; color: var(--primary); text-shadow: var(--glow); padding: 10px; margin: auto 0; pointer-events: none; }
+        @media (max-width: 768px) { .vs-divider { display: none; } }
 
         /* Leaderboard / Grid */
         .grid-header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--glass-border); }
@@ -171,17 +177,31 @@
             </div>
         </section>
 
-                <section id="arena-screen" class="hidden">
-            <div class="grid-header glass" style="justify-content: center; flex-direction: column; padding: 10px;">
-                <h3 style="color:var(--primary); text-shadow:var(--glow); font-size: 1rem; margin: 0;">TAP TO RANK (1ST to WORST)</h3>
-                <div style="font-size: 0.75rem; color: #94a3b8; text-align: center; width: 100%; margin-top: 5px;">Long-press to view fullscreen</div>
+        <section id="arena-screen" class="hidden">
+            <div class="arena-container" id="arena">
+                <div class="media-item" id="media1-container">
+                    <div class="icon-btn icon-menu" id="btn-menu1">⋮</div>
+                    <div class="icon-btn icon-trash" id="btn-trash1">🗑️</div>
+                    <div class="info-dropdown hidden glass" id="dropdown1">
+                        <div class="info-row"><b>Path:</b> <span id="info-path1"></span></div>
+                        <button class="btn" id="btn-share1" style="width:100%; margin-top:10px;">Share</button>
+                    </div>
+                    <div class="media-content" id="media1-content"></div>
+                </div>
+
+                <div class="vs-divider">VS</div>
+
+                <div class="media-item" id="media2-container">
+                    <div class="icon-btn icon-menu" id="btn-menu2">⋮</div>
+                    <div class="icon-btn icon-trash" id="btn-trash2">🗑️</div>
+                    <div class="info-dropdown hidden glass" id="dropdown2">
+                        <div class="info-row"><b>Path:</b> <span id="info-path2"></span></div>
+                        <button class="btn" id="btn-share2" style="width:100%; margin-top:10px;">Share</button>
+                    </div>
+                    <div class="media-content" id="media2-content"></div>
+                </div>
             </div>
-            <div class="arena-grid" id="arena-grid"></div>
-            <div class="arena-controls">
-                <button class="btn danger" id="btn-arena-trash-unranked">TRASH UNRANKED</button>
-                <button class="btn success" id="btn-arena-submit" style="flex:1;">SUBMIT RANKINGS</button>
-            </div>
-            <div class="stats-text" id="stats-text"></div>
+            <div class="stats-text" id="stats-text">RANKED: 0 | TRASHED: 0 | TOTAL: 0</div>
         </section>
 
         <section id="leaderboard-screen" class="hidden">
@@ -215,12 +235,6 @@
         <button data-target="trash"><span class="icon">TRASH</span></button>
     </nav>
 
-    <!-- Generic Fullscreen View -->
-    <div id="fullscreen-view-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: #000; z-index: 2000; display: flex; align-items: center; justify-content: center;">
-        <button class="icon-btn" id="btn-close-fullscreen" style="top: 15px; left: 15px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: var(--primary); border-radius: 50%; width: 40px; height: 40px; padding: 0;">✕</button>
-        <div id="fullscreen-content" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;"></div>
-    </div>
-    
     <!-- Detail Feed Modal -->
     <div id="detail-view-modal" class="hidden">
         <div class="detail-header">
@@ -236,7 +250,7 @@
         import { rating, rate, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@5.0.1/+esm';
 
         let mediaData = {}; let mediaKeys = []; let loadedSaveData = null; 
-        let mediaMode = 'image'; let currentScreen = 'home'; let currentBatchKeys = []; let rankedOrder = [];
+        let mediaMode = 'image'; let currentScreen = 'home'; let currentPair = null;
         let previousState = null; let currentSaveName = "save";
         const PAGE_SIZE = 16; let leaderboardPage = 0; let trashPage = 0;
         let sortOrder = 'desc';
@@ -304,7 +318,7 @@
 
         function refreshCurrentScreen() {
             document.getElementById('main-scroll').scrollTo(0,0);
-            if (currentScreen === 'arena') pickNextBatch();
+            if (currentScreen === 'arena') pickNextPair();
             if (currentScreen === 'leaderboard') { leaderboardPage = 0; document.getElementById('leaderboard-grid').innerHTML = ''; loadLeaderboardPage(); }
             if (currentScreen === 'trash') { trashPage = 0; document.getElementById('trash-grid').innerHTML = ''; loadTrashPage(); }
             updateStats();
