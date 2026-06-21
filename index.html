@@ -254,8 +254,7 @@
         <div id="detail-feed-trigger" class="load-more-trigger"></div>
     </div>
 
-    <script type="module">
-        import { rating, rate, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@5.0.1/+esm';
+    <script>
 
         window.addEventListener('contextmenu', e => e.preventDefault());
         
@@ -748,11 +747,25 @@
             });
             
             if (teams.length > 1) {
-                const newRatings = rate(teams, { rank: ranks });
-                teams.forEach((team, teamIdx) => {
+                const K = 8;
+                for (let i = 0; i < teams.length; i++) {
+                    for (let j = i + 1; j < teams.length; j++) {
+                        const teamA = teams[i]; const teamB = teams[j];
+                        const rA = teamA[0].mu; const rB = teamB[0].mu;
+                        const expectedA = 1 / (1 + Math.pow(10, (rB - rA) / 20));
+                        const expectedB = 1 / (1 + Math.pow(10, (rA - rB) / 20));
+                        
+                        let scoreA = 0.5, scoreB = 0.5;
+                        if (ranks[i] < ranks[j]) { scoreA = 1; scoreB = 0; }
+                        else if (ranks[i] > ranks[j]) { scoreA = 0; scoreB = 1; }
+                        
+                        teamA[0].mu += K * (scoreA - expectedA);
+                        teamB[0].mu += K * (scoreB - expectedB);
+                    }
+                }
+                teams.forEach((team) => {
                     const key = team[0].key;
-                    mediaData[key].mu = newRatings[teamIdx][0].mu;
-                    mediaData[key].sigma = newRatings[teamIdx][0].sigma;
+                    mediaData[key].mu = team[0].mu;
                     mediaData[key].matches++;
                 });
             } else if (teams.length === 1) { mediaData[teams[0][0].key].matches++; }
@@ -817,7 +830,7 @@
         }
 
         function loadLeaderboardPage() {
-            let keys = mediaKeys.filter(k => !mediaData[k].trashed && mediaData[k].matches > 0 && (mediaMode === 'video' ? isVideo(mediaData[k].file) : !isVideo(mediaData[k].file))).sort((a, b) => ordinal(mediaData[b]) - ordinal(mediaData[a]));
+            let keys = mediaKeys.filter(k => !mediaData[k].trashed && mediaData[k].matches > 0 && (mediaMode === 'video' ? isVideo(mediaData[k].file) : !isVideo(mediaData[k].file))).sort((a, b) => mediaData[b].mu - mediaData[a].mu);
             if (sortOrder === 'asc') keys.reverse();
             if(renderGridItems(keys, 'leaderboard-grid', leaderboardPage, false)) leaderboardPage++;
         }
