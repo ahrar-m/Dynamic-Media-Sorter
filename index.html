@@ -3,2904 +3,984 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DMS</title>
-    <!-- Google Fonts: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- FontAwesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
+    <title>Dynamic Media Sorter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
-:root {
-    --bg-color: #0b0c10;
-    --panel-bg: rgba(255, 255, 255, 0.03);
-    --panel-border: rgba(255, 255, 255, 0.08);
-    --text-primary: #e0e6ed;
-    --text-secondary: #8b9eb0;
-    --accent-blue: #4facfe;
-    --accent-green: #00f2fe;
-    --accent-red: #ff0844;
-    --glass-blur: blur(12px);
-    --leaderboard-thumb-size: 160px;
-}
+        :root {
+            --bg-color: #030305;
+            --surface: rgba(10, 15, 30, 0.85);
+            --surface-light: rgba(20, 30, 50, 0.6);
+            --text-color: #e2f1f8;
+            --primary: #00f0ff; /* Neon Cyan */
+            --primary-hover: #00c0cc;
+            --danger: #ff003c; /* Neon Red */
+            --success: #39ff14; /* Neon Green */
+            --glass-border: rgba(0, 240, 255, 0.2);
+            --glow: 0 0 12px rgba(0, 240, 255, 0.5);
+            --danger-glow: 0 0 12px rgba(255, 0, 60, 0.5);
+            --nav-height: 50px;
+            --header-height: 60px;
+        }
 
-* {
-    box-sizing: border-box; margin: 0; padding: 0;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.2);
-}
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 
-/* Scrollbars */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
+        h1, h2, h3, .grid-badge, .swipe-hint { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 
-/* Focus States */
-textarea:focus, select:focus, .form-input:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(79, 172, 254, 0.3);
-    border-color: rgba(79, 172, 254, 0.5);
-}
+        body {
+            background-color: var(--bg-color); color: var(--text-color);
+            height: 100vh; height: 100dvh; width: 100vw;
+            display: flex; flex-direction: column; overflow: hidden;
+            background-image: linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
 
-/* Custom Checkbox Toggle */
-input[type="checkbox"] {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 36px; height: 20px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    position: relative;
-    cursor: pointer;
-    outline: none;
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-    transition: all 0.3s;
-    border: 1px solid var(--panel-border);
-    margin: 0;
-}
-input[type="checkbox"]:focus-visible {
-    box-shadow: 0 0 0 2px rgba(79, 172, 254, 0.3);
-    border-color: rgba(79, 172, 254, 0.5);
-}
-input[type="checkbox"]::after {
-    content: '';
-    position: absolute;
-    top: 1px; left: 2px;
-    width: 16px; height: 16px;
-    background: #fff;
-    border-radius: 50%;
-    transition: transform 0.3s;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-input[type="checkbox"]:checked {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    border-color: transparent;
-}
-input[type="checkbox"]:checked::after {
-    transform: translateX(16px);
-}
+        .hidden { display: none !important; }
+        .glass { background: var(--surface); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); }
 
-body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--bg-color);
-    background-image: radial-gradient(circle at 50% 0%, rgba(20, 25, 35, 1) 0%, rgba(11, 12, 16, 1) 100%);
-    color: var(--text-primary);
-    height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    overscroll-behavior: none;
-    -webkit-font-smoothing: antialiased;
-}
+        button, .btn {
+            background: rgba(0, 240, 255, 0.05); border: 1px solid var(--primary); color: var(--primary);
+            padding: 8px 16px; border-radius: 4px; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; cursor: pointer; transition: all 0.2s ease; box-shadow: inset 0 0 5px rgba(0,240,255,0.1);
+        }
+        button:hover, .btn:hover { background: var(--primary); color: #000; box-shadow: var(--glow); }
+        button.danger { border-color: var(--danger); color: var(--danger); box-shadow: inset 0 0 5px rgba(255,0,60,0.1); }
+        button.danger:hover { background: var(--danger); color: #fff; box-shadow: var(--danger-glow); }
+        button.success { border-color: var(--success); color: var(--success); box-shadow: inset 0 0 5px rgba(57,255,20,0.1); }
+        button.success:hover { background: var(--success); color: #000; box-shadow: inset 0 0 20px rgba(57,255,20,0.5), 0 0 10px rgba(57,255,20,0.5); }
 
-.glass-panel {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--panel-border);
-    border-radius: 12px;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 30px rgba(0, 0, 0, 0.1);
-}
+        .icon-btn {
+            position: absolute; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100;
+            font-size: 0.9rem; transition: all 0.2s; padding: 10px 15px; border: none; background: transparent;
+        }
+        .icon-trash { right: 0; top: 0; color: var(--danger); background: radial-gradient(circle at top right, rgba(0,0,0,0.85) 0%, transparent 80%); }
+        .icon-trash:hover { text-shadow: var(--danger-glow); }
+        .icon-menu { left: 0; top: 0; color: var(--primary); background: radial-gradient(circle at top left, rgba(0,0,0,0.85) 0%, transparent 80%); }
+        .icon-menu:hover { text-shadow: var(--glow); }
 
-.btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--panel-border);
-    color: var(--text-primary);
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-.btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateY(-1px);
-}
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-primary {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    border: none; color: #000; font-weight: 600;
-}
-.btn-primary:hover {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    filter: brightness(1.1);
-}
-.btn-danger {
-    background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
-    border: none; color: #fff; font-weight: 600;
-}
-.btn-danger:hover {
-    background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
-    filter: brightness(1.1);
-}
-header .btn { padding: 4px 8px; }
+        .info-dropdown {
+            position: absolute; top: 60px; left: 12px; background: rgba(5, 10, 15, 0.95);
+            border: 1px solid var(--primary); box-shadow: var(--glow); padding: 15px; border-radius: 8px; z-index: 200;
+            width: 80%; max-width: 300px; backdrop-filter: blur(10px); pointer-events: auto;
+        }
+        .info-row { margin-bottom: 10px; font-size: 0.85rem; line-height: 1.4; color: #94a3b8; word-break: break-all; }
+        .info-row b { color: var(--primary); font-family: 'Orbitron', sans-serif; font-size: 0.75rem; text-transform: uppercase; }
 
-header {
-    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
-    padding: 4px 8px; z-index: 10;
-}
-.header-left, .header-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        header { flex-shrink: 0; height: var(--header-height); display: flex; justify-content: space-between; align-items: center; padding: 0 15px; background: var(--surface); border-bottom: 1px solid var(--glass-border); z-index: 50; }
+        .media-toggle { display: flex; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); border-radius: 4px; }
+        .media-toggle button { border: none; box-shadow: none; color: #475569; padding: 8px 12px; }
+        .media-toggle button.active { background: var(--primary); color: #000; box-shadow: var(--glow); }
+        .header-actions { display: flex; gap: 10px; align-items: center; }
 
-/* Circular Progress Bar */
-.progress-circle {
-    position: relative;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: conic-gradient(var(--accent-green) 0%, rgba(255,255,255,0.1) 0%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.1s;
-}
-.progress-circle::after {
-    content: '';
-    position: absolute;
-    width: 26px;
-    height: 26px;
-    background: var(--bg-color);
-    border-radius: 50%;
-}
-.progress-circle span {
-    position: relative;
-    z-index: 1;
-    font-size: 0.65rem;
-    font-weight: bold;
-    color: #fff;
-}
+        main { flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; padding-bottom: calc(var(--nav-height) + 40px); }
+        section { min-height: 100%; display: flex; flex-direction: column; }
 
-main {
-    flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
-    position: relative; overflow: hidden; padding: 0;
-}
+        nav {
+            position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-height);
+            background: var(--bg-color); border-top: 1px solid var(--glass-border);
+            display: flex; justify-content: space-around; align-items: center; z-index: 100;
+        }
+        nav button { border: none; box-shadow: none; background: transparent; color: #475569; flex-direction: column; gap: 2px; font-size: 0.6rem; padding: 4px; width: 100%; }
+        nav button:hover { background: rgba(0,240,255,0.05); }
+        nav button.active { color: var(--primary); text-shadow: 0 0 8px rgba(0,240,255,0.5); }
+        nav span.icon { font-size: 1.1rem; }
 
+        #home-screen { align-items: center; justify-content: center; text-align: center; padding: 20px; }
+        #home-screen h1 { font-size: 2.5rem; margin-bottom: 15px; color: var(--primary); text-shadow: var(--glow); }
+        .action-cards { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 30px; }
+        .card { padding: 30px; width: 100%; max-width: 300px; border-radius: 8px; }
+        .card input[type="file"] { display: none; }
 
-#match-status-indicator {
-    position: absolute;
-    top: 16px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0,0,0,0.7);
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: bold;
-    color: var(--text-secondary);
-    z-index: 10;
-    backdrop-filter: blur(4px);
-    border: 1px solid var(--panel-border);
-    transition: all 0.3s;
-}
-#match-status-indicator.placement { color: #f6d365; border-color: rgba(246, 211, 101, 0.5); }
-#match-status-indicator.ranked { color: #a18cd1; border-color: rgba(161, 140, 209, 0.5); }
-#match-status-indicator.historical { color: #84fab0; border-color: rgba(132, 250, 176, 0.5); }
-#match-status-indicator.executioner { color: #ff0844; border-color: rgba(255, 8, 68, 0.5); }
+                .arena-grid { padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; flex: 1; align-content: start; }
+        .arena-card { 
+            position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--glass-border); 
+            display: flex; flex-direction: column; background: #000; cursor: pointer; aspect-ratio: 1/1;
+            transition: opacity 0.2s, transform 0.2s;
+            -webkit-touch-callout: none;
+            user-select: none;
+        }
+        .arena-card img, .arena-card video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+        .arena-card.ranked { transform: scale(0.95); border-color: var(--primary); }
+        .arena-card.ranked::after { content: ''; position: absolute; inset: 0; background: rgba(0, 240, 255, 0.15); pointer-events: none; z-index: 5; }
+        .arena-card .rank-badge {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 2.5rem; font-family: 'Orbitron'; font-weight: bold; color: var(--primary);
+            text-shadow: 0 0 20px #000, var(--glow); pointer-events: none; z-index: 10;
+        }
+        .arena-controls { padding: 10px; display: flex; justify-content: center; gap: 15px; background: rgba(0,0,0,0.8); border-top: 1px solid var(--glass-border); flex-shrink: 0; }
 
-#media-container {
-    width: 100%; flex: 1; display: flex; justify-content: center;
-    align-items: center; position: relative;
-    min-height: 0;
-    min-width: 0;
-    height: 100%;
-}
+        /* Leaderboard / Grid */
+        .grid-header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--glass-border); }
+        .grid-container { padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+        
+        .grid-item { 
+            position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--glass-border); 
+            display: flex; flex-direction: column; background: #000; cursor: pointer; transition: border-color 0.2s;
+        }
+        .grid-item:hover { border-color: var(--primary); }
+        .grid-item .media-thumb { height: 140px; width: 100%; overflow: hidden; }
+        .grid-item img, .grid-item video { width: 100%; height: 100%; object-fit: cover; }
+        
+        .grid-footer {
+            padding: 8px; background: rgba(10,15,30,0.9); border-top: 1px solid var(--glass-border);
+            display: flex; flex-direction: column; gap: 4px; flex: 1; justify-content: center;
+        }
+        .grid-badge { background: rgba(0,240,255,0.1); padding: 2px 4px; border-radius: 4px; font-size: 0.75rem; color: var(--primary); align-self: flex-start; }
+        .grid-score { font-size: 0.65rem; color: #94a3b8; font-family: 'Orbitron'; }
+        
+        .load-more-trigger { height: 20px; width: 100%; margin-bottom: 40px; }
+        .stats-text { text-align: center; padding: 10px; color: var(--primary); font-family: 'Orbitron'; font-size: 0.65rem; line-height: 1.5; text-shadow: var(--glow); }
 
-video, img {
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    transition: all 0.3s ease;
-}
-#media-container video {
-    max-width: 100%; max-height: 100%;
-    object-fit: contain;
-    border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    user-select: none;
-    pointer-events: auto;
-    transition: all 0.3s ease;
-}
-.media-fit-contain { object-fit: contain !important; max-width: 100% !important; max-height: 100% !important; width: 100% !important; height: 100% !important; }
-.media-fit-cover { object-fit: cover !important; max-width: 100% !important; max-height: 100% !important; width: 100% !important; height: 100% !important; }
-.media-fit-stretch { object-fit: fill !important; max-width: 100% !important; max-height: 100% !important; width: 100% !important; height: 100% !important; }
-.media-fit-original { object-fit: scale-down !important; max-width: 100% !important; max-height: 100% !important; width: 100% !important; height: 100% !important; }
-
-.empty-state { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 20px; max-width: 400px; }
-.empty-state i { font-size: 48px; color: var(--text-secondary); margin-bottom: 10px; }
-.empty-state p { color: var(--text-secondary); line-height: 1.5; }
-
-/* File Info Overlay */
-.file-info {
-    position: absolute; bottom: 10px; left: 10px; padding: 12px 16px; z-index: 20;
-    max-width: calc(100% - 20px);
-}
-.file-name { font-size: 0.9rem; font-weight: 600; word-break: break-all; }
-
-/* Footer & Gesture Controls */
-footer { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; z-index: 10; flex-shrink: 0; }
-
-.gesture-controls {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-    width: 100%;
-    position: relative;
-}
-
-
-
-/* Timeline Controls */
-.timeline-controls {
-    display: flex; justify-content: space-between; gap: 10px; width: 100%;
-}
-.timeline-controls .btn { flex: 1; justify-content: center; }
-
-/* Modals */
-.modal-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100dvh;
-    background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
-    display: flex; justify-content: center; align-items: center;
-    z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s;
-}
-.modal-overlay.active { opacity: 1; pointer-events: auto; }
-.modal {
-    width: 90%; max-width: 700px; max-height: 85vh; max-height: 85dvh; padding: 24px;
-    display: flex; flex-direction: column; gap: 16px; position: relative;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-}
-.modal h2 { font-size: 1.2rem; border-bottom: 1px solid var(--panel-border); padding-bottom: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
-.modal-close { position: absolute; top: 20px; right: 20px; background: none; border: none; color: var(--text-secondary); font-size: 1.2rem; cursor: pointer; }
-.modal-body { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 15px; padding-bottom: 12px; }
-.modal-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; }
-@media (max-width: 600px) { .modal-grid-2 { grid-template-columns: 1fr; } }
-
-textarea { width: 100%; height: 200px; background: rgba(0,0,0,0.5); border: 1px solid var(--panel-border); border-radius: 8px; color: #a5d6ff; font-family: monospace; padding: 12px; resize: vertical; }
-select, .form-input { background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); color: var(--text-primary); padding: 8px 12px; border-radius: 6px; width: 100%; }
-
-.hidden { display: none !important; }
-
-#toast {
-    position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 8px;
-    background: rgba(0,0,0,0.9); border: 1px solid rgba(255,255,255,0.2); color: #fff;
-    transform: translateY(-100px); opacity: 0; transition: all 0.3s; z-index: 1000;
-    pointer-events: none;
-}
-#toast.show { transform: translateY(0); opacity: 1; }
-
-.leaderboard-item {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 10px; border-bottom: 1px solid var(--panel-border);
-}
-.leaderboard-item .filename { max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* Executioner Checkbox */
-.dash-bar {
-    background: linear-gradient(to top, rgba(79, 172, 254, 0.2), var(--accent-blue));
-    border-radius: 4px 4px 0 0;
-    opacity: 0.7;
-    transition: all 0.3s ease;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding-top: 2px;
-    color: white;
-    overflow: hidden;
-}
-.dash-bar:hover {
-    opacity: 1;
-    filter: brightness(1.2);
-}
-.executioner-checkbox {
-    position: absolute;
-    bottom: 15px;
-    right: 15px;
-    z-index: 200;
-    width: auto;
-    height: auto; 
-    display: flex;
-    align-items: center; 
-    gap: 10px;
-    background: rgba(0,0,0,0.8); 
-    padding: 10px 15px; 
-    border-radius: 8px;
-    color: white;
-    white-space: nowrap;
-    border: 1px solid var(--panel-border); 
-    font-weight: bold; 
-    cursor: pointer;
-}
-
-.footer-grid {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-}
-.footer-left { display: flex; gap: 8px; justify-content: flex-start; }
-.footer-center { display: flex; justify-content: center; }
-.footer-right { display: flex; gap: 8px; justify-content: flex-end; }
-@media (max-width: 600px) {
-    /* Retaining media query for other potential overrides, but removing footer-grid wrapping */
-}
-
-.action-btn {
-    width: 44px; 
-    height: 44px;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0;
-    flex-shrink: 0;
-}
-#btn-submit-match {
-    border-radius: 50%;
-    font-size: 1.2rem;
-    transition: all 0.3s ease;
-}
-
-@media (max-width: 380px) {
-    #app-footer {
-        padding: 4px 8px 12px 8px !important;
-    }
-    .footer-grid {
-        gap: 6px;
-    }
-    .footer-left, .footer-right {
-        gap: 4px;
-    }
-    .action-btn {
-        width: 38px;
-        height: 38px;
-    }
-    #btn-submit-match {
-        font-size: 1.1rem;
-    }
-}
-
-
-
-:root {
-    --thumb-size: 60px;
-}
-@keyframes slidePop {
-    0% { opacity: 0; transform: scale(0.5); }
-    100% { opacity: 1; transform: scale(1); }
-}
-.placement-strip {
-    display: flex; flex-wrap: nowrap; overflow-x: auto; align-items: center; justify-content: flex-start; margin: 0 auto; gap: 8px; padding: 15px 10px;
-    min-height: calc(var(--thumb-size) + 30px);
-    background: linear-gradient(to right, rgba(0, 255, 100, 0.25), rgba(255, 8, 68, 0.25));
-    border-radius: 12px;
-    -webkit-overflow-scrolling: touch;
-    width: 100%;
-}
-.placement-strip::after {
-    content: ''; padding-right: 1px; flex-shrink: 0;
-}
-.placement-thumbnail {
-    width: var(--thumb-size); height: var(--thumb-size); border-radius: 8px; object-fit: cover; border: 2px solid var(--panel-border);
-    cursor: pointer; opacity: 0.7; transition: all 0.2s ease; background: black; flex-shrink: 0;
-    animation: slidePop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-.placement-thumbnail.active-rank {
-    border-color: var(--accent-blue); opacity: 1; transform: scale(1.1); box-shadow: 0 0 10px rgba(79,172,254,0.5);
-}
-.placement-insert-btn {
-    width: 36px; height: 36px; border-radius: 50%; background: var(--panel-border); color: var(--text-primary);
-    border: none; display: flex; justify-content: center; align-items: center; cursor: pointer;
-    font-size: 1.2rem; transition: all 0.2s ease; flex-shrink: 0;
-    animation: slidePop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-.placement-insert-btn:hover {
-    background: var(--accent-blue); transform: scale(1.2); color: white;
-}
-
-/* Inactive Tab Styles to preserve hover states */
-.btn-tab-inactive {
-    background: rgba(255, 255, 255, 0.08) !important;
-    color: var(--text-secondary) !important;
-    opacity: 0.7;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-.btn-tab-inactive:hover {
-    background: rgba(255, 255, 255, 0.18) !important;
-    color: var(--text-primary) !important;
-    opacity: 1;
-}
-
-/* Prevent overlap of file info and executioner delete checkbox on small viewports */
-@media (max-width: 600px) {
-    .file-info {
-        max-width: calc(100% - 170px) !important;
-    }
-}
-
-/* Leaderboard Table Styles (with frozen headers and mobile optimizations) */
-.leaderboard-table {
-    width: 100%;
-    max-width: 650px;
-    margin: 0 auto;
-    border-collapse: separate;
-    border-spacing: 0;
-}
-.leaderboard-table th {
-    position: sticky;
-    top: 0;
-    background: rgba(17, 18, 22, 0.92);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    z-index: 10;
-    padding: 10px 4px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: var(--text-secondary);
-    border-bottom: 2px solid var(--panel-border);
-    text-align: center;
-}
-.leaderboard-table td {
-    padding: 8px 4px;
-    border-bottom: 1px solid var(--panel-border);
-    vertical-align: middle;
-    font-size: 0.85rem;
-    color: var(--text-primary);
-}
-.leaderboard-table tr {
-    transition: background 0.2s ease;
-    cursor: pointer;
-}
-.leaderboard-table tr:hover {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-/* Leaderboard Columns Widths and Alignments */
-.col-rank { width: 35px; text-align: center; font-weight: bold; color: var(--accent-blue); }
-.col-media { text-align: center; }
-.col-matches { width: 50px; text-align: center; opacity: 0.8; }
-.col-mu { width: 40px; text-align: center; opacity: 0.8; font-family: monospace; }
-.col-sigma { width: 40px; text-align: center; opacity: 0.8; font-family: monospace; }
-.col-score { width: 55px; text-align: center; font-weight: bold; color: var(--accent-blue); font-size: 1.1rem; font-family: monospace; }
-
-/* Leaderboard Sorting Headers */
-.leaderboard-table th.sortable {
-    cursor: pointer;
-    user-select: none;
-    transition: color 0.2s ease, background-color 0.2s ease;
-}
-.leaderboard-table th.sortable:hover {
-    color: var(--accent-blue);
-    background: rgba(255, 255, 255, 0.05);
-}
-.leaderboard-table th.active-sort {
-    color: var(--accent-blue) !important;
-    border-bottom: 2px solid var(--accent-blue) !important;
-}
-
-.leaderboard-thumbnail {
-    width: var(--leaderboard-thumb-size);
-    height: var(--leaderboard-thumb-size);
-    object-fit: cover;
-    border-radius: 8px;
-    flex-shrink: 0;
-    display: block;
-    margin: 0 auto;
-    box-shadow: none; /* override heavy video/img box shadow */
-}
-
-@media (max-width: 600px) {
-    .modal {
-        padding: 10px !important;
-        width: 98% !important; /* override the inline 95% modal width on mobile */
-    }
-    .modal-close {
-        top: 10px;
-        right: 10px;
-    }
-    .leaderboard-table th {
-        padding: 8px 2px;
-        font-size: 0.7rem;
-    }
-    .leaderboard-table td {
-        padding: 6px 2px;
-        font-size: 0.8rem;
-    }
-    :root {
-        --leaderboard-thumb-size: 130px;
-    }
-    .col-rank { width: 28px; }
-    .col-matches { width: 28px; }
-    .col-mu { width: 32px; }
-    .col-sigma { width: 32px; }
-    .col-score { width: 40px; font-size: 0.9rem; }
-    
-    .leaderboard-list {
-        overflow-x: hidden;
-    }
-}
-</style>
+        /* Detail Feed Modal */
+        #detail-view-modal {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
+            background: #000; z-index: 1000; overflow-y: auto; overflow-x: hidden;
+            scroll-snap-type: y mandatory;
+        }
+        .detail-header { position: fixed; top: 0; left: 0; width: 100%; height: var(--header-height); display: flex; justify-content: space-between; align-items: center; padding: 0 15px; background: rgba(0,0,0,0.9); border-bottom: 1px solid var(--glass-border); z-index: 1010; }
+        
+        .detail-feed-item {
+            height: 100dvh; width: 100vw; scroll-snap-align: start; position: relative;
+            display: flex; flex-direction: column; touch-action: pan-y;
+            transition: height 0.3s ease, opacity 0.3s ease;
+        }
+        .detail-content { flex: 1; display: flex; align-items: center; justify-content: center; margin-top: var(--header-height); background: #000; overflow: hidden; }
+        .detail-content img, .detail-content video { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: auto; }
+        .detail-footer { height: 60px; padding: 10px; background: rgba(0,0,0,0.9); text-align: center; border-top: 1px solid var(--glass-border); flex-shrink: 0; }
+    </style>
 </head>
 <body>
-<!-- Header -->
-<header class="glass-panel">
-    <div class="header-left" style="position: relative;">
-        <h1 style="font-size: 1.2rem; margin: 0; display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-sort" style="color: var(--accent-blue);"></i> DMS
-        </h1>
-        <button id="btn-fullscreen-title" class="btn" style="padding: 4px 8px; margin-left: 10px; font-size: 1rem;" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
-        <input type="file" id="folder-input" webkitdirectory directory multiple class="hidden">
-        <input type="file" id="file-input" multiple class="hidden">
-    </div>
-    <div class="header-right">
-        <!-- Circular Progress Bar for Background Loading -->
-        <div class="progress-circle hidden" id="loading-progress" title="Loading Media...">
-            <span id="loading-percent">0%</span>
+
+    <header id="app-header" class="hidden">
+        <div class="media-toggle">
+            <button id="toggle-images" class="active">IMG</button>
+            <button id="toggle-videos">VID</button>
         </div>
-        
-        <!-- Circular Progress Bar for Matchup Pool -->
-        <div style="display: flex; align-items: center; gap: 8px; margin-right: 10px;" id="matchup-progress-container" class="hidden">
-            <span id="matchup-pool-level" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Pool 0</span>
-            <div style="position: relative; width: 32px; height: 32px;" title="Matchup Pool Progress">
-                <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-90deg);">
-                    <path style="fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3;" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path id="matchup-circle" style="fill: none; stroke: var(--accent-blue); stroke-width: 3; stroke-linecap: round; transition: stroke-dasharray 0.3s ease;" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                </svg>
-                <span id="matchup-percent" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.65rem; font-weight: bold;">0%</span>
-            </div>
-        </div>
-        <button class="btn btn-primary" id="btn-open-tools-menu" title="Tools Menu"><i class="fa-solid fa-bars"></i> Tools</button>
-    </div>
-</header>
+        <div class="header-actions" id="header-actions-container"></div>
+    </header>
 
-
-
-<!-- Main Content Area -->
-<main id="main-area" style="display: flex; flex-direction: column; overflow: hidden; flex: 1;">
-
-    
-    <div id="match-status-indicator" class="hidden">Ranked Match</div>
-
-    <!-- Executioner Checkbox (Hidden normally) -->
-    <label class="executioner-checkbox hidden" id="executioner-check-container">
-        <input type="checkbox" id="executioner-checkbox" checked>
-        Delete File
-    </label>
-
-    <div id="media-container">
-        <div class="empty-state glass-panel" style="padding: 40px;">
-            <i class="fa-solid fa-photo-film"></i>
-            <h2>No Media Loaded</h2>
-            <p>Select a folder to begin Openskill matchmaking.</p>
-        </div>
-    </div>
-    
-    <div class="file-info glass-panel hidden" id="file-info-overlay">
-        <div class="file-name" id="display-filename"></div>
-    </div>
-</main>
-
-<!-- Footer Controls -->
-<footer class="glass-panel" id="app-footer" style="padding: 4px 16px 12px 16px; display: flex; flex-direction: column; gap: 16px; z-index: 10; flex-shrink: 0; position: relative;">
-    <div id="footer-resize-handle" style="position: absolute; top: -16px; left: 0; right: 0; height: 32px; cursor: ns-resize; display: flex; justify-content: center; align-items: flex-start; padding-top: 6px; z-index: 20; touch-action: none;">
-        <div style="width: 50px; height: 6px; background: rgba(255,255,255,0.4); border-radius: 3px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);"></div>
-    </div>
-    <div class="matchup-controls" id="matchup-controls" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px;">
-        <button class="btn" id="btn-prev-media" style="font-size: 1.2rem; padding: 10px 15px; flex-shrink: 0;"><i class="fa-solid fa-chevron-left"></i></button>
-        
-        <div id="placement-strip" class="placement-strip" style="flex: 1; min-width: 0;"></div>
-        
-        <button class="btn" id="btn-next-media" style="font-size: 1.2rem; padding: 10px 15px; flex-shrink: 0;"><i class="fa-solid fa-chevron-right"></i></button>
-    </div>
-
-
-    <div class="footer-grid">
-        <div class="footer-left">
-            <button class="btn btn-secondary action-btn" id="btn-undo" title="Undo Last Match"><i class="fa-solid fa-rotate-left"></i></button>
-            <button class="btn btn-secondary action-btn" id="btn-info" title="Toggle Info"><i class="fa-solid fa-circle-info"></i></button>
-        </div>
-        <div class="footer-center">
-            <button class="btn btn-primary action-btn" id="btn-submit-match" disabled><i class="fa-solid fa-check"></i></button>
-        </div>
-        <div class="footer-right">
-            <button class="btn action-btn" id="btn-share-current" title="Share Media" style="display: none;"><i class="fa-solid fa-share-nodes"></i></button>
-            <button class="btn btn-danger action-btn" id="btn-stage-current" title="Stage Current Media to Executioner"><i class="fa-solid fa-skull"></i></button>
-            <button class="btn action-btn" id="btn-toggle-fit" title="Cycle Media Fit"><i class="fa-solid fa-compress"></i></button>
-        </div>
-    </div>
-
-    <!-- Timeline Controls (Hidden by Default) -->
-    <div class="timeline-controls hidden" id="timeline-controls">
-        <button class="btn" id="btn-prev-match" title="Previous"><i class="fa-solid fa-chevron-left"></i></button>
-        <button class="btn btn-danger" id="btn-exit-review" title="Exit Mode"><i class="fa-solid fa-right-from-bracket"></i></button>
-        <button class="btn" id="btn-next-match" title="Next"><i class="fa-solid fa-chevron-right"></i></button>
-    </div>
-</footer>
-
-<!-- Modals -->
-
-<div class="modal-overlay" id="tools-modal">
-    <div class="modal glass-panel" style="width: 90%; max-width: 400px;">
-        <button class="modal-close" id="close-tools-modal"><i class="fa-solid fa-xmark"></i></button>
-        <h2><i class="fa-solid fa-toolbox"></i> Tools & Layout</h2>
-        <div class="modal-body" style="display: flex; flex-direction: column; gap: 10px;">
-            <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 12px;">
-                <h3 style="margin:0; font-size: 1rem; color: var(--accent-blue);">Load Media</h3>
-                <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('file-input').click(); document.getElementById('tools-modal').classList.remove('active');"><i class="fa-solid fa-file-image"></i> Load Files</button>
-                <button class="btn" style="width: 100%; justify-content: flex-start;" onclick="document.getElementById('folder-input').click(); document.getElementById('tools-modal').classList.remove('active');"><i class="fa-solid fa-folder-open"></i> Load Folder</button>
-            </div>
-            <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 12px;">
-                <h3 style="margin:0; font-size: 1rem; color: var(--accent-blue);">App Modes</h3>
-                <button class="btn btn-primary" id="btn-open-leaderboard" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-ranking-star"></i> Leaderboard</button>
-                <button class="btn" id="btn-open-dashboard" style="width: 100%; justify-content: flex-start; background: rgba(255, 255, 255, 0.1);"><i class="fa-solid fa-chart-pie"></i> Analytics Dashboard</button>
-                <button class="btn" id="btn-curator" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-star" style="color: #ffd700;"></i> The Curator</button>
-                <button class="btn btn-danger" id="btn-purge" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-skull"></i> The Executioner</button>
-            </div>
-            <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 12px;">
-                <h3 style="margin:0; font-size: 1rem; color: var(--accent-blue);">Data & Backup</h3>
-                <button class="btn" id="btn-export" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-download"></i> Export Backup</button>
-                <input type="file" id="import-input" class="hidden" multiple>
-                <button class="btn" onclick="document.getElementById('import-input').click()" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-upload"></i> Restore Backup</button>
-            </div>
-            <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); border-radius: 12px;">
-                <h3 style="margin:0; font-size: 1rem; color: var(--accent-blue);">Layout & Options</h3>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn" id="toggle-image" style="flex: 1; background: rgba(79, 172, 254, 0.4);"><i class="fa-solid fa-image"></i> Images</button>
-                    <button class="btn" id="toggle-video" style="flex: 1;"><i class="fa-solid fa-video"></i> Videos</button>
+    <main id="main-scroll">
+        <section id="home-screen">
+            <h1>Dynamic Media Sorter</h1>
+            <p style="color:#94a3b8;">Let the math do the ranking for your media.</p>
+            <div class="action-cards">
+                <div class="card glass" id="folder-card">
+                    <label class="btn" for="folder-input">Select Media Folder</label>
+                    <input type="file" id="folder-input" webkitdirectory multiple accept="image/*,video/*">
                 </div>
-                <button class="btn" id="btn-app-fullscreen" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-expand"></i> Toggle Fullscreen</button>
-                <button class="btn" id="btn-open-settings" style="width: 100%; justify-content: flex-start;"><i class="fa-solid fa-gear"></i> Settings</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="settings-modal">
-    <div class="modal glass-panel" style="width: 75%; max-width: 600px;">
-        <button class="modal-close" id="close-settings-modal"><i class="fa-solid fa-xmark"></i></button>
-        <h2><i class="fa-solid fa-gear"></i> Settings</h2>
-        <div class="modal-body">
-            <!-- Backup buttons moved to tools menu -->
-            <div class="modal-grid-2">
-                <div>
-                    <label>Leaderboard Display Size</label>
-                    <input type="number" id="setting-leaderboard-size" class="form-input" value="32">
+                <div class="card glass" id="resume-card">
+                    <label class="btn" for="savefile-input">Resume Session</label>
+                    <input type="file" id="savefile-input" accept=".json">
+                    <span id="savefile-status" class="hidden" style="color:var(--primary); font-size:0.75rem; margin-top:10px;">Save loaded. Select folder to continue.</span>
                 </div>
-                <div>
-                    <label>Auto Backup (Mins, 0 to disable)</label>
-                    <input type="number" id="setting-auto-backup" class="form-input" value="0">
+                <div class="card glass" id="wipe-cache-card">
+                    <button class="btn danger" id="btn-wipe-db">Wipe Cache</button>
+                    <p style="font-size:0.75rem; margin-top:10px; color:#94a3b8;">Deletes the IndexedDB backup.</p>
                 </div>
             </div>
-            
-            <div class="modal-grid-2" style="margin-top:5px;">
-                <div>
-                    <label>Backup File Prefix</label>
-                    <input type="text" id="setting-backup-prefix" class="form-input" value="">
-                </div>
-                <div>
-                    <label>Default Media Fit</label>
-                    <select id="setting-default-fit" class="form-input">
-                        <option value="contain">Fit Screen</option>
-                        <option value="cover">Center Crop</option>
-                        <option value="stretch">Stretch</option>
-                        <option value="original">Original Size</option>
+        </section>
+
+                <section id="arena-screen" class="hidden">
+            <div class="grid-header glass" style="justify-content: center; flex-direction: column; padding: 10px;">
+                <h3 style="color:var(--primary); text-shadow:var(--glow); font-size: 1rem; margin: 0;">TAP TO RANK (1ST to WORST)</h3>
+                <div style="font-size: 0.75rem; color: #94a3b8; text-align: center; width: 100%; margin-top: 5px;">Long-press to view fullscreen</div>
+            </div>
+            <div class="arena-grid" id="arena-grid"></div>
+            <div class="arena-controls">
+                <button class="btn danger" id="btn-arena-trash-unranked">TRASH UNRANKED</button>
+                <button class="btn success" id="btn-arena-submit" style="flex:1;">SUBMIT RANKINGS</button>
+            </div>
+            <div class="stats-text" id="stats-text"></div>
+        </section>
+
+        <section id="leaderboard-screen" class="hidden">
+            <div class="grid-header glass">
+                <h3 style="color:var(--primary); text-shadow:var(--glow);">RANKINGS</h3>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <select id="sort-order" style="background:transparent; color:var(--primary); border:1px solid var(--glass-border); padding:4px; font-family:Orbitron; border-radius:4px; cursor:pointer;">
+                        <option value="desc" style="background:#000;">HIGHEST FIRST</option>
+                        <option value="asc" style="background:#000;">LOWEST FIRST</option>
                     </select>
+                    <label style="font-size:0.75rem; color:#94a3b8; cursor:pointer;"><input type="checkbox" id="show-scores-chk"> SCORES</label>
                 </div>
             </div>
-            <div style="margin-top: 15px;">
-                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-                    <input type="checkbox" id="setting-start-muted">
-                    Start Videos Muted
-                </label>
+            <div class="grid-container" id="leaderboard-grid"></div>
+            <div id="leaderboard-trigger" class="load-more-trigger"></div>
+        </section>
+
+        <section id="trash-screen" class="hidden">
+            <div class="grid-header glass">
+                <h3 style="color:var(--danger); text-shadow:var(--danger-glow);">TRASH BIN</h3>
+                <button class="btn danger" id="btn-export-script">EXPORT SCRIPT</button>
             </div>
-            <div style="margin-top: 15px;">
-                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-                    <input type="checkbox" id="setting-auto-submit">
-                    Auto-submit match once fully ranked
-                </label>
-            </div>
-            <div style="margin-top: 15px;">
-                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-                    <input type="checkbox" id="setting-skip-unmatched" checked>
-                    Hide Unmatched in Leaderboard
-                </label>
-            </div>
-            <button class="btn btn-primary" id="btn-force-load-all" style="margin-top: 15px; width: 100%;"><i class="fa-solid fa-forward-fast"></i> Force Load All Unparsed Files</button>
-            <button class="btn btn-danger" id="btn-hard-reset" style="margin-top: 15px;"><i class="fa-solid fa-bomb"></i> Hard Reset (Wipe All Data)</button>
+            <div class="grid-container" id="trash-grid"></div>
+            <div id="trash-trigger" class="load-more-trigger"></div>
+        </section>
+    </main>
+
+    <nav id="bottom-nav" class="hidden">
+        <button data-target="arena"><span class="icon">ARENA</span></button>
+        <button data-target="leaderboard"><span class="icon">RANKING</span></button>
+        <button data-target="trash"><span class="icon">TRASH</span></button>
+    </nav>
+
+    <div id="scan-modal" class="hidden" style="position:fixed; top:0; left:0; width:100vw; height:100dvh; background:rgba(0,0,0,0.8); z-index:3000; display:flex; align-items:center; justify-content:center;">
+        <div class="glass" style="padding: 20px; border-radius: 12px; text-align: center; max-width: 80%;">
+            <h3 style="color:var(--primary); margin-bottom: 10px;">Scanning Database</h3>
+            <p id="scan-progress-text" style="margin-bottom: 15px;">Hashing 0 / 0</p>
+            <button class="btn danger" id="btn-stop-scan">STOP SCAN</button>
         </div>
     </div>
-</div>
-
-<div class="modal-overlay" id="leaderboard-modal">
-    <div class="modal glass-panel" style="width: 95%; max-width: 850px; max-height: 85vh; max-height: 85dvh; display: flex; flex-direction: column;">
-        <button class="modal-close" id="close-leaderboard-modal"><i class="fa-solid fa-xmark"></i></button>
-        <h2><i class="fa-solid fa-ranking-star"></i> Leaderboard</h2>
-        <div class="modal-body" style="overflow: hidden; display: flex; flex-direction: column; flex: 1; min-height: 0;">
-            <div id="leaderboard-tabs" style="display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0;">
-                <button class="btn btn-primary" id="btn-leaderboard-best" style="flex: 1;">Best</button>
-                <button class="btn btn-tab-inactive" id="btn-leaderboard-worst" style="flex: 1;">Worst</button>
-            </div>
-            
-            <div id="leaderboard-top-section" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-shrink: 0;">
-                    <h3 style="margin: 0; color: var(--accent-green);">Top Tier</h3>
-                    <button class="btn btn-primary" id="btn-view-top-cont">View Continuously</button>
-                </div>
-                <div id="leaderboard-top-list" class="leaderboard-list" style="overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px;"></div>
-            </div>
-            
-            <div id="leaderboard-bottom-section" class="hidden" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-shrink: 0;">
-                    <h3 style="margin: 0; color: var(--accent-red);">Bottom Tier</h3>
-                    <button class="btn btn-danger" id="btn-view-bottom-cont">View Continuously</button>
-                </div>
-                <div id="leaderboard-bottom-list" class="leaderboard-list" style="overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px;"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="dashboard-modal-overlay">
-    <div class="modal glass-panel" style="max-width: 600px;">
-        <button class="modal-close" id="close-dashboard-modal"><i class="fa-solid fa-xmark"></i></button>
-        <h2><i class="fa-solid fa-chart-pie"></i> Analytics Dashboard</h2>
-        <div class="modal-body">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: stretch; margin-bottom: 10px;">
-                <div class="glass-panel" style="padding: 15px; text-align: center;">
-                    <h3 style="color: var(--text-secondary); margin-bottom: 5px; font-size: 0.9rem;">Total Media</h3>
-                    <div id="dash-total-media" style="font-size: 1.8rem; font-weight: bold; color: var(--accent-blue);">0</div>
-                </div>
-                <div class="glass-panel" style="padding: 15px; text-align: center;">
-                    <h3 style="color: var(--text-secondary); margin-bottom: 5px; font-size: 0.9rem;">Total Matches (All-Time)</h3>
-                    <div id="dash-overall-matches" style="font-size: 1.8rem; font-weight: bold; color: var(--accent-blue);">0</div>
-                </div>
-                <div class="glass-panel" style="padding: 15px; text-align: center;">
-                    <h3 style="color: var(--text-secondary); margin-bottom: 5px; font-size: 0.9rem;">Matches This Session</h3>
-                    <div id="dash-total-matches" style="font-size: 1.8rem; font-weight: bold; color: var(--accent-green);">0</div>
-                </div>
-                <div class="glass-panel" style="padding: 15px; text-align: center;">
-                    <h3 style="color: var(--text-secondary); margin-bottom: 5px; font-size: 0.9rem;">Media Viewed (Session)</h3>
-                    <div id="dash-session-media-viewed" style="font-size: 1.8rem; font-weight: bold; color: var(--accent-green);">0</div>
-                </div>
-            </div>
-            <div class="glass-panel" style="padding: 15px;">
-                <h3 style="color: var(--text-secondary); margin-bottom: 10px;">Rating Distribution</h3>
-                <div style="display: flex; height: 100px; align-items: flex-end; gap: 4px;" id="dash-bell-curve">
-                </div>
-                <div id="dash-bell-curve-labels" style="position: relative; margin-top: 8px; height: 25px; color: var(--text-secondary);">
-                </div>
-                <p style="font-size: 0.8rem; opacity: 0.7; color: var(--text-secondary); margin-top: 10px; text-align: center;"><i class="fa-solid fa-circle-info"></i> Note: Force load all media for a global distribution.</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="curator-modal-overlay">
-    <div class="modal glass-panel">
-        <button class="modal-close" id="close-curator-modal"><i class="fa-solid fa-xmark"></i></button>
-        <h2><i class="fa-solid fa-star"></i> The Curator</h2>
-        <div class="modal-body">
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <label>Select top % of files: </label>
-                <input type="number" id="curator-threshold" class="form-input" value="10" min="1" max="100" style="width: 100px; margin:0;">
-            </div>
-            <button class="btn btn-primary" id="btn-generate-curator" style="width: 100%; margin-top: 10px;"><i class="fa-solid fa-magic"></i> Generate Script</button>
-            <button class="btn btn-primary" id="btn-curator-direct" style="width: 100%; margin-top: 10px; background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); border: none; color: white; font-weight: 600;"><i class="fa-solid fa-folder-open"></i> Direct Copy (Browser)</button>
-            <div>
-                <p style="color: var(--text-secondary); font-size: 0.9rem;">This script will copy your absolute best files to a 'favorites' folder.</p>
-            </div>
-            <div id="curator-script-container" class="hidden">
-                <textarea id="curator-script-output" readonly></textarea>
-                <button class="btn" id="btn-copy-curator-script"><i class="fa-solid fa-copy"></i> Copy to Clipboard</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="purge-modal-overlay">
-    <div class="modal glass-panel">
-        <button class="modal-close" id="close-purge-modal"><i class="fa-solid fa-xmark"></i></button>
-        <h2><i class="fa-solid fa-skull"></i> The Executioner</h2>
-        <div class="modal-body">
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <label>Stage files with Ordinal &lt; </label>
-                <input type="number" id="purge-threshold" class="form-input" value="0" style="width: 100px; margin:0;">
-                <button class="btn btn-primary" id="btn-stage-files">Stage Files</button>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                <span id="purge-stats">0 files staged.</span>
-                <button class="btn btn-danger" id="btn-clear-staged">Clear All</button>
-            </div>
-            <button class="btn btn-primary" id="btn-review-staged" style="width: 100%; margin-top: 10px;"><i class="fa-solid fa-eye"></i> Immersive Review & Generate Script</button>
-            <button class="btn btn-danger" id="btn-purge-direct" style="width: 100%; margin-top: 10px; background: linear-gradient(135deg, #f00 0%, #a00 100%); border: none; color: white; font-weight: 600;"><i class="fa-solid fa-folder-minus"></i> Direct Delete (Browser)</button>
-            <div id="script-container" class="hidden" style="margin-top: 10px;">
-                <textarea id="script-output" readonly></textarea>
-                <button class="btn" id="btn-copy-script" style="margin-top: 10px;"><i class="fa-solid fa-copy"></i> Copy to Clipboard</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="toast"></div>
-
-<script type="module">
-import { rate, rating, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@4.1.1/+esm';
-
-window.onerror = function(msg, url, lineNo, columnNo, error) {
-    showErrorToast(`Error: ${msg}`);
-    return false;
-};
-window.onunhandledrejection = function(event) {
-    showErrorToast(`Unhandled Rejection: ${event.reason}`);
-};
-
-function showErrorToast(message) {
-    const errDiv = document.createElement('div');
-    errDiv.style.position = 'fixed';
-    errDiv.style.top = '20px';
-    errDiv.style.left = '50%';
-    errDiv.style.transform = 'translateX(-50%)';
-    errDiv.style.backgroundColor = '#ff0844';
-    errDiv.style.color = 'white';
-    errDiv.style.padding = '12px 24px';
-    errDiv.style.borderRadius = '8px';
-    errDiv.style.zIndex = '9999';
-    errDiv.style.fontWeight = 'bold';
-    errDiv.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
-    errDiv.style.cursor = 'pointer';
-    errDiv.style.maxWidth = '80%';
-    errDiv.style.wordWrap = 'break-word';
-    errDiv.innerText = message;
     
-    errDiv.onclick = () => errDiv.remove();
-    document.body.appendChild(errDiv);
+    <!-- Generic Fullscreen View -->
+    <div id="fullscreen-view-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: #000; z-index: 2000; display: flex; align-items: center; justify-content: center;">
+        <button class="icon-btn" id="btn-close-fullscreen" style="top: 15px; left: 15px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: var(--primary); border-radius: 50%; width: 40px; height: 40px; padding: 0;">✕</button>
+        
+        <div class="icon-btn icon-menu" id="btn-fullscreen-menu" style="top: 15px; right: 15px; left: auto; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: var(--primary); border-radius: 50%; width: 40px; height: 40px; padding: 0;">⋮</div>
+        <div class="info-dropdown hidden glass" id="fullscreen-dropdown" style="top: 65px; right: 15px; left: auto; position: absolute; max-width: 300px;">
+            <div class="info-row"><b>Path:</b> <span id="fullscreen-info-path"></span></div>
+            <button class="btn" id="btn-fullscreen-share" style="width:100%; margin-top:10px;">Share</button>
+        </div>
+
+        <div id="fullscreen-content" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;"></div>
+    </div>
     
-    setTimeout(() => {
-        if (errDiv.parentElement) errDiv.remove();
-    }, 8000);
-}
+    <!-- Detail Feed Modal -->
+    <div id="detail-view-modal" class="hidden">
+        <div class="detail-header">
+            <button class="btn" id="btn-close-detail" style="border-color:var(--primary); color:var(--primary);">BACK</button>
+            <div id="detail-rank-header" style="color:var(--primary); font-family:Orbitron; font-size:1rem; text-shadow:var(--glow);">RANKING FEED</div>
+            <div style="width:60px;"></div> <!-- Spacer -->
+        </div>
+        <div id="detail-feed-container"></div>
+        <div id="detail-feed-trigger" class="load-more-trigger"></div>
+    </div>
 
-const state = {
-    images: [],
-    videos: [],
-    unparsedFiles: [], // Files selected but not yet parsed
-    ratings: {}, // key: id -> { mu: 25.0, sigma: 8.333, matches: 0, history: [] }
-    stagedFilesMap: new Map(), // id -> file object
-    currentMatchup: [], // Array of file objects
-    leaderboardType: 'image', // 'image' or 'video'
-    filter: 'all',
-    activeViewIndex: 0, // integer index
-    appMode: 'matchmaking', // 'matchmaking', 'executioner'
-    
-    // Executioner Review State
-    executionerQueue: [], // Array of staged file objects
-    executionerIndex: 0,
+    <script type="module">
+        import { rating, rate, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@5.0.1/+esm';
 
-    // Leaderboard Viewer State
-    leaderboardQueue: [],
-    leaderboardIndex: 0,
-    leaderboardUrls: [],
-    leaderboardSortKey: 'score',
-
-    isAnimating: false,
-    infoVisible: false,
-    fitMode: 'contain',
-    hasSeen: new Set(),
-    currentRankings: {}, // id -> rank
-    undoStack: [], // { matchup: [...files], prevStats: {id: {mu, sigma, matches}} }
-    loadedIds: new Set(),
-    userRanking: [], // Array of active matchup file IDs, ordered from best to worst
-    matchupUrls: {}, // Cache for UI thumbnails
-    stagedFilesMap: new Map(),
-    sessionMatches: 0,
-    infoHidden: false,
-    sessionMediaViewed: new Set()
-};
-
-function getOrdinal(rating) {
-    if (!rating) return 0;
-    return rating.mu - 3 * rating.sigma;
-}
-
-
-let appSettings = {
-    autoBackupInterval: 0,
-    defaultFitMode: 'contain',
-    startMuted: true,
-    autoSubmitMatch: false,
-    backupPrefix: '',
-    skipUnmatched: true
-};
-
-let elements = {};
-
-let objectUrlA = null;
-
-async function init() {
-    try {
-        bindElements();
-        await loadRatingsFromStorage();
-        loadSettingsFromStorage();
-        setupEventListeners();
-        window.lastAutoBackupTime = Date.now();
-    } catch (e) {
-        alert("Failed to initialize database: " + e.message);
-    }
-}
-
-function bindElements() {
-    elements = {
-        folderInput: document.getElementById('folder-input'),
-        fileInput: document.getElementById('file-input'),
-        mediaContainer: document.getElementById('media-container'),
-        fileInfoOverlay: document.getElementById('file-info-overlay'),
-        displayFilename: document.getElementById('display-filename'),
-        btnOpenSettings: document.getElementById('btn-open-settings'),
-        settingsModal: document.getElementById('settings-modal'),
-        closeSettingsModal: document.getElementById('close-settings-modal'),
+        window.addEventListener('contextmenu', e => e.preventDefault());
         
-        btnPrevMedia: document.getElementById('btn-prev-media'),
-        btnNextMedia: document.getElementById('btn-next-media'),
-        placementStrip: document.getElementById('placement-strip'),
-        btnSubmitMatch: document.getElementById('btn-submit-match'),
-        btnUndo: document.getElementById('btn-undo'),
-        btnInfo: document.getElementById('btn-info'),
-        btnStageCurrent: document.getElementById('btn-stage-current'),
-        btnToggleFit: document.getElementById('btn-toggle-fit'),
-        toolsModal: document.getElementById('tools-modal'),
-        btnOpenToolsMenu: document.getElementById('btn-open-tools-menu'),
-        closeToolsModal: document.getElementById('close-tools-modal'),
+        let mediaData = {}; let mediaKeys = []; let loadedSaveData = null; 
+        let mediaMode = 'image'; let currentScreen = 'home'; let currentBatchKeys = []; let rankedOrder = [];
+        let previousState = null; let currentSaveName = "save";
+        let isScanning = false; let scanCancel = false;
 
-        matchStatusIndicator: document.getElementById('match-status-indicator'),
-        
-        matchupControls: document.getElementById('matchup-controls'),
-        timelineControls: document.getElementById('timeline-controls'),
-        btnPrevMatch: document.getElementById('btn-prev-match'),
-        btnNextMatch: document.getElementById('btn-next-match'),
-        btnExitReview: document.getElementById('btn-exit-review'),
-        
-        executionerCheckContainer: document.getElementById('executioner-check-container'),
-        executionerCheckbox: document.getElementById('executioner-checkbox'),
-        
-        toast: document.getElementById('toast'),
-        purgeModal: document.getElementById('purge-modal-overlay'),
-        curatorModal: document.getElementById('curator-modal-overlay'),
-        btnCurator: document.getElementById('btn-curator'),
-        closeCuratorModal: document.getElementById('close-curator-modal'),
-        curatorThreshold: document.getElementById('curator-threshold'),
-        btnGenerateCurator: document.getElementById('btn-generate-curator'),
-        btnCuratorDirect: document.getElementById('btn-curator-direct'),
-        curatorScriptContainer: document.getElementById('curator-script-container'),
-        curatorScriptOutput: document.getElementById('curator-script-output'),
-        btnCopyCuratorScript: document.getElementById('btn-copy-curator-script'),
-        btnPurge: document.getElementById('btn-purge'),
-        closePurgeModal: document.getElementById('close-purge-modal'),
-        btnStageFiles: document.getElementById('btn-stage-files'),
-        btnClearStaged: document.getElementById('btn-clear-staged'),
-        btnReviewStaged: document.getElementById('btn-review-staged'),
-        btnPurgeDirect: document.getElementById('btn-purge-direct'),
-        scriptContainer: document.getElementById('script-container'),
-        scriptOutput: document.getElementById('script-output'),
-        btnCopyScript: document.getElementById('btn-copy-script'),
-        purgeThreshold: document.getElementById('purge-threshold'),
-        purgeStats: document.getElementById('purge-stats'),
-        btnExport: document.getElementById('btn-export'),
-        importInput: document.getElementById('import-input'),
-        btnHardReset: document.getElementById('btn-hard-reset'),
-        btnShareCurrent: document.getElementById('btn-share-current'),
-        btnAppFullscreen: document.getElementById('btn-app-fullscreen'),
-        btnFullscreenTitle: document.getElementById('btn-fullscreen-title'),
-        
-        dashboardModal: document.getElementById('dashboard-modal-overlay'),
-        btnOpenDashboard: document.getElementById('btn-open-dashboard'),
-        closeDashboardModal: document.getElementById('close-dashboard-modal'),
-        dashTotalMedia: document.getElementById('dash-total-media'),
-        dashTotalMatches: document.getElementById('dash-total-matches'),
-        dashOverallMatches: document.getElementById('dash-overall-matches'),
-        dashSessionMediaViewed: document.getElementById('dash-session-media-viewed'),
-        dashBellCurve: document.getElementById('dash-bell-curve'),
-        dashBellCurveLabels: document.getElementById('dash-bell-curve-labels'),
-        leaderboardModal: document.getElementById('leaderboard-modal'),
-        closeLeaderboardModal: document.getElementById('close-leaderboard-modal'),
-        btnOpenLeaderboard: document.getElementById('btn-open-leaderboard'),
-        leaderboardTopList: document.getElementById('leaderboard-top-list'),
-        leaderboardBottomList: document.getElementById('leaderboard-bottom-list'),
-        leaderboardTopSection: document.getElementById('leaderboard-top-section'),
-        leaderboardBottomSection: document.getElementById('leaderboard-bottom-section'),
-        btnLeaderboardBest: document.getElementById('btn-leaderboard-best'),
-        btnLeaderboardWorst: document.getElementById('btn-leaderboard-worst'),
-        btnViewTopCont: document.getElementById('btn-view-top-cont'),
-        btnViewBottomCont: document.getElementById('btn-view-bottom-cont'),
-        
-        toggleImage: document.getElementById('toggle-image'),
-        toggleVideo: document.getElementById('toggle-video'),
-        
-        loadingProgress: document.getElementById('loading-progress'),
-        loadingPercent: document.getElementById('loading-percent')
-    };
-}
-
-function getFileId(file) { return `${file.name}_${file.size}`; }
-function showToast(msg) {
-    if(!elements.toast) return;
-    elements.toast.innerHTML = msg;
-    elements.toast.classList.add('show');
-    setTimeout(() => elements.toast.classList.remove('show'), 3000);
-}
-
-function loadSettingsFromStorage() {
-    try {
-        const stored = localStorage.getItem('eloSorterSettings');
-        if (stored) appSettings = { ...appSettings, ...JSON.parse(stored) };
-        
-        document.getElementById('setting-auto-backup').value = appSettings.autoBackupInterval || 0;
-        document.getElementById('setting-leaderboard-size').value = appSettings.leaderboardSize || 32;
-        document.getElementById('setting-backup-prefix').value = appSettings.backupPrefix || '';
-        document.getElementById('setting-default-fit').value = appSettings.defaultFitMode || 'contain';
-        document.getElementById('setting-start-muted').checked = appSettings.startMuted !== false;
-        document.getElementById('setting-auto-submit').checked = appSettings.autoSubmitMatch === true;
-        document.getElementById('setting-skip-unmatched').checked = appSettings.skipUnmatched !== false;
-        
-        state.fitMode = appSettings.defaultFitMode || 'contain';
-        const icons = { 'contain': 'fa-compress', 'cover': 'fa-crop-simple', 'stretch': 'fa-expand', 'original': 'fa-maximize' };
-        elements.btnToggleFit.innerHTML = `<i class="fa-solid ${icons[state.fitMode] || 'fa-compress'}"></i>`;
-        
-        elements.btnSubmitMatch.style.display = appSettings.autoSubmitMatch ? 'none' : 'flex';
-    } catch (e) { console.error(e); }
-}
-
-function saveSettingsToStorage(skipRender = false) {
-    try {
-        const parseSetting = (id, fallback) => {
-            const val = parseInt(document.getElementById(id).value, 10);
-            return isNaN(val) ? fallback : val;
-        };
-        appSettings.autoBackupInterval = parseSetting('setting-auto-backup', 0);
-        appSettings.leaderboardSize = parseSetting('setting-leaderboard-size', 32);
-        appSettings.backupPrefix = document.getElementById('setting-backup-prefix').value.trim();
-        appSettings.defaultFitMode = document.getElementById('setting-default-fit').value;
-        appSettings.startMuted = document.getElementById('setting-start-muted').checked;
-        appSettings.autoSubmitMatch = document.getElementById('setting-auto-submit').checked;
-        appSettings.skipUnmatched = document.getElementById('setting-skip-unmatched').checked;
-        localStorage.setItem('eloSorterSettings', JSON.stringify(appSettings));
-        
-        state.fitMode = appSettings.defaultFitMode;
-        const icons = { 'contain': 'fa-compress', 'cover': 'fa-crop-simple', 'stretch': 'fa-expand', 'original': 'fa-maximize' };
-        elements.btnToggleFit.innerHTML = `<i class="fa-solid ${icons[state.fitMode] || 'fa-compress'}"></i>`;
-        if (!skipRender && state.currentMatchup.length > 0) {
-            if (state.appMode === 'executioner') renderExecutionerMedia();
-            else if (state.appMode === 'leaderboard_viewer') renderLeaderboardViewerMedia();
-            else renderCurrentMedia();
+        async function generateFileHash(file) {
+            if (file.size === 0) return `0-empty`;
+            const start = file.slice(0, 1024);
+            const middle = file.slice(Math.floor(file.size/2), Math.floor(file.size/2) + 1024);
+            const b1 = await start.arrayBuffer();
+            const b2 = await middle.arrayBuffer();
+            const hash1 = await crypto.subtle.digest('SHA-1', b1);
+            const hash2 = await crypto.subtle.digest('SHA-1', b2);
+            const hex1 = Array.from(new Uint8Array(hash1)).map(b => b.toString(16).padStart(2, '0')).join('');
+            const hex2 = Array.from(new Uint8Array(hash2)).map(b => b.toString(16).padStart(2, '0')).join('');
+            return `${file.size}-${hex1}${hex2}`;
         }
-        
-        elements.btnSubmitMatch.style.display = appSettings.autoSubmitMatch ? 'none' : 'flex';
-        
-        showToast("Settings saved.");
-    } catch (e) {
-        alert("Error saving settings: " + e.message + "\n" + e.stack);
-        console.error(e);
-    }
-}
 
-function openDB() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open('MediaSorterDB', 1);
-        request.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains('ratings')) {
-                db.createObjectStore('ratings', { keyPath: 'id' });
+        async function ensureHashedAndHealed(k) {
+            if (mediaData[k].hash) return;
+            mediaData[k].hash = await generateFileHash(mediaData[k].file);
+            const h = mediaData[k].hash;
+            let healed = false;
+            if (loadedSaveData && loadedSaveData[h]) {
+                mediaData[k].mu = loadedSaveData[h].mu;
+                mediaData[k].sigma = loadedSaveData[h].sigma;
+                mediaData[k].matches = loadedSaveData[h].matches;
+                mediaData[k].trashed = loadedSaveData[h].trashed || false;
+                healed = true;
             }
-        };
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
-}
-
-async function loadRatingsFromStorage() {
-    try {
-        const db = await openDB();
-        const tx = db.transaction('ratings', 'readonly');
-        const store = tx.objectStore('ratings');
-        const request = store.getAll();
-        
-        return new Promise((resolve) => {
-            request.onsuccess = () => {
-                state.ratings = {};
-                const result = request.result;
-                if (result && Array.isArray(result)) {
-                    result.forEach(item => {
-                        if (item && item.id && item.data && typeof item.data.mu === 'number') {
-                            state.ratings[item.id] = item.data;
-                        }
-                    });
+            if (!healed) {
+                const existing = mediaKeys.find(otherKey => otherKey !== k && mediaData[otherKey].hash === h && (mediaData[otherKey].matches > 0 || mediaData[otherKey].trashed));
+                if (existing) {
+                    mediaData[k].mu = mediaData[existing].mu;
+                    mediaData[k].sigma = mediaData[existing].sigma;
+                    mediaData[k].matches = mediaData[existing].matches;
+                    mediaData[k].trashed = mediaData[existing].trashed;
                 }
-                resolve();
+            }
+        }
+        const PAGE_SIZE = 16; let leaderboardPage = 0; let trashPage = 0;
+        let sortOrder = 'desc';
+        let isAnimating = false;
+
+        const screens = { home: document.getElementById('home-screen'), arena: document.getElementById('arena-screen'), leaderboard: document.getElementById('leaderboard-screen'), trash: document.getElementById('trash-screen') };
+        // --- IndexedDB Setup ---
+        let db;
+        let request;
+        try {
+            request = indexedDB.open('DynamicMediaSorterDB', 1);
+            request.onupgradeneeded = function(e) {
+                db = e.target.result;
+                if (!db.objectStoreNames.contains('saves')) { db.createObjectStore('saves', { keyPath: 'id' }); }
             };
-            request.onerror = () => resolve();
-        });
-    } catch (e) {
-        console.error("IndexedDB load error:", e);
-    }
-}
-
-async function saveRatingsToStorage(updatedIds = null) {
-    try {
-        const db = await openDB();
-        const tx = db.transaction('ratings', 'readwrite');
-        const store = tx.objectStore('ratings');
-        
-        if (updatedIds) {
-            for (const id of updatedIds) {
-                if (state.ratings[id]) store.put({ id, data: state.ratings[id] });
-            }
-        } else {
-            for (const [id, data] of Object.entries(state.ratings)) {
-                store.put({ id, data });
-            }
-        }
-        
-        return new Promise((resolve, reject) => {
-            tx.oncomplete = () => resolve();
-            tx.onerror = () => reject(tx.error);
-        });
-    } catch (e) {
-        console.error("IndexedDB save error:", e);
-    }
-}
-
-function handleFilesSelected(event) {
-    const fileList = event.target.files;
-    if (!fileList || fileList.length === 0) return;
-    
-    if (!forceLoadingProcess) elements.loadingProgress.classList.add('hidden');
-    
-    const newFiles = Array.from(fileList);
-    // Initial shuffle
-    for (let i = newFiles.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [newFiles[i], newFiles[j]] = [newFiles[j], newFiles[i]];
-    }
-    
-    state.unparsedFiles = state.unparsedFiles.concat(newFiles);
-    showToast(`Added ${newFiles.length} media files to the queue.`);
-    
-    if (state.currentMatchup.length === 0 && state.appMode === 'matchmaking') {
-        pickNextMatchup(true);
-    }
-}
-
-let forceLoadingProcess = false;
-
-function forceLoadAllFiles() {
-    if (state.unparsedFiles.length === 0) {
-        showToast("No unparsed files in the queue!");
-        return;
-    }
-    if (forceLoadingProcess) return;
-    
-    forceLoadingProcess = true;
-    document.getElementById('settings-modal').classList.remove('active');
-    
-    let loadedCount = 0;
-    
-    elements.loadingProgress.classList.remove('hidden');
-    
-    function parseBatch() {
-        if (!forceLoadingProcess || state.unparsedFiles.length === 0) {
-            forceLoadingProcess = false;
-            elements.loadingProgress.classList.add('hidden');
-            showToast("Force load complete!");
-            updateMatchupProgress();
-            if (state.currentMatchup.length === 0 && state.appMode === 'matchmaking') {
-                pickNextMatchup(true);
-            }
-            return;
-        }
-        
-        const loopStart = Date.now();
-        while (state.unparsedFiles.length > 0 && (Date.now() - loopStart < 16)) {
-            const f = state.unparsedFiles.pop();
-            loadedCount++;
-            
-            let isImage = false, isVideo = false;
-            if (f.type) {
-                isImage = f.type.startsWith('image/');
-                isVideo = f.type.startsWith('video/');
-            } else {
-                isImage = /\.(jpe?g|png|gif|webp)$/i.test(f.name);
-                isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(f.name);
-            }
-
-            const id = getFileId(f);
-            let isBlacklisted = state.ratings[id] && state.ratings[id].blacklisted;
-            if (isBlacklisted && !state.stagedFilesMap.has(id)) {
-                state.stagedFilesMap.set(id, f);
-            }
-
-            let localDidAdd = false;
-            if (isImage) {
-                if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.images.push(f); localDidAdd = true; }
-            } else if (isVideo) {
-                if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.videos.push(f); localDidAdd = true; }
-            }
-
-            if (localDidAdd && !state.ratings[id]) {
-                state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
-            }
-        }
-        
-        const currentTotal = loadedCount + state.unparsedFiles.length;
-        const pct = currentTotal === 0 ? 100 : Math.floor((loadedCount / currentTotal) * 100);
-        elements.loadingPercent.textContent = `${pct}%`;
-        elements.loadingProgress.style.background = `conic-gradient(var(--accent-green) ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
-        
-        setTimeout(parseBatch, 0);
-    }
-    
-    parseBatch();
-}
-
-function getActiveList() {
-    let baseList = state.leaderboardType === 'image' ? state.images : state.videos;
-    return baseList.filter(file => !state.stagedFilesMap.has(getFileId(file)));
-}
-
-function pickNextMatchup(isNewMatch = false) {
-    if (state.isAnimating) return;
-
-    const targetType = state.leaderboardType;
-    let baseList = targetType === 'image' ? state.images : state.videos;
-    
-    let activeValid = baseList.filter(f => !state.stagedFilesMap.has(getFileId(f)));
-    let desiredNewFiles = 0; 
-    
-    if (isNewMatch) {
-        desiredNewFiles = 2; // Golden Ratio mix: 2 new, 2 old
-    }
-    
-    if (activeValid.length < 4) {
-        desiredNewFiles = Math.max(desiredNewFiles, 4 - activeValid.length);
-    }
-    
-    let newFilesAdded = [];
-    let parsedCount = 0;
-    
-    while (state.unparsedFiles.length > 0 && newFilesAdded.length < desiredNewFiles && parsedCount < 1000) {
-        const f = state.unparsedFiles.pop();
-        parsedCount++;
-        
-        let isImage = false, isVideo = false;
-        if (f.type) {
-            isImage = f.type.startsWith('image/');
-            isVideo = f.type.startsWith('video/');
-        } else {
-            isImage = /\.(jpe?g|png|gif|webp)$/i.test(f.name);
-            isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(f.name);
-        }
-
-        const id = getFileId(f);
-        let isBlacklisted = state.ratings[id] && state.ratings[id].blacklisted;
-        if (isBlacklisted && !state.stagedFilesMap.has(id)) {
-            state.stagedFilesMap.set(id, f);
-        }
-
-        let localDidAdd = false;
-        if (isImage) {
-            if(!state.loadedIds.has(id)) { 
-                state.loadedIds.add(id); 
-                state.images.push(f); 
-                localDidAdd = true; 
-                if (targetType === 'image' && !isBlacklisted) newFilesAdded.push(f);
-            }
-        } else if (isVideo) {
-            if(!state.loadedIds.has(id)) { 
-                state.loadedIds.add(id); 
-                state.videos.push(f); 
-                localDidAdd = true; 
-                if (targetType === 'video' && !isBlacklisted) newFilesAdded.push(f);
-            }
-        }
-
-        if (localDidAdd && !state.ratings[id]) {
-            state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
-        }
-        
-        if (state.currentMatchup.length === 0) {
-            if (targetType === 'image' && state.videos.length >= 4) break;
-            if (targetType === 'video' && state.images.length >= 4) break;
-        }
-    }
-    
-    const list = getActiveList();
-    
-    // Auto-switch to the other media type during initial load/scan if a full matchup is available there
-    if (state.currentMatchup.length === 0 && list.length < 4) {
-        if (targetType === 'image') {
-            const validVideos = state.videos.filter(f => !state.stagedFilesMap.has(getFileId(f)));
-            if (validVideos.length >= 4) {
-                state.leaderboardType = 'video';
-                showToast("Auto-switched to videos (found 4+ videos)");
-                if (elements.toggleImage && elements.toggleVideo) {
-                    elements.toggleImage.style.background = 'transparent';
-                    elements.toggleVideo.style.background = 'rgba(79, 172, 254, 0.4)';
-                }
-                pickNextMatchup(isNewMatch);
-                return;
-            }
-        } else if (targetType === 'video') {
-            const validImages = state.images.filter(f => !state.stagedFilesMap.has(getFileId(f)));
-            if (validImages.length >= 4) {
-                state.leaderboardType = 'image';
-                showToast("Auto-switched to images (found 4+ images)");
-                if (elements.toggleImage && elements.toggleVideo) {
-                    elements.toggleImage.style.background = 'rgba(79, 172, 254, 0.4)';
-                    elements.toggleVideo.style.background = 'transparent';
-                }
-                pickNextMatchup(isNewMatch);
-                return;
-            }
-        }
-    }
-
-    if (list.length < 2) {
-        state.currentMatchup = [];
-        renderCurrentMedia();
-        updateMatchupProgress();
-        
-        if (state.unparsedFiles.length > 0) {
-            elements.mediaContainer.innerHTML = '<div style="color:var(--text-secondary); padding: 20px; font-weight: 500; font-size: 1.2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2rem; margin-bottom: 1rem; color: var(--accent-blue);"></i> Scanning media pool...</div>';
-            setTimeout(() => pickNextMatchup(isNewMatch), 10);
-        } else {
-            showToast("Not enough media to form a matchup.");
-        }
-        return;
-    }
-
-    const matchupSize = Math.min(4, list.length);
-    let matchupFiles = [];
-    
-    for (const nf of newFilesAdded) {
-        if (matchupFiles.length < matchupSize) {
-            matchupFiles.push(nf);
-        }
-    }
-    
-    const availableOldFiles = list.filter(f => !matchupFiles.includes(f));
-    while (matchupFiles.length < matchupSize && availableOldFiles.length > 0) {
-        const rIdx = Math.floor(Math.random() * availableOldFiles.length);
-        matchupFiles.push(availableOldFiles[rIdx]);
-        availableOldFiles.splice(rIdx, 1);
-    }
-    
-    for (let i = matchupFiles.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [matchupFiles[i], matchupFiles[j]] = [matchupFiles[j], matchupFiles[i]];
-    }
-    
-    state.currentMatchup = matchupFiles;
-    state.currentMatchup.forEach(f => {
-        state.sessionMediaViewed.add(getFileId(f));
-    });
-    
-    state.activeViewIndex = 0;
-    state.hasSeen.clear();
-    state.currentRankings = {};
-    state.userRanking = [];
-    if (state.matchupUrls) {
-        Object.values(state.matchupUrls).forEach(url => URL.revokeObjectURL(url));
-    }
-    state.matchupUrls = {};
-    
-    renderCurrentMedia();
-    elements.mediaContainer.style.transition = 'opacity 0.2s ease';
-    elements.mediaContainer.style.opacity = '1';
-    updateMatchupProgress();
-}
-
-function updateMatchupProgress() {
-    const list = getActiveList();
-    const container = document.getElementById('matchup-progress-container');
-    if (list.length === 0 || state.appMode !== 'matchmaking') {
-        container.classList.add('hidden');
-        return;
-    }
-    
-    container.classList.remove('hidden');
-
-    if (state.currentMatchup.length === 0 || list.length < 2) {
-        if (state.unparsedFiles.length > 0) {
-            document.getElementById('matchup-percent').textContent = `...`;
-            document.getElementById('matchup-circle').setAttribute('stroke-dasharray', `0, 100`);
-            document.getElementById('matchup-pool-level').textContent = `SCAN`;
-        } else {
-            document.getElementById('matchup-percent').textContent = `100%`;
-            document.getElementById('matchup-circle').setAttribute('stroke-dasharray', `100, 100`);
-            document.getElementById('matchup-pool-level').textContent = `DONE`;
-        }
-        return;
-    }
-
-    let minMatches = Infinity;
-    for (const f of list) {
-        const m = state.ratings[getFileId(f)]?.matches ?? 0;
-        if (m < minMatches) minMatches = m;
-    }
-    
-    let countMin = 0;
-    for (const f of list) {
-        const m = state.ratings[getFileId(f)]?.matches ?? 0;
-        if (m === minMatches) countMin++;
-    }
-    
-    const total = list.length;
-    const completed = total - countMin;
-    const percentage = Math.round((completed / total) * 100);
-    
-    document.getElementById('matchup-pool-level').textContent = `P ${minMatches}`;
-    document.getElementById('matchup-percent').textContent = `${percentage}%`;
-    document.getElementById('matchup-circle').setAttribute('stroke-dasharray', `${percentage}, 100`);
-}
-
-async function submitMatch() {
-    if (state.currentMatchup.length === 0 || state.appMode !== 'matchmaking' || state.isAnimating) return;
-    
-    if (state.hasSeen.size < state.currentMatchup.length || Object.keys(state.currentRankings).length < state.currentMatchup.length) {
-        showToast("Please view all media and rank them before submitting!");
-        return;
-    }
-    
-    state.isAnimating = true;
-    const oldBtnHTML = elements.btnSubmitMatch.innerHTML;
-    elements.btnSubmitMatch.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
-    elements.btnSubmitMatch.disabled = true;
-    elements.mediaContainer.style.opacity = '0.3';
-    elements.mediaContainer.style.transition = 'opacity 0.1s ease';
-    
-    try {
-        let teamIds = [];
-        let fileRanks = [];
-        
-        state.currentMatchup.forEach(f => {
-            const id = getFileId(f);
-            const rank = parseInt(state.currentRankings[id]);
-            fileRanks.push({file: f, id: id, rank: rank, rating: state.ratings[id]});
-        });
-        
-        fileRanks.sort((a,b) => a.rank - b.rank);
-        
-        let ranksForOpenskill = [];
-        fileRanks.forEach(item => {
-            teamIds.push(item.id);
-            ranksForOpenskill.push(item.rank);
-        });
-        
-        const currentRatings = {};
-        state.currentMatchup.forEach(f => {
-            const id = getFileId(f);
-            currentRatings[id] = state.ratings[id];
-        });
-
-        const teams = teamIds.map(fileId => {
-            const r = currentRatings[fileId] || { mu: 25.0, sigma: 8.333 };
-            return [ rating({ mu: r.mu, sigma: r.sigma }) ];
-        });
-
-        const newTeams = rate(teams, { rank: ranksForOpenskill });
-        
-        const newRatingsMap = {};
-        teamIds.forEach((fileId, i) => {
-            newRatingsMap[fileId] = {
-                mu: newTeams[i][0].mu,
-                sigma: newTeams[i][0].sigma
+            request.onsuccess = function(e) {
+                db = e.target.result;
+                loadFromDB();
             };
-        });
+            request.onerror = function(e) {
+                console.error("IDB error", e);
+            };
+        } catch (e) {
+            console.error("IDB Blocked", e);
+        }
 
-        let prevStats = {};
-        state.currentMatchup.forEach(f => {
-            const id = getFileId(f);
-            prevStats[id] = JSON.parse(JSON.stringify(state.ratings[id]));
-        });
-        state.undoStack.push({
-            matchup: [...state.currentMatchup],
-            prevStats: prevStats
-        });
-        if (state.undoStack.length > 50) state.undoStack.shift();
+        function loadFromDB() {
+            if(!db) return;
+            const tx = db.transaction(['saves'], 'readonly');
+            const req = tx.objectStore('saves').get('currentSave');
+            req.onsuccess = function() {
+                if (req.result && req.result.data) {
+                    loadedSaveData = req.result.data;
+                    console.log("Loaded save from IndexedDB.");
+                }
+            };
+        }
 
-        const t = Date.now();
-        fileRanks.forEach((item, idx) => {
-            const newRating = newRatingsMap[item.id];
-            const oldOrdinal = getOrdinal(item.rating);
-            const newOrdinal = getOrdinal(newRating);
-            const diff = newOrdinal - oldOrdinal;
-            
-            item.rating.mu = newRating.mu;
-            item.rating.sigma = newRating.sigma;
-            item.rating.matches++;
-            
-            let oppIds = teamIds.filter(id => id !== item.id);
-            if (!item.rating.history) item.rating.history = [];
-            item.rating.history.unshift({ 
-                opponentIds: oppIds, 
-                rank: item.rank,
-                ordinalChange: diff,
-                timestamp: t 
+        function autoSaveToDB() {
+            if (!db) return;
+            const saveObj = {}; 
+            mediaKeys.forEach(k => { 
+                if((mediaData[k].matches > 0 || mediaData[k].trashed) && mediaData[k].hash) {
+                    const h = mediaData[k].hash;
+                    if (!saveObj[h]) saveObj[h] = { mu: mediaData[k].mu, sigma: mediaData[k].sigma, trashed: mediaData[k].trashed, matches: mediaData[k].matches, known_paths: [] };
+                    saveObj[h].known_paths.push(k);
+                }
             });
+            const tx = db.transaction(['saves'], 'readwrite');
+            tx.objectStore('saves').put({ id: 'currentSave', data: saveObj, timestamp: Date.now() });
+        }
+
+        const navButtons = document.querySelectorAll('#bottom-nav button');
+        const headerActionsContainer = document.getElementById('header-actions-container');
+
+        document.getElementById('savefile-input').addEventListener('change', async (e) => {
+            const file = e.target.files[0]; if (!file) return;
+            try { 
+                loadedSaveData = JSON.parse(await file.text()); 
+                document.getElementById('savefile-status').classList.remove('hidden'); 
+                document.getElementById('resume-card').classList.add('hidden');
+                
+                // Extract base name for future saves
+                const nameWithoutExt = file.name.replace(/\.json$/i, '');
+                const match = nameWithoutExt.match(/^(.*)_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})$/);
+                currentSaveName = match ? match[1] : nameWithoutExt;
+            } catch (err) { alert("Invalid save file."); }
         });
-        
-        state.sessionMatches++;
-        await saveRatingsToStorage(fileRanks.map(item => item.id));
-        state.isAnimating = false;
-        pickNextMatchup(true);
-    } catch (err) {
-        console.error("Submit match failed:", err);
-        showToast("Error processing match.");
-    } finally {
-        elements.btnSubmitMatch.innerHTML = oldBtnHTML;
-        elements.btnSubmitMatch.disabled = false;
-        state.isAnimating = false;
-    }
-}
 
-function checkSubmitUnlock() {
-    if (elements.btnSubmitMatch) {
-        const allSeen = state.currentMatchup.every(f => state.hasSeen.has(getFileId(f)));
-        const allRanked = state.currentMatchup.every(f => state.currentRankings.hasOwnProperty(getFileId(f)));
-        if (allSeen && allRanked) {
-            elements.btnSubmitMatch.disabled = false;
-            if (appSettings.autoSubmitMatch && !state.isAnimating) {
-                submitMatch();
-            }
-        } else {
-            elements.btnSubmitMatch.disabled = true;
-        }
-    }
-}
-function formatSize(bytes) {
-    if (bytes === 0) return '0 B';
-    const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-function destroyPanzoomAndWheel() {
-    if (window.currentPanzoom) {
-        if (window.panzoomWheelListener) {
-            elements.mediaContainer.removeEventListener('wheel', window.panzoomWheelListener);
-            window.panzoomWheelListener = null;
-        }
-        window.currentPanzoom.destroy();
-        window.currentPanzoom = null;
-    }
-}
-
-function renderCurrentMedia() {
-    if (state.isAnimating) return;
-    elements.btnUndo.disabled = state.undoStack.length === 0;
-    if (objectUrlA) { URL.revokeObjectURL(objectUrlA); objectUrlA = null; }
-    elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); });
-    destroyPanzoomAndWheel();
-    elements.mediaContainer.innerHTML = '';
-    if (elements.executionerCheckContainer) elements.executionerCheckContainer.classList.add('hidden');
-    elements.matchStatusIndicator.classList.add('hidden');
-    
-    if (state.appMode === 'executioner') {
-        renderExecutionerMedia();
-        return;
-    }
-
-    if (state.currentMatchup.length === 0) {
-        elements.mediaContainer.innerHTML = `<div class="empty-state glass-panel" style="padding: 40px;"><i class="fa-solid fa-circle-check"></i><h2>Queue Empty</h2><p>No valid matches found.</p></div>`;
-        elements.fileInfoOverlay.classList.add('hidden');
-        if (elements.matchupControls) elements.matchupControls.classList.add('hidden');
-        return;
-    }
-
-    if (elements.matchupControls) elements.matchupControls.classList.remove('hidden');
-
-    const activeFile = state.currentMatchup[state.activeViewIndex];
-    const activeId = getFileId(activeFile);
-    
-    state.sessionMediaViewed.add(activeId);
-    state.hasSeen.add(activeId);
-    checkSubmitUnlock();
-
-    objectUrlA = URL.createObjectURL(activeFile);
-
-    let fitClass = '';
-    if (state.fitMode === 'contain') fitClass = 'media-fit-contain';
-    else if (state.fitMode === 'cover') fitClass = 'media-fit-cover';
-    else if (state.fitMode === 'stretch') fitClass = 'media-fit-stretch';
-    else if (state.fitMode === 'original') fitClass = 'media-fit-original';
-
-    if (activeFile.type.startsWith('video/') || activeFile.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
-        const mutedAttr = appSettings.startMuted ? 'muted' : '';
-        elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr} onerror="handleMediaError()"></video>`;
-    } else {
-        elements.mediaContainer.innerHTML = `<img src="${objectUrlA}" class="${fitClass}" onerror="handleMediaError()">`;
-        const imgEl = elements.mediaContainer.querySelector('img');
-        if (typeof Panzoom !== 'undefined') {
-            window.currentPanzoom = Panzoom(imgEl, { maxScale: 5, canvas: true, contain: 'outside' });
-            window.panzoomWheelListener = window.currentPanzoom.zoomWithWheel;
-            elements.mediaContainer.addEventListener('wheel', window.panzoomWheelListener);
-        }
-    }
-    
-    elements.displayFilename.textContent = `${activeFile.name} (${formatSize(activeFile.size)}) [${state.activeViewIndex + 1}/${state.currentMatchup.length}]`;
-    if (state.infoVisible) {
-        elements.fileInfoOverlay.classList.remove('hidden');
-    } else {
-        elements.fileInfoOverlay.classList.add('hidden');
-    }
-    
-    if (elements.btnShareCurrent) {
-        if (navigator.canShare && navigator.canShare({ files: [activeFile] })) {
-            elements.btnShareCurrent.style.display = 'flex';
-        } else {
-            elements.btnShareCurrent.style.display = 'none';
-        }
-    }
-    
-    renderPlacementStrip();
-}
-
-function updateUserRankingState() {
-    state.currentRankings = {};
-    state.userRanking.forEach((id, idx) => {
-        state.currentRankings[id] = idx + 1;
-    });
-    checkSubmitUnlock();
-    renderPlacementStrip();
-}
-
-function renderPlacementStrip() {
-    if (!elements.placementStrip) return;
-    elements.placementStrip.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); });
-    elements.placementStrip.innerHTML = '';
-    elements.placementStrip.style.justifyContent = state.userRanking.length === 0 ? 'center' : 'flex-start';
-    const activeFile = state.currentMatchup[state.activeViewIndex];
-    const activeId = getFileId(activeFile);
-    
-    const isRanked = state.userRanking.includes(activeId);
-    
-    const createInsertBtn = (index) => {
-        const btn = document.createElement('button');
-        btn.className = 'placement-insert-btn';
-        btn.innerHTML = '<i class="fa-solid fa-plus"></i>';
-        btn.title = "Insert Here";
-        btn.onclick = () => {
-            if (state.isAnimating) return;
-            const currentIndex = state.userRanking.indexOf(activeId);
-            const wasRanked = currentIndex !== -1;
-            if (wasRanked) {
-                state.userRanking.splice(currentIndex, 1);
-                if (currentIndex < index) index--;
-            }
-            state.userRanking.splice(index, 0, activeId);
-            updateUserRankingState();
+        document.getElementById('folder-input').addEventListener('change', (e) => {
+            const files = e.target.files; if (files.length === 0) return;
+            mediaData = {}; mediaKeys = []; currentBatchKeys = [];
             
-            // Auto-advance to the next media if this was the first time ranking it
-            if (!wasRanked) {
-                elements.btnNextMedia.click();
-            }
-        };
-        return btn;
-    };
-
-    elements.placementStrip.appendChild(createInsertBtn(0));
-    
-    state.userRanking.forEach((id, idx) => {
-        const file = state.currentMatchup.find(f => getFileId(f) === id);
-        if (!file) return;
-        
-        const thumb = document.createElement('div');
-        thumb.style.position = 'relative';
-        thumb.style.flexShrink = '0';
-        
-        if (!state.matchupUrls) state.matchupUrls = {};
-        if (!state.matchupUrls[id]) state.matchupUrls[id] = URL.createObjectURL(file);
-        
-        let mediaEl;
-        if (file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
-            mediaEl = document.createElement('video');
-            mediaEl.loop = true;
-            mediaEl.muted = true;
-            mediaEl.autoplay = true;
-            mediaEl.playsInline = true;
-        } else {
-            mediaEl = document.createElement('img');
-        }
-        mediaEl.src = state.matchupUrls[id];
-        mediaEl.className = 'placement-thumbnail';
-        mediaEl.title = `Rank ${idx + 1}: ${file.name}`;
-        
-        if (id === activeId) mediaEl.classList.add('active-rank');
-        
-        mediaEl.onclick = () => {
-            state.activeViewIndex = state.currentMatchup.indexOf(file);
-            renderCurrentMedia();
-        };
-        
-        thumb.appendChild(mediaEl);
-        
-        if (id === activeId) {
-            const unrankBtn = document.createElement('button');
-            unrankBtn.innerHTML = '<i class="fa-solid fa-times"></i>';
-            unrankBtn.title = "Remove Rank";
-            unrankBtn.style.cssText = 'position: absolute; top: -5px; right: -5px; width: 16px; height: 16px; border-radius: 50%; background: #ff0844; color: white; border: none; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 0 5px rgba(0,0,0,0.5);';
-            unrankBtn.onclick = (e) => {
-                if (state.isAnimating) return;
-                e.stopPropagation();
-                const idxToRemove = state.userRanking.indexOf(id);
-                if (idxToRemove !== -1) {
-                    state.userRanking.splice(idxToRemove, 1);
-                    updateUserRankingState();
+            const pathToHashStats = {};
+            if (loadedSaveData) {
+                for (const hash in loadedSaveData) {
+                    const data = loadedSaveData[hash];
+                    if (data.known_paths) {
+                        data.known_paths.forEach(p => { pathToHashStats[p] = { ...data, hash }; });
+                    }
                 }
-            };
-            thumb.appendChild(unrankBtn);
-        }
-        
-        elements.placementStrip.appendChild(thumb);
-        
-        elements.placementStrip.appendChild(createInsertBtn(idx + 1));
-    });
-}
-
-
-// --- Leaderboard & History ---
-
-function renderLeaderboard() {
-    if (state.appMode !== 'matchmaking') return;
-    const list = state.leaderboardType === 'image' ? state.images : state.videos;
-    
-    // Sort logic
-    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted && (!appSettings.skipUnmatched || state.ratings[getFileId(f)]?.matches > 0)).sort((a, b) => {
-        const rA = state.ratings[getFileId(a)];
-        const rB = state.ratings[getFileId(b)];
-        const valA = state.leaderboardSortKey === 'mu' ? (rA?.mu || 25.0) : (getOrdinal(rA) || 0);
-        const valB = state.leaderboardSortKey === 'mu' ? (rB?.mu || 25.0) : (getOrdinal(rB) || 0);
-        return valB - valA;
-    });
-
-    elements.leaderboardTopList.innerHTML = '';
-    elements.leaderboardBottomList.innerHTML = '';
-    
-    const size = parseInt(appSettings.leaderboardSize, 10);
-    if (sorted.length === 0) {
-        elements.leaderboardTopList.innerHTML = 'No data.';
-        elements.leaderboardBottomList.innerHTML = 'No data.';
-        return;
-    }
-    
-    if (state.leaderboardUrls) {
-        state.leaderboardUrls.forEach(url => URL.revokeObjectURL(url));
-    }
-    state.leaderboardUrls = [];
-    
-    const topItems = sorted.slice(0, size);
-    const bottomItems = sorted.slice(-size).reverse(); // Worst at the top of the bottom list
-    
-    const createTable = (items, isTopList) => {
-        const table = document.createElement('table');
-        table.className = 'leaderboard-table';
-        
-        table.innerHTML = `
-            <thead>
-                <tr>
-                    <th class="col-rank">Rank</th>
-                    <th class="col-media">Media</th>
-                    <th class="col-matches">M</th>
-                    <th class="col-mu sortable ${state.leaderboardSortKey === 'mu' ? 'active-sort' : ''}">μ${state.leaderboardSortKey === 'mu' ? ' ▼' : ''}</th>
-                    <th class="col-sigma">σ</th>
-                    <th class="col-score sortable ${state.leaderboardSortKey === 'score' ? 'active-sort' : ''}">Score${state.leaderboardSortKey === 'score' ? ' ▼' : ''}</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        `;
-        
-        const thMu = table.querySelector('.col-mu');
-        const thScore = table.querySelector('.col-score');
-        
-        thMu.onclick = (e) => {
-            e.stopPropagation();
-            state.leaderboardSortKey = 'mu';
-            renderLeaderboard();
-        };
-        thScore.onclick = (e) => {
-            e.stopPropagation();
-            state.leaderboardSortKey = 'score';
-            renderLeaderboard();
-        };
-        
-        const tbody = table.querySelector('tbody');
-        
-        items.forEach((file, index) => {
-            const rank = isTopList ? index + 1 : sorted.length - index;
-            const r = state.ratings[getFileId(file)];
-            const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i);
-            const objUrl = URL.createObjectURL(file);
-            state.leaderboardUrls.push(objUrl);
-            
-            let mediaHtml;
-            if (isVideo) {
-                mediaHtml = `<video src="${objUrl}#t=0.1" class="leaderboard-thumbnail" preload="metadata" muted playsinline></video>`;
-            } else {
-                mediaHtml = `<img src="${objUrl}" class="leaderboard-thumbnail">`;
             }
-
-            const tr = document.createElement('tr');
-            tr.onclick = () => window.openLeaderboardAt(getFileId(file));
             
-            tr.innerHTML = `
-                <td class="col-rank">${rank}</td>
-                <td class="col-media">${mediaHtml}</td>
-                <td class="col-matches">${r.matches || 0}</td>
-                <td class="col-mu">${r.mu.toFixed(1)}</td>
-                <td class="col-sigma">${r.sigma.toFixed(1)}</td>
-                <td class="col-score">${Math.round(getOrdinal(r))}</td>
-            `;
-            tbody.appendChild(tr);
+            const mediaRegex = /\.(jpe?g|png|webp|gif|mp4|webm|mov)$/i;
+            for (let i = 0; i < files.length; i++) {
+                const f = files[i];
+                if (mediaRegex.test(f.name)) {
+                    const path = f.webkitRelativePath || f.name; mediaKeys.push(path);
+                    if (pathToHashStats[path]) {
+                        mediaData[path] = { file: f, hash: pathToHashStats[path].hash, mu: pathToHashStats[path].mu, sigma: pathToHashStats[path].sigma, trashed: pathToHashStats[path].trashed, matches: pathToHashStats[path].matches };
+                    } else {
+                        mediaData[path] = { file: f, hash: null, mu: 25, sigma: 8.333, trashed: false, matches: 0 };
+                    }
+                }
+            }
+            if (mediaKeys.length < 2) return alert("Need at least 2 media files.");
+            document.getElementById('app-header').classList.remove('hidden');
+            document.getElementById('bottom-nav').classList.remove('hidden');
+            switchScreen('arena');
         });
-        
-        return table;
-    };
-    
-    elements.leaderboardTopList.appendChild(createTable(topItems, true));
-    elements.leaderboardBottomList.appendChild(createTable(bottomItems, false));
-}
 
-function startExecutionerReview() {
-    if (state.stagedFilesMap.size === 0) {
-        showToast("No files staged.");
-        return;
-    }
-    state.appMode = 'executioner';
-    state.executionerQueue = Array.from(state.stagedFilesMap.values());
-    state.executionerIndex = 0;
-    
-    elements.purgeModal.classList.remove('active');
-    if (elements.matchupControls) elements.matchupControls.classList.add('hidden');
-    elements.timelineControls.classList.remove('hidden');
-    elements.btnExitReview.title = 'Generate Script & Exit';
-    
-    renderCurrentMedia();
-}
+        document.getElementById('toggle-images').addEventListener('click', () => setMode('image'));
+        document.getElementById('toggle-videos').addEventListener('click', () => setMode('video'));
+        document.getElementById('sort-order').addEventListener('change', (e) => { sortOrder = e.target.value; refreshCurrentScreen(); });
 
-function renderExecutionerMedia() {
-    elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); });
-    if (objectUrlA) URL.revokeObjectURL(objectUrlA);
-    elements.mediaContainer.innerHTML = '';
-    const file = state.executionerQueue[state.executionerIndex];
-    if (!file) {
-        elements.mediaContainer.innerHTML = '<div class="empty-state glass-panel" style="padding: 40px;"><p>No staged files left to review.</p></div>';
-        elements.matchStatusIndicator.classList.add('hidden');
-        elements.executionerCheckContainer.classList.add('hidden');
-        return;
-    }
-    const id = getFileId(file);
-    objectUrlA = URL.createObjectURL(file);
-    
-    elements.matchStatusIndicator.classList.remove('hidden');
-    elements.matchStatusIndicator.textContent = `Staged File ${state.executionerIndex + 1} of ${state.executionerQueue.length}`;
-    elements.matchStatusIndicator.className = 'executioner';
-    
-    elements.executionerCheckContainer.classList.remove('hidden');
-    elements.executionerCheckbox.checked = state.stagedFilesMap.has(id);
-    let fitClass = '';
-    if (state.fitMode === 'contain') fitClass = 'media-fit-contain';
-    else if (state.fitMode === 'cover') fitClass = 'media-fit-cover';
-    else if (state.fitMode === 'stretch') fitClass = 'media-fit-stretch';
-    else if (state.fitMode === 'original') fitClass = 'media-fit-original';
-
-    const mutedAttr = appSettings.startMuted ? 'muted' : '';
-    destroyPanzoomAndWheel();
-    if (file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
-        elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr} onerror="handleMediaError()"></video>`;
-    } else {
-        elements.mediaContainer.innerHTML = `<img src="${objectUrlA}" class="${fitClass}" onerror="handleMediaError()">`;
-        const imgEl = elements.mediaContainer.querySelector('img');
-        if (typeof Panzoom !== 'undefined') {
-            window.currentPanzoom = Panzoom(imgEl, { maxScale: 5, canvas: true, contain: 'outside' });
-            window.panzoomWheelListener = window.currentPanzoom.zoomWithWheel;
-            elements.mediaContainer.addEventListener('wheel', window.panzoomWheelListener);
-        }
-    }
-    
-    elements.displayFilename.textContent = `${file.name} (${formatSize(file.size)})`;
-    elements.fileInfoOverlay.classList.remove('hidden');
-    if (elements.btnShareCurrent) {
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            elements.btnShareCurrent.style.display = 'flex';
-        } else {
-            elements.btnShareCurrent.style.display = 'none';
-        }
-    }
-    
-    elements.executionerCheckbox.onchange = (e) => {
-        if (e.target.checked) state.stagedFilesMap.set(id, file);
-        else state.stagedFilesMap.delete(id);
-    };
-}
-
-window.openLeaderboardAt = function(fileId) {
-    const list = state.leaderboardType === 'image' ? state.images : state.videos;
-    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted && (!appSettings.skipUnmatched || state.ratings[getFileId(f)]?.matches > 0)).sort((a,b) => {
-        const rA = state.ratings[getFileId(a)];
-        const rB = state.ratings[getFileId(b)];
-        const valA = state.leaderboardSortKey === 'mu' ? (rA?.mu || 25.0) : (getOrdinal(rA) || 0);
-        const valB = state.leaderboardSortKey === 'mu' ? (rB?.mu || 25.0) : (getOrdinal(rB) || 0);
-        return valB - valA;
-    });
-    
-    const targetIdx = sorted.findIndex(f => getFileId(f) === fileId);
-    if (targetIdx === -1) return;
-    
-    startLeaderboardViewer(false, targetIdx);
-};
-
-// --- Continuous Leaderboard Viewer ---
-function startLeaderboardViewer(reverse, startIndex = 0) {
-    const list = state.leaderboardType === 'image' ? state.images : state.videos;
-    const sorted = [...list].filter(f => !state.ratings[getFileId(f)]?.blacklisted && (!appSettings.skipUnmatched || state.ratings[getFileId(f)]?.matches > 0)).sort((a,b) => {
-        const rA = state.ratings[getFileId(a)];
-        const rB = state.ratings[getFileId(b)];
-        const valA = state.leaderboardSortKey === 'mu' ? (rA?.mu || 25.0) : (getOrdinal(rA) || 0);
-        const valB = state.leaderboardSortKey === 'mu' ? (rB?.mu || 25.0) : (getOrdinal(rB) || 0);
-        return valB - valA;
-    });
-    
-    state.leaderboardReverse = reverse;
-
-    if (reverse) {
-        state.leaderboardQueue = sorted.reverse();
-    } else {
-        state.leaderboardQueue = sorted;
-    }
-    
-    if (state.leaderboardQueue.length === 0) {
-        showToast("No media to view.");
-        return;
-    }
-    
-    state.leaderboardIndex = startIndex;
-    state.appMode = 'leaderboard_viewer';
-    
-    // Close modal properly to free URLs
-    if (typeof closeLeaderboardModalFunc === 'function') closeLeaderboardModalFunc();
-    else elements.leaderboardModal.classList.remove('active');
-    
-    if (elements.matchupControls) elements.matchupControls.classList.add('hidden');
-    elements.timelineControls.classList.remove('hidden');
-    
-
-    elements.btnExitReview.title = 'Exit Viewer';
-    
-    renderLeaderboardViewerMedia();
-}
-
-function renderLeaderboardViewerMedia() {
-    if (objectUrlA) URL.revokeObjectURL(objectUrlA);
-    
-    const file = state.leaderboardQueue[state.leaderboardIndex];
-    if (!file) {
-        elements.mediaContainer.innerHTML = '<div class="empty-state glass-panel" style="padding: 40px;"><p>No leaderboard items to view.</p></div>';
-        elements.matchStatusIndicator.classList.add('hidden');
-        elements.executionerCheckContainer.classList.add('hidden');
-        return;
-    }
-    const id = getFileId(file);
-    const rating = state.ratings[id];
-    objectUrlA = URL.createObjectURL(file);
-    
-    let rank = state.leaderboardReverse ? state.leaderboardQueue.length - state.leaderboardIndex : state.leaderboardIndex + 1;
-    
-    elements.matchStatusIndicator.classList.remove('hidden');
-    const metricText = state.leaderboardSortKey === 'mu' ? `μ: ${rating.mu.toFixed(1)}` : `Score: ${Math.round(getOrdinal(rating))}`;
-    elements.matchStatusIndicator.textContent = `${metricText} (Rank ${rank} of ${state.leaderboardQueue.length}) | Matches: ${rating.matches}`;
-    elements.matchStatusIndicator.className = 'placement';
-    
-    elements.executionerCheckContainer.classList.add('hidden');
-    
-    elements.mediaContainer.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); });
-    
-    let fitClass = '';
-    if (state.fitMode === 'contain') fitClass = 'media-fit-contain';
-    else if (state.fitMode === 'cover') fitClass = 'media-fit-cover';
-    else if (state.fitMode === 'stretch') fitClass = 'media-fit-stretch';
-    else if (state.fitMode === 'original') fitClass = 'media-fit-original';
-    
-    destroyPanzoomAndWheel();
-    if (file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
-        const mutedAttr = appSettings.startMuted ? 'muted' : '';
-        elements.mediaContainer.innerHTML = `<video src="${objectUrlA}" class="${fitClass}" autoplay loop controls playsinline ${mutedAttr} onerror="handleMediaError()"></video>`;
-    } else {
-        elements.mediaContainer.innerHTML = `<img src="${objectUrlA}" class="${fitClass}" onerror="handleMediaError()">`;
-        const imgEl = elements.mediaContainer.querySelector('img');
-        if (typeof Panzoom !== 'undefined') {
-            window.currentPanzoom = Panzoom(imgEl, { maxScale: 5, canvas: true, contain: 'outside' });
-            window.panzoomWheelListener = window.currentPanzoom.zoomWithWheel;
-            elements.mediaContainer.addEventListener('wheel', window.panzoomWheelListener);
-        }
-    }
-    
-    elements.displayFilename.textContent = `${file.name} (${formatSize(file.size)})`;
-    if (state.infoVisible) {
-        elements.fileInfoOverlay.classList.remove('hidden');
-    } else {
-        elements.fileInfoOverlay.classList.add('hidden');
-    }
-    if (elements.btnShareCurrent) {
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            elements.btnShareCurrent.style.display = 'flex';
-        } else {
-            elements.btnShareCurrent.style.display = 'none';
-        }
-    }
-}
-
-
-// --- Setup & Listeners ---
-
-function setupEventListeners() {
-    document.body.addEventListener('click', () => {
-        if (appSettings.autoBackupInterval > 0) {
-            if (!window.lastAutoBackupTime) window.lastAutoBackupTime = Date.now();
-            if (Date.now() - window.lastAutoBackupTime >= appSettings.autoBackupInterval * 60 * 1000) {
-                if (Object.keys(state.ratings).length > 0) {
-                    window.lastAutoBackupTime = Date.now();
-                    exportRatings(true);
-                }
-            }
-        }
-    });
-    document.getElementById('matchup-progress-container').addEventListener('click', () => {
-        const list = getActiveList();
-        if(list.length === 0) return;
-        
-        const poolCounts = {};
-        for (const file of list) {
-            const id = getFileId(file);
-            const m = state.ratings[id]?.matches || 0;
-            poolCounts[m] = (poolCounts[m] || 0) + 1;
-        }
-        
-        const sortedPools = Object.keys(poolCounts).map(Number).sort((a,b) => a - b);
-        let message = sortedPools.map(p => `Pool ${p}: ${poolCounts[p]} files`).join('<br>');
-        
-        showToast(message);
-    });
-
-    elements.folderInput.addEventListener('change', handleFilesSelected);
-    elements.fileInput.addEventListener('change', handleFilesSelected);
-    
-    // Toggle Media Type
-    const applyToggle = () => {
-        elements.toggleImage.style.background = state.leaderboardType === 'image' ? 'rgba(79, 172, 254, 0.4)' : 'transparent';
-        elements.toggleVideo.style.background = state.leaderboardType === 'video' ? 'rgba(79, 172, 254, 0.4)' : 'transparent';
-        const list = getActiveList();
-        showToast(`Switched to ${state.leaderboardType}s (Pool: ${list.length})`);
-        pickNextMatchup();
-    };
-    elements.toggleImage.addEventListener('click', () => { if(state.isAnimating) return; state.appMode = 'matchmaking'; state.leaderboardType = 'image'; applyToggle(); });
-    elements.toggleVideo.addEventListener('click', () => { if(state.isAnimating) return; state.appMode = 'matchmaking'; state.leaderboardType = 'video'; applyToggle(); });
-
-    if (elements.btnPrevMedia) elements.btnPrevMedia.addEventListener('click', () => {
-        if (state.isAnimating) return;
-        if (state.currentMatchup.length > 0) {
-            state.activeViewIndex = (state.activeViewIndex - 1 + state.currentMatchup.length) % state.currentMatchup.length;
-            renderCurrentMedia();
-        }
-    });
-    
-    if (elements.btnNextMedia) elements.btnNextMedia.addEventListener('click', () => {
-        if (state.isAnimating) return;
-        if (state.currentMatchup.length > 0) {
-            state.activeViewIndex = (state.activeViewIndex + 1) % state.currentMatchup.length;
-            renderCurrentMedia();
-        }
-    });
-
-    if (elements.btnSubmitMatch) elements.btnSubmitMatch.addEventListener('click', submitMatch);
-
-    elements.btnUndo.addEventListener('click', async () => {
-        if (state.isAnimating) return;
-        if (state.undoStack.length === 0) { showToast("Nothing to undo."); return; }
-        const last = state.undoStack.pop();
-        
-        state.currentMatchup = last.matchup;
-        for (const id in last.prevStats) {
-            state.ratings[id] = last.prevStats[id];
-        }
-        
-        await saveRatingsToStorage();
-        state.activeViewIndex = 0;
-        state.hasSeen.clear();
-        state.currentRankings = {};
-        state.userRanking = [];
-        renderCurrentMedia();
-        updateMatchupProgress();
-        showToast("Match reverted!");
-    });
-    
-    if (elements.btnShareCurrent) elements.btnShareCurrent.addEventListener('click', async (e) => {
-        const btn = e.target.closest('button');
-        if (btn) btn.blur();
-        let file;
-        if (state.appMode === 'executioner') file = state.executionerQueue[state.executionerIndex];
-        else if (state.appMode === 'leaderboard_viewer') file = state.leaderboardQueue[state.leaderboardIndex];
-        else if (state.currentMatchup.length > 0) file = state.currentMatchup[state.activeViewIndex];
-        if (!file) return;
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-                await navigator.share({ files: [file], title: file.name });
-            } catch (err) {
-                if (err.name !== 'AbortError') showToast('Failed to share.');
-            }
-        } else {
-            showToast('Sharing not supported on this browser/device.');
-        }
-    });
-    
-    elements.btnStageCurrent.addEventListener('click', (e) => {
-        const btn = e.target.closest('button');
-        if (btn) btn.blur();
-
-        if (state.appMode === 'executioner') {
-            showToast("File is already staged for execution.");
-            return;
+        function setMode(mode) {
+            mediaMode = mode;
+            document.getElementById('toggle-images').classList.toggle('active', mode === 'image');
+            document.getElementById('toggle-videos').classList.toggle('active', mode === 'video');
+            refreshCurrentScreen();
         }
 
-        if (state.appMode === 'leaderboard_viewer') {
-            const currentMedia = state.leaderboardQueue[state.leaderboardIndex];
-            state.stagedFilesMap.set(getFileId(currentMedia), currentMedia);
-            if(elements.purgeStats) elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
-            showToast(`Staged for execution: ${currentMedia.name}`);
-            return;
+        navButtons.forEach(btn => btn.addEventListener('click', () => switchScreen(btn.dataset.target)));
+
+        function switchScreen(screenName) {
+            currentScreen = screenName;
+            Object.values(screens).forEach(s => s.classList.add('hidden'));
+            screens[screenName].classList.remove('hidden');
+            navButtons.forEach(b => b.classList.toggle('active', b.dataset.target === screenName));
+            document.getElementById('app-header').classList.toggle('hidden', screenName === 'home');
+            document.getElementById('bottom-nav').classList.toggle('hidden', screenName === 'home');
+            updateHeaderActions(); refreshCurrentScreen();
         }
 
-        if(state.currentMatchup.length === 0 || state.appMode !== 'matchmaking') return;
-        const activeId = getFileId(state.currentMatchup[state.activeViewIndex]);
-        
-        state.stagedFilesMap.set(activeId, state.currentMatchup[state.activeViewIndex]);
-        elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
-        showToast("Staged Current Media to Executioner");
-        
-        const list = getActiveList();
-        const pool = state.currentMatchup.map(f => getFileId(f));
-        const currentMatches = state.ratings[activeId].matches;
-        
-        let candidates = list.filter(f => !pool.includes(getFileId(f)) && state.ratings[getFileId(f)].matches === currentMatches);
-        if (candidates.length === 0) candidates = list.filter(f => !pool.includes(getFileId(f)));
-        
-        let replacement = candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)] : undefined;
-        
-        if (!replacement && state.unparsedFiles.length > 0) {
-            let parsedCount = 0;
-            const targetType = state.leaderboardType;
-            while (state.unparsedFiles.length > 0 && parsedCount < 1000) {
-                const f = state.unparsedFiles.pop();
-                parsedCount++;
-                let isImage = false, isVideo = false;
-                if (f.type) {
-                    isImage = f.type.startsWith('image/');
-                    isVideo = f.type.startsWith('video/');
-                } else {
-                    isImage = /\.(jpe?g|png|gif|webp)$/i.test(f.name);
-                    isVideo = /\.(mp4|webm|mkv|mov|avi)$/i.test(f.name);
-                }
+        function refreshCurrentScreen() {
+            updateStats();
+            document.getElementById('main-scroll').scrollTo(0,0);
+            if (currentScreen === 'arena' && currentBatchKeys.length === 0) pickNextBatch();
+            if (currentScreen === 'leaderboard') { leaderboardPage = 0; clearContainerAndRevoke('leaderboard-grid'); loadLeaderboardPage(); }
+            if (currentScreen === 'trash') { trashPage = 0; clearContainerAndRevoke('trash-grid'); loadTrashPage(); }
+        }
 
-                const id = getFileId(f);
-                if (state.ratings[id] && state.ratings[id].blacklisted) {
-                    if (!state.stagedFilesMap.has(id)) state.stagedFilesMap.set(id, f);
-                    continue;
-                }
+        function updateHeaderActions() {
+            headerActionsContainer.innerHTML = '';
+            const btnFs = document.createElement('button'); btnFs.className = 'btn'; btnFs.style.padding = '8px 10px'; btnFs.innerHTML = document.fullscreenElement ? '_' : '⛶';
+            btnFs.onclick = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(e=>{}); else document.exitFullscreen(); };
+            headerActionsContainer.appendChild(btnFs);
 
-                let localDidAdd = false;
-                if (isImage) {
-                    if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.images.push(f); localDidAdd = true; }
-                } else if (isVideo) {
-                    if(!state.loadedIds.has(id)) { state.loadedIds.add(id); state.videos.push(f); localDidAdd = true; }
-                }
-
-                if (localDidAdd && !state.ratings[id]) {
-                    state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0, history: [] };
+            const btnScan = document.createElement('button'); btnScan.className = 'btn'; btnScan.innerHTML = '🔍 SCAN'; 
+            btnScan.onclick = async () => {
+                if (isScanning) return;
+                const unhashed = mediaKeys.filter(k => !mediaData[k].hash);
+                if (unhashed.length === 0) return alert("All files are already hashed!");
+                
+                isScanning = true; scanCancel = false;
+                const modal = document.getElementById('scan-modal');
+                const pText = document.getElementById('scan-progress-text');
+                modal.classList.remove('hidden');
+                
+                let count = 0;
+                const total = unhashed.length;
+                const chunkSize = 50;
+                
+                for (let i = 0; i < total; i += chunkSize) {
+                    if (scanCancel) break;
+                    const chunk = unhashed.slice(i, i + chunkSize);
+                    await Promise.all(chunk.map(k => ensureHashedAndHealed(k)));
+                    count += chunk.length;
+                    pText.textContent = `Hashing ${count} / ${total}`;
+                    await new Promise(r => setTimeout(r, 0));
                 }
                 
-                if (localDidAdd && ((isImage && targetType === 'image') || (isVideo && targetType === 'video'))) {
-                    replacement = f;
-                    break;
-                }
-            }
-        }
-        
-        if (replacement) {
-            if (state.matchupUrls && state.matchupUrls[activeId]) {
-                URL.revokeObjectURL(state.matchupUrls[activeId]);
-                delete state.matchupUrls[activeId];
-            }
-            state.currentMatchup[state.activeViewIndex] = replacement;
-            delete state.currentRankings[activeId];
-            const urIdx = state.userRanking.indexOf(activeId);
-            if (urIdx !== -1) {
-                state.userRanking.splice(urIdx, 1);
-                updateUserRankingState();
-            }
-            state.hasSeen.delete(activeId);
-            checkSubmitUnlock();
-            renderCurrentMedia();
-        } else {
-            showToast("No replacement found, skipping match.");
-            pickNextMatchup();
-        }
-    });
-
-    elements.btnInfo.addEventListener('click', () => {
-        state.infoHidden = !state.infoHidden;
-        if (!state.infoHidden) elements.fileInfoOverlay.classList.remove('hidden');
-        else elements.fileInfoOverlay.classList.add('hidden');
-    });
-
-    elements.btnToggleFit.addEventListener('click', () => {
-        const modes = ['contain', 'cover', 'stretch', 'original'];
-        const icons = { 'contain': 'fa-compress', 'cover': 'fa-crop-simple', 'stretch': 'fa-expand', 'original': 'fa-maximize' };
-        let idx = modes.indexOf(state.fitMode);
-        state.fitMode = modes[(idx + 1) % modes.length];
-        appSettings.defaultFitMode = state.fitMode;
-        const fitSelect = document.getElementById('setting-default-fit');
-        if (fitSelect) fitSelect.value = state.fitMode;
-        saveSettingsToStorage(true);
-        showToast(`Fit Mode: ${state.fitMode.charAt(0).toUpperCase() + state.fitMode.slice(1)}`);
-        elements.btnToggleFit.innerHTML = `<i class="fa-solid ${icons[state.fitMode]}"></i>`;
-        
-        if (state.appMode === 'executioner') renderExecutionerMedia();
-        else if (state.appMode === 'leaderboard_viewer') renderLeaderboardViewerMedia();
-        else renderCurrentMedia();
-    });
-    
-    // Timeline / Nav Buttons
-    elements.btnPrevMatch.addEventListener('click', () => {
-        if (state.appMode === 'executioner') {
-            if (state.executionerQueue.length > 0) {
-                state.executionerIndex = (state.executionerIndex - 1 + state.executionerQueue.length) % state.executionerQueue.length;
-                renderCurrentMedia();
-            }
-        } else if (state.appMode === 'leaderboard_viewer') {
-            if (state.leaderboardIndex > 0) { state.leaderboardIndex--; renderLeaderboardViewerMedia(); }
-        }
-    });
-    elements.btnNextMatch.addEventListener('click', () => {
-        if (state.appMode === 'executioner') {
-            if (state.executionerQueue.length > 0) {
-                state.executionerIndex = (state.executionerIndex + 1) % state.executionerQueue.length;
-                renderCurrentMedia();
-            }
-        } else if (state.appMode === 'leaderboard_viewer') {
-            if (state.leaderboardIndex < state.leaderboardQueue.length - 1) { state.leaderboardIndex++; renderLeaderboardViewerMedia(); }
-        }
-    });
-    elements.btnExitReview.addEventListener('click', () => {
-        if (state.appMode === 'executioner') {
-            generateScripts();
-        }
-        state.appMode = 'matchmaking';
-        elements.timelineControls.classList.add('hidden');
-        if (elements.matchupControls) elements.matchupControls.classList.remove('hidden');
-        if (elements.executionerCheckContainer) elements.executionerCheckContainer.classList.add('hidden');
-        pickNextMatchup();
-    });
-
-
-    // Modals
-    const closeTools = () => elements.toolsModal.classList.remove('active');
-    elements.btnOpenSettings.addEventListener('click', () => { closeTools(); loadSettingsFromStorage(); elements.settingsModal.classList.add('active'); });
-    elements.closeSettingsModal.addEventListener('click', () => { saveSettingsToStorage(); elements.settingsModal.classList.remove('active'); });
-    document.getElementById('btn-force-load-all').addEventListener('click', forceLoadAllFiles);
-
-    elements.btnCurator.addEventListener('click', () => { closeTools(); elements.curatorModal.classList.add('active'); });
-    elements.closeCuratorModal.addEventListener('click', () => {
-        elements.curatorModal.classList.remove('active');
-    });
-    elements.btnGenerateCurator.addEventListener('click', generateCuratorScripts);
-    if (elements.btnCuratorDirect) elements.btnCuratorDirect.addEventListener('click', copyFavoritesDirectly);
-    elements.btnCopyCuratorScript.addEventListener('click', () => { elements.curatorScriptOutput.select(); document.execCommand('copy'); showToast("Copied!"); });
-
-    elements.btnPurge.addEventListener('click', () => { closeTools(); 
-        elements.purgeModal.classList.add('active'); 
-        elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
-    });
-    elements.closePurgeModal.addEventListener('click', () => elements.purgeModal.classList.remove('active'));
-    
-    elements.btnStageFiles.addEventListener('click', () => {
-        const threshold = parseInt(elements.purgeThreshold.value);
-        let added = 0;
-        const listToStage = state.leaderboardType === 'image' ? state.images : state.videos;
-        listToStage.forEach(f => {
-            const id = getFileId(f);
-            if (state.ratings[id] && state.ratings[id].matches > 0 && getOrdinal(state.ratings[id]) < threshold) {
-                if (!state.stagedFilesMap.has(id)) { state.stagedFilesMap.set(id, f); added++; }
-            }
-        });
-        showToast(`Staged ${added} files.`);
-        elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
-    });
-    elements.btnClearStaged.addEventListener('click', () => { state.stagedFilesMap.clear(); elements.purgeStats.textContent = `0 files staged.`; });
-    elements.btnReviewStaged.addEventListener('click', startExecutionerReview);
-    if (elements.btnPurgeDirect) elements.btnPurgeDirect.addEventListener('click', deleteStagedFilesDirectly);
-    
-    if (elements.btnLeaderboardBest) {
-        elements.btnLeaderboardBest.addEventListener('click', () => {
-            elements.btnLeaderboardBest.classList.add('btn-primary');
-            elements.btnLeaderboardBest.classList.remove('btn-tab-inactive');
-            elements.btnLeaderboardWorst.classList.remove('btn-primary');
-            elements.btnLeaderboardWorst.classList.add('btn-tab-inactive');
-            elements.leaderboardTopSection.classList.remove('hidden');
-            elements.leaderboardBottomSection.classList.add('hidden');
-        });
-    }
-    if (elements.btnLeaderboardWorst) {
-        elements.btnLeaderboardWorst.addEventListener('click', () => {
-            elements.btnLeaderboardWorst.classList.add('btn-primary');
-            elements.btnLeaderboardWorst.classList.remove('btn-tab-inactive');
-            elements.btnLeaderboardBest.classList.remove('btn-primary');
-            elements.btnLeaderboardBest.classList.add('btn-tab-inactive');
-            elements.leaderboardBottomSection.classList.remove('hidden');
-            elements.leaderboardTopSection.classList.add('hidden');
-        });
-    }
-
-    elements.btnCopyScript.addEventListener('click', () => { elements.scriptOutput.select(); document.execCommand('copy'); showToast("Copied!"); });
-
-    elements.btnHardReset.addEventListener('click', async () => {
-        if (!confirm("Are you sure? This will wipe all ratings completely!")) return;
-        state.appMode = 'matchmaking';
-        localStorage.removeItem('eloSorterRatings');
-        try {
-            const db = await openDB();
-            const tx = db.transaction('ratings', 'readwrite');
-            tx.objectStore('ratings').clear();
-        } catch (e) { console.error("Error clearing IndexedDB", e); }
-        state.ratings = {}; state.images = []; state.videos = [];
-        state.stagedFilesMap.clear();
-        state.loadedIds.clear(); state.unparsedFiles = [];
-        pickNextMatchup(); elements.settingsModal.classList.remove('active');
-    });
-    
-    elements.btnExport.addEventListener('click', () => exportRatings(false));
-    elements.importInput.addEventListener('change', importRatings);
-
-    elements.btnAppFullscreen.addEventListener('click', () => {
-        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-        else if (document.exitFullscreen) document.exitFullscreen();
-    });
-    
-    if (elements.btnFullscreenTitle) {
-        elements.btnFullscreenTitle.addEventListener('click', () => {
-            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-            else if (document.exitFullscreen) document.exitFullscreen();
-        });
-    }
-    
-    elements.btnOpenToolsMenu.addEventListener('click', () => elements.toolsModal.classList.add('active'));
-    elements.closeToolsModal.addEventListener('click', closeTools);
-
-    elements.btnOpenLeaderboard.addEventListener('click', () => { closeTools(); renderLeaderboard(); elements.leaderboardModal.classList.add('active'); });
-    
-    window.closeLeaderboardModalFunc = function() {
-        elements.leaderboardModal.classList.remove('active');
-        if (state.leaderboardUrls) {
-            state.leaderboardUrls.forEach(url => URL.revokeObjectURL(url));
-            state.leaderboardUrls = [];
-        }
-    };
-    elements.closeLeaderboardModal.addEventListener('click', closeLeaderboardModalFunc);
-    
-    elements.btnOpenDashboard.addEventListener('click', () => { closeTools(); renderDashboard(); elements.dashboardModal.classList.add('active'); });
-    elements.closeDashboardModal.addEventListener('click', () => elements.dashboardModal.classList.remove('active'));
-    
-    elements.btnViewTopCont.addEventListener('click', () => startLeaderboardViewer(false));
-    elements.btnViewBottomCont.addEventListener('click', () => startLeaderboardViewer(true));
-    
-    // Keyboard Shortcuts
-    window.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-        if (state.appMode === 'matchmaking') {
-            if (e.key === 'ArrowLeft') { elements.btnPrevMedia?.click(); }
-            if (e.key === 'ArrowRight') { elements.btnNextMedia?.click(); }
-            if (e.key === 'Enter') submitMatch();
-            if (e.key === 'ArrowDown') elements.btnUndo.click();
-        } else if (state.appMode === 'executioner' || state.appMode === 'leaderboard_viewer') {
-            if (e.key === 'ArrowLeft') elements.btnPrevMatch.click();
-            if (e.key === 'ArrowRight') elements.btnNextMatch.click();
-        }
-    });
-}
-function exportRatings(isAuto = false) {
-    const exportData = {
-        ratings: state.ratings,
-        stagedFiles: Array.from(state.stagedFilesMap.keys())
-    };
-    const jsonData = JSON.stringify(exportData, null, 2);
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const node = document.createElement('a');
-    node.setAttribute("href", url);
-    const dt = new Date().toISOString().replace(/[:.]/g, '-');
-    const prefix = appSettings.backupPrefix || 'dms_elo';
-    node.setAttribute("download", `${prefix}_${isAuto?'autobackup':'backup'}_${dt}.json`);
-    document.body.appendChild(node); node.click(); node.remove();
-    URL.revokeObjectURL(url);
-    showToast(isAuto ? "Auto-backup successful!" : "Exported Backup!");
-}
-async function importRatings(event) {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-    
-    let processedFiles = 0;
-    
-    for (const file of files) {
-        // Extract prefix from imported file name
-        const name = file.name;
-        let prefix = '';
-        if (name.includes('_backup_')) {
-            prefix = name.split('_backup_')[0];
-        } else if (name.includes('_autobackup_')) {
-            prefix = name.split('_autobackup_')[0];
-        } else {
-            prefix = name.replace(/\.json$/i, '');
-        }
-        if (prefix) {
-            appSettings.backupPrefix = prefix;
-            const backupPrefixInput = document.getElementById('setting-backup-prefix');
-            if (backupPrefixInput) backupPrefixInput.value = prefix;
-            saveSettingsToStorage(true);
-        }
-        
-        await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const parsed = JSON.parse(e.target.result);
-                    
-                    const mergeRatings = (newRatings) => {
-                        for (const key in newRatings) {
-                            const id = key.split('/').pop();
-                            const rating = newRatings[key];
-                            if (state.ratings[id]) {
-                                const m1 = rating.matches || 0;
-                                const m2 = state.ratings[id].matches || 0;
-                                if (m1 > m2) {
-                                    state.ratings[id] = rating;
-                                } else if (m1 === m2) {
-                                    if (getOrdinal(rating) > getOrdinal(state.ratings[id])) {
-                                        state.ratings[id] = rating;
-                                    }
-                                }
-                            } else {
-                                state.ratings[id] = rating;
-                            }
-                        }
-                    };
-
-                    if (parsed.ratings) {
-                        // New schema with staged files
-                        mergeRatings(parsed.ratings);
-                        if (parsed.stagedFiles && Array.isArray(parsed.stagedFiles)) {
-                            const migratedStaged = parsed.stagedFiles.map(id => id.split('/').pop());
-                            const allFiles = [...state.images, ...state.videos];
-                            for (const f of allFiles) {
-                                const id = getFileId(f);
-                                if (migratedStaged.includes(id)) {
-                                    state.stagedFilesMap.set(id, f);
-                                }
-                            }
-                        }
-                    } else {
-                        // Legacy schema fallback
-                        const firstKey = Object.keys(parsed)[0];
-                        if (firstKey && typeof parsed[firstKey].mu !== 'number') throw new Error("Invalid schema");
-                        mergeRatings(parsed);
-                    }
-                    processedFiles++;
-                    resolve();
-                } catch (err) {
-                    showToast(`Invalid JSON in ${file.name}.`);
-                    resolve();
-                }
+                isScanning = false;
+                modal.classList.add('hidden');
+                updateStats();
+                autoSaveToDB(); alert(`Deep Scan Complete! Hashed ${count} files.`);
             };
-            reader.readAsText(file);
-        });
-    }
-    
-    if (processedFiles > 0) {
-        if (elements.purgeStats) elements.purgeStats.textContent = `${state.stagedFilesMap.size} files staged.`;
-        await saveRatingsToStorage(); 
-        showToast(`Restored ${processedFiles} backup(s)!`);
-        event.target.value = '';
-        if (elements.toolsModal) elements.toolsModal.classList.remove('active');
-        renderLeaderboard();
-        pickNextMatchup();
-    }
-}
-
-function renderDashboard() {
-    const listToStage = state.leaderboardType === 'image' ? state.images : state.videos;
-    elements.dashTotalMedia.textContent = listToStage.length + state.unparsedFiles.length;
-    
-    let totalMatches = 0;
-    let totalDeficit = 0;
-    const ordinals = [];
-    listToStage.forEach(f => {
-        const id = getFileId(f);
-        const matches = state.ratings[id]?.matches || 0;
-        totalMatches += matches;
-        totalDeficit += Math.max(0, 3 - matches);
-        
-        if (matches > 0) {
-            ordinals.push(getOrdinal(state.ratings[id]));
-        }
-    });
-    
-    elements.dashTotalMatches.textContent = state.sessionMatches;
-    if (elements.dashOverallMatches) {
-        elements.dashOverallMatches.textContent = Math.ceil(totalMatches / 4);
-    }
-    if (elements.dashSessionMediaViewed) {
-        elements.dashSessionMediaViewed.textContent = state.sessionMediaViewed.size;
-    }
-
-    if (ordinals.length > 0) {
-        const min = ordinals.reduce((a, b) => Math.min(a, b), ordinals[0]);
-        const max = ordinals.reduce((a, b) => Math.max(a, b), ordinals[0]);
-        const buckets = new Array(10).fill(0);
-        const range = Math.max(0.1, max - min);
-        
-        ordinals.forEach(val => {
-            let idx = Math.floor(((val - min) / range) * 10);
-            idx = Math.min(9, Math.max(0, idx));
-            buckets[idx]++;
-        });
-
-        const maxBucket = Math.max(...buckets);
-        const reversedBuckets = [...buckets].reverse();
-        elements.dashBellCurve.innerHTML = reversedBuckets.map((count, index) => {
-            const height = maxBucket > 0 ? (count / maxBucket) * 80 : 0;
-            const r = Math.round(34 + (239 - 34) * (index / 9));
-            const g = Math.round(197 + (68 - 197) * (index / 9));
-            const b = Math.round(94 + (68 - 94) * (index / 9));
-            const color = `rgba(${r}, ${g}, ${b}, 0.8)`;
-            return `<div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; flex: 1;">
-                <div style="font-size: 0.7rem; color: var(--text-primary); margin-bottom: 4px; opacity: 0.8;">${count}</div>
-                <div class="dash-bar" style="height: ${height}%; width: 100%; background: ${color}; border-radius: 4px 4px 0 0;"></div>
-            </div>`;
-        }).join('');
-        const tickValues = [
-            max,
-            max - 0.25 * (max - min),
-            max - 0.5 * (max - min),
-            max - 0.75 * (max - min),
-            min
-        ];
-        if (elements.dashBellCurveLabels) {
-            elements.dashBellCurveLabels.innerHTML = `
-                <div style="position: absolute; width: 100%; top: 0; left: 0; height: 5px; border-top: 1px solid rgba(255,255,255,0.15); display: flex; justify-content: space-between;">
-                    <div style="height: 5px; border-left: 1px solid rgba(255,255,255,0.3);"></div>
-                    <div style="height: 5px; border-left: 1px solid rgba(255,255,255,0.3);"></div>
-                    <div style="height: 5px; border-left: 1px solid rgba(255,255,255,0.3);"></div>
-                    <div style="height: 5px; border-left: 1px solid rgba(255,255,255,0.3);"></div>
-                    <div style="height: 5px; border-left: 1px solid rgba(255,255,255,0.3); margin-right: -1px;"></div>
-                </div>
-                <div style="position: absolute; width: 100%; top: 8px; left: 0; display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary);">
-                    <span style="transform: translateX(-15%);">Best (${Math.round(tickValues[0])})</span>
-                    <span style="transform: translateX(-50%);">${Math.round(tickValues[1])}</span>
-                    <span style="transform: translateX(-50%);">${Math.round(tickValues[2])}</span>
-                    <span style="transform: translateX(-50%);">${Math.round(tickValues[3])}</span>
-                    <span style="transform: translateX(15%);">Worst (${Math.round(tickValues[4])})</span>
-                </div>
-            `;
-        }
-    } else {
-        elements.dashBellCurve.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 100%; width: 100%; opacity: 0.5; font-size: 0.9rem;">No match data available yet.</div>`;
-        if (elements.dashBellCurveLabels) {
-            elements.dashBellCurveLabels.innerHTML = `
-                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px;">
-                    <span>Best</span>
-                    <span>Worst</span>
-                </div>
-            `;
-        }
-    }
-}
-
-function generateCuratorScripts() {
-    const listToStage = state.leaderboardType === 'image' ? state.images : state.videos;
-    if (listToStage.length === 0) {
-        showToast("No media available.");
-        return;
-    }
-    const sortedList = [...listToStage].sort((a, b) => {
-        const idA = getFileId(a);
-        const idB = getFileId(b);
-        const oA = state.ratings[idA] ? getOrdinal(state.ratings[idA]) : 0;
-        const oB = state.ratings[idB] ? getOrdinal(state.ratings[idB]) : 0;
-        return oB - oA; // highest first
-    });
-
-    let thresholdPercent = parseInt(elements.curatorThreshold.value, 10);
-    if (isNaN(thresholdPercent) || thresholdPercent < 0) thresholdPercent = 10;
-    const numFiles = Math.max(1, Math.floor(sortedList.length * (thresholdPercent / 100)));
-    const topFiles = sortedList.slice(0, numFiles);
-
-    const names = topFiles.map(f => {
-        if (f.webkitRelativePath) {
-            const parts = f.webkitRelativePath.split('/');
-            if (parts.length > 1) return parts.slice(1).join('/');
-        }
-        return f.name;
-    });
-
-    const py = `import os
-import shutil
-
-# WARNING: If file paths lack directories, you MUST run this script inside the target folder!
-copied_count = 0
-favorites_dir = "favorites"
-
-if not os.path.exists(favorites_dir):
-    os.makedirs(favorites_dir)
-
-files = [
-${names.map(n => '  ' + JSON.stringify(n) + ',').join('\n')}
-]
-
-def get_unique_path(dest):
-    if not os.path.exists(dest): return dest
-    base, ext = os.path.splitext(dest)
-    counter = 1
-    while os.path.exists(f"{base}_{counter}{ext}"):
-        counter += 1
-    return f"{base}_{counter}{ext}"
-
-for f in files:
-  if os.path.exists(f):
-    try:
-      base_dest = os.path.join(favorites_dir, os.path.basename(f))
-      dest = get_unique_path(base_dest)
-      shutil.copy2(f, dest)
-      copied_count += 1
-    except Exception as e:
-      print(f"Error copying {f}: {e}")
-
-print(f"Successfully copied {copied_count} files to '{favorites_dir}'.")`;
-
-    elements.curatorScriptOutput.value = py;
-    elements.curatorScriptContainer.classList.remove('hidden');
-    showToast(`Curator script generated for top ${numFiles} files!`);
-}
-
-function generateScripts() {
-    if(state.stagedFilesMap.size === 0) {
-        showToast("No files left to delete.");
-        return;
-    }
-    elements.purgeModal.classList.add('active');
-    const names = Array.from(state.stagedFilesMap.values()).map(f => {
-        if (f.webkitRelativePath) {
-            const parts = f.webkitRelativePath.split('/');
-            if (parts.length > 1) return parts.slice(1).join('/');
-        }
-        return f.name;
-    });
-    const py = `import os
-# WARNING: If file paths lack directories, you MUST run this script inside the target folder!
-deleted_count = 0
-freed_bytes = 0
-files = [
-${names.map(n=>`  ${JSON.stringify(n)},`).join('\n')}
-]
-for f in files:
-  if os.path.exists(f):
-    try:
-      size = os.path.getsize(f)
-      os.remove(f)
-      freed_bytes += size
-      deleted_count += 1
-    except Exception as e:
-      print(f"Error deleting {f}: {e}")
-print(f"Successfully deleted {deleted_count} files, freeing {freed_bytes / (1024*1024):.2f} MB.")`;
-    elements.scriptOutput.value = py;
-    elements.scriptContainer.classList.remove('hidden');
-    elements.purgeStats.textContent = `Script ready for ${state.stagedFilesMap.size} files.`;
-    
-    const stagedIds = Array.from(state.stagedFilesMap.keys());
-    for (const id of stagedIds) {
-        if (!state.ratings[id]) state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0 };
-        state.ratings[id].blacklisted = true;
-    }
-    saveRatingsToStorage(stagedIds);
-}
-
-async function copyFavoritesDirectly() {
-    if (!window.showDirectoryPicker) {
-        showToast("File System Access API not supported by your browser.");
-        return;
-    }
-    const listToStage = state.leaderboardType === 'image' ? state.images : state.videos;
-    if (listToStage.length === 0) {
-        showToast("No media available.");
-        return;
-    }
-    const sortedList = [...listToStage].sort((a, b) => {
-        const idA = getFileId(a);
-        const idB = getFileId(b);
-        const oA = state.ratings[idA] ? getOrdinal(state.ratings[idA]) : 0;
-        const oB = state.ratings[idB] ? getOrdinal(state.ratings[idB]) : 0;
-        return oB - oA;
-    });
-
-    let thresholdPercent = parseInt(elements.curatorThreshold.value, 10);
-    if (isNaN(thresholdPercent) || thresholdPercent < 0) thresholdPercent = 10;
-    const numFiles = Math.max(1, Math.floor(sortedList.length * (thresholdPercent / 100)));
-    const topFiles = sortedList.slice(0, numFiles);
-
-    try {
-        const destDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-        elements.curatorModal.classList.remove('active');
-        showToast("Copying " + numFiles + " files...");
-        let copied = 0;
-        
-        for (const f of topFiles) {
-            try {
-                let finalName = f.name;
-                let counter = 1;
-                while (true) {
-                    try {
-                        await destDirHandle.getFileHandle(finalName);
-                        const dotIndex = f.name.lastIndexOf('.');
-                        const base = dotIndex !== -1 ? f.name.substring(0, dotIndex) : f.name;
-                        const ext = dotIndex !== -1 ? f.name.substring(dotIndex) : '';
-                        finalName = `${base}_${counter}${ext}`;
-                        counter++;
-                    } catch (e) {
-                        break;
-                    }
-                }
-                const newFileHandle = await destDirHandle.getFileHandle(finalName, { create: true });
-                const writable = await newFileHandle.createWritable();
-                await writable.write(f);
-                await writable.close();
-                copied++;
-            } catch (err) {
-                console.error(`Failed to copy ${f.name}:`, err);
+            headerActionsContainer.appendChild(btnScan);
+            
+            const btnSave = document.createElement('button'); btnSave.className = 'btn'; btnSave.innerHTML = '💾 SAVE'; btnSave.onclick = () => exportSave(false); headerActionsContainer.appendChild(btnSave);
+            if (currentScreen === 'arena') {
+                const btnUndo = document.createElement('button'); btnUndo.className = 'btn'; btnUndo.innerHTML = '↩ UNDO';
+                btnUndo.disabled = !previousState; btnUndo.onclick = undoAction; headerActionsContainer.appendChild(btnUndo);
             }
         }
-        showToast(`Successfully copied ${copied} files!`);
-    } catch (err) {
-        console.error(err);
-        showToast("Copy cancelled or failed.");
-    }
-}
+        document.addEventListener('fullscreenchange', updateHeaderActions);
 
-async function deleteStagedFilesDirectly() {
-    if (!window.showDirectoryPicker) {
-        showToast("Direct Delete is unsupported on Android browsers. Generating script instead...");
-        generateScripts();
-        return;
-    }
-    if(state.stagedFilesMap.size === 0) {
-        showToast("No files left to delete.");
-        return;
-    }
-    try {
-        showToast("Please select the root directory containing your media to allow deletion.");
-        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-        let deletedCount = 0;
-        let freedBytes = 0;
-        let processedIds = [];
-        elements.purgeModal.classList.remove('active');
+        function updateStats() {
+            let imgRanked = 0, imgTrashed = 0, imgTotal = 0;
+            let vidRanked = 0, vidTrashed = 0, vidTotal = 0;
 
-        for (const [id, f] of state.stagedFilesMap.entries()) {
-            const parts = f.webkitRelativePath ? f.webkitRelativePath.split('/') : [f.name];
-            let currentHandle = dirHandle;
-            try {
-                if (parts.length > 1) {
-                    const startIndex = (dirHandle.name === parts[0]) ? 1 : 0;
-                    for (let i = startIndex; i < parts.length - 1; i++) {
-                        currentHandle = await currentHandle.getDirectoryHandle(parts[i]);
-                    }
+            mediaKeys.forEach(k => {
+                const item = mediaData[k];
+                const isVid = isVideo(item.file);
+                if (isVid) { vidTotal++; if (item.trashed) vidTrashed++; if (!item.trashed && item.matches > 0) vidRanked++; }
+                else { imgTotal++; if (item.trashed) imgTrashed++; if (!item.trashed && item.matches > 0) imgRanked++; }
+            });
+
+            document.getElementById('stats-text').innerHTML = 
+                `IMG - RANKED: ${imgRanked} | TRASHED: ${imgTrashed} | TOTAL: ${imgTotal}<br>` +
+                `VID - RANKED: ${vidRanked} | TRASHED: ${vidTrashed} | TOTAL: ${vidTotal}`;
+        }
+
+        function isVideo(file) { return file.type.startsWith('video/'); }
+        function getActiveKeys() { return mediaKeys.filter(k => !mediaData[k].trashed && (mediaMode === 'video' ? isVideo(mediaData[k].file) : !isVideo(mediaData[k].file))); }
+
+        function pickNextBatch() {
+            if(isAnimating) return;
+            const active = getActiveKeys();
+            if (active.length < 2) { 
+                clearContainerAndRevoke('arena-grid');
+                currentBatchKeys = [];
+                document.getElementById('arena-grid').innerHTML = `<div style="margin:auto; text-align:center; padding:50px; grid-column: 1 / -1;"><h3 style="color:var(--primary); text-shadow:var(--glow);">NO MORE ${mediaMode.toUpperCase()}S LEFT</h3></div>`; 
+                return; 
+            }
+            
+            const discoveryPool = [];
+            const rankedPool = [];
+            active.forEach(k => {
+                if (mediaData[k].matches === 0) discoveryPool.push(k);
+                else rankedPool.push(k);
+            });
+
+            currentBatchKeys = [];
+            const numToPick = Math.min(10, active.length);
+
+            for(let i=discoveryPool.length-1; i>0; i--) {
+                const j = Math.floor(Math.random()*(i+1));
+                [discoveryPool[i], discoveryPool[j]] = [discoveryPool[j], discoveryPool[i]];
+            }
+
+            const numDiscovery = Math.min(discoveryPool.length, Math.ceil(numToPick * 0.3));
+            for(let i=0; i<numDiscovery; i++) currentBatchKeys.push(discoveryPool[i]);
+
+            const neededRanked = Math.min(numToPick - currentBatchKeys.length, rankedPool.length);
+            if (neededRanked > 0) {
+                let seedMu = 25;
+                if (rankedPool.length > 0) {
+                    const seedIndex = Math.floor(Math.random() * rankedPool.length);
+                    seedMu = mediaData[rankedPool[seedIndex]].mu;
+                    rankedPool.sort((a, b) => Math.abs(mediaData[a].mu - seedMu) - Math.abs(mediaData[b].mu - seedMu));
+                    for(let i=0; i<neededRanked; i++) currentBatchKeys.push(rankedPool[i]);
                 }
-                const filename = parts[parts.length - 1];
-                await currentHandle.removeEntry(filename);
-                freedBytes += f.size || 0;
-                deletedCount++;
-                processedIds.push(id);
-                state.stagedFilesMap.delete(id);
-                if (!state.ratings[id]) state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0 };
-                state.ratings[id].blacklisted = true;
-            } catch (err) {
-                console.error("Failed to delete", f.name, err);
+            }
+
+            let remaining = numToPick - currentBatchKeys.length;
+            let dIndex = numDiscovery;
+            while(remaining > 0 && dIndex < discoveryPool.length) {
+                currentBatchKeys.push(discoveryPool[dIndex]);
+                dIndex++; remaining--;
+            }
+
+            for(let i=currentBatchKeys.length-1; i>0; i--) {
+                const j = Math.floor(Math.random()*(i+1));
+                [currentBatchKeys[i], currentBatchKeys[j]] = [currentBatchKeys[j], currentBatchKeys[i]];
+            }
+            
+            rankedOrder = [];
+            renderArenaGrid();
+            updateHeaderActions(); 
+        }
+
+
+        function createMediaElement(file) {
+            let el = document.createElement(isVideo(file) ? 'video' : 'img'); 
+            const url = URL.createObjectURL(file);
+            el.src = url;
+            el.dataset.blobUrl = url;
+            if (isVideo(file)) { el.controls = true; el.autoplay = true; el.loop = true; el.muted = true; el.playsInline = true; }
+            return el;
+        }
+
+        function clearContainerAndRevoke(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const elements = container.querySelectorAll('[data-blob-url]');
+            elements.forEach(el => { URL.revokeObjectURL(el.dataset.blobUrl); });
+            container.innerHTML = '';
+        }
+
+        function renderArenaGrid() {
+            const container = document.getElementById('arena-grid');
+            container.innerHTML = '';
+            
+            currentBatchKeys.forEach((key) => {
+                const item = mediaData[key];
+                const card = document.createElement('div');
+                card.className = 'arena-card glass';
+                card.dataset.key = key;
+                
+                const mediaEl = createMediaElement(item.file);
+                if(mediaEl.tagName === 'VIDEO') mediaEl.removeAttribute('controls');
+                card.appendChild(mediaEl);
+                
+                let pressTimer;
+                let isDragging = false;
+                let hasLongPressed = false;
+                let startX = 0, startY = 0;
+                
+                card.addEventListener('pointerdown', (e) => {
+                    if (e.button !== 0 && e.pointerType === 'mouse') return;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    isDragging = false;
+                    hasLongPressed = false;
+                    pressTimer = setTimeout(() => {
+                        hasLongPressed = true;
+                        openFullscreen(item.file);
+                    }, 400);
+                });
+                
+                card.addEventListener('pointermove', (e) => {
+                    if (hasLongPressed) return;
+                    let dx = Math.abs(e.clientX - startX);
+                    let dy = Math.abs(e.clientY - startY);
+                    if (dx > 10 || dy > 10) {
+                        isDragging = true;
+                        clearTimeout(pressTimer);
+                    }
+                });
+                
+                card.addEventListener('pointerup', (e) => {
+                    clearTimeout(pressTimer);
+                    if(!isDragging && !hasLongPressed) { 
+                        handleArenaTap(key, card); 
+                    }
+                });
+                
+                card.addEventListener('pointercancel', () => {
+                    clearTimeout(pressTimer);
+                    isDragging = true;
+                });
+                
+                card.addEventListener('contextmenu', (e) => e.preventDefault());
+                
+                container.appendChild(card);
+            });
+        }
+
+        function handleArenaTap(key, cardEl) {
+            const rankIdx = rankedOrder.indexOf(key);
+            if (rankIdx > -1) {
+                rankedOrder.splice(rankIdx, 1);
+                cardEl.classList.remove('ranked');
+                const badge = cardEl.querySelector('.rank-badge');
+                if (badge) badge.remove();
+                
+                rankedOrder.forEach((k, idx) => {
+                    const el = document.querySelector(`.arena-card[data-key="${CSS.escape(k)}"]`);
+                    if (el) {
+                        const b = el.querySelector('.rank-badge');
+                        if (b) b.textContent = `#${idx + 1}`;
+                    }
+                });
+            } else {
+                rankedOrder.push(key);
+                cardEl.classList.add('ranked');
+                const badge = document.createElement('div');
+                badge.className = 'rank-badge';
+                badge.textContent = `#${rankedOrder.length}`;
+                cardEl.appendChild(badge);
             }
         }
-        if (processedIds.length > 0) saveRatingsToStorage(processedIds);
-        showToast(`Successfully deleted ${deletedCount} files, freeing ${(freedBytes / (1024*1024)).toFixed(2)} MB.`);
-    } catch (err) {
-        console.error(err);
-        showToast("Deletion cancelled or failed.");
-    }
-}
+
+        document.getElementById('btn-fullscreen-menu').addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('fullscreen-dropdown').classList.toggle('hidden');
+        });
+        
+        document.getElementById('fullscreen-view-modal').addEventListener('click', (e) => {
+            if (e.target.id !== 'btn-fullscreen-menu' && !e.target.closest('#fullscreen-dropdown')) {
+                document.getElementById('fullscreen-dropdown').classList.add('hidden');
+            }
+        });
+
+        function openFullscreen(file) {
+            const modal = document.getElementById('fullscreen-view-modal');
+            const content = document.getElementById('fullscreen-content');
+            clearContainerAndRevoke('fullscreen-content');
+            
+            document.getElementById('fullscreen-dropdown').classList.add('hidden');
+            document.getElementById('fullscreen-info-path').textContent = file.webkitRelativePath || file.name;
+            document.getElementById('btn-fullscreen-share').onclick = async () => {
+                if(navigator.share) await navigator.share({files: [file]}).catch(e=>{});
+                else alert("Share not supported on this browser.");
+            };
+
+            const el = createMediaElement(file);
+            el.style.width = '100%'; el.style.height = '100%'; el.style.objectFit = 'contain';
+            if(el.tagName === 'VIDEO') { el.controls = true; el.play().catch(()=>{}); }
+            content.appendChild(el);
+            modal.classList.remove('hidden');
+            history.pushState({ fullscreen: true }, '');
+        }
+        
+        function closeFullscreen() {
+            const modal = document.getElementById('fullscreen-view-modal');
+            modal.classList.add('hidden');
+            const content = document.getElementById('fullscreen-content');
+            if(content.firstChild && content.firstChild.tagName === 'VIDEO') content.firstChild.pause();
+            clearContainerAndRevoke('fullscreen-content');
+        }
+
+        window.addEventListener('popstate', (e) => {
+            if (!document.getElementById('fullscreen-view-modal').classList.contains('hidden')) closeFullscreen();
+        });
+        
+        document.getElementById('btn-close-fullscreen').addEventListener('click', () => {
+            if (history.state && history.state.fullscreen) { history.back(); } else { closeFullscreen(); }
+        });
+
+        document.getElementById('btn-arena-submit').addEventListener('click', () => submitBatch(false));
+        document.getElementById('btn-arena-trash-unranked').addEventListener('click', () => submitBatch(true));
+
+        let isProcessing = false;
+        async function submitBatch(trashUnranked) {
+            if (isProcessing || currentBatchKeys.length < 2) return;
+            if (rankedOrder.length === 0 && !trashUnranked) { alert("Tap at least one item to rank it!"); return; }
+            
+            isProcessing = true;
+            isAnimating = true; 
+            saveHistory();
+            
+            // JIT Hashing
+            await Promise.all(currentBatchKeys.map(k => ensureHashedAndHealed(k)));
+            
+            if (rankedOrder.length === 0 && trashUnranked) {
+                currentBatchKeys.forEach(k => mediaData[k].trashed = true);
+                isProcessing = false; isAnimating = false;
+                pickNextBatch(); updateStats(); autoSaveToDB(); return;
+            }
+            
+            const untappeds = currentBatchKeys.filter(k => !rankedOrder.includes(k));
+            let teams = []; let ranks = [];
+            
+            rankedOrder.forEach((k, idx) => {
+                teams.push([{ mu: mediaData[k].mu, sigma: mediaData[k].sigma, key: k }]);
+                ranks.push(idx + 1);
+            });
+            
+            const lastRank = rankedOrder.length + 1;
+            untappeds.forEach(k => {
+                teams.push([{ mu: mediaData[k].mu, sigma: mediaData[k].sigma, key: k }]);
+                ranks.push(lastRank);
+            });
+            
+            if (teams.length > 1) {
+                const newRatings = rate(teams, { rank: ranks });
+                teams.forEach((team, teamIdx) => {
+                    const key = team[0].key;
+                    mediaData[key].mu = newRatings[teamIdx][0].mu;
+                    mediaData[key].sigma = newRatings[teamIdx][0].sigma;
+                    mediaData[key].matches++;
+                });
+            } else if (teams.length === 1) { mediaData[teams[0][0].key].matches++; }
+            
+            if (trashUnranked) {
+                untappeds.forEach(k => { mediaData[k].trashed = true; });
+            }
+            
+            isProcessing = false; isAnimating = false; pickNextBatch(); updateStats(); autoSaveToDB();
+        }
+
+        function saveHistory() {
+            if(currentBatchKeys.length === 0) return;
+            previousState = { keys: [...currentBatchKeys], data: currentBatchKeys.reduce((acc, k) => { acc[k] = {...mediaData[k]}; return acc; }, {}) };
+            updateHeaderActions();
+        }
+
+        function undoAction() {
+            if(!previousState || isAnimating) return;
+            const {keys, data} = previousState;
+            keys.forEach(k => { Object.assign(mediaData[k], data[k]); });
+            currentBatchKeys = keys; rankedOrder = []; previousState = null; 
+            renderArenaGrid(); updateHeaderActions(); updateStats(); autoSaveToDB();
+        }
+
+        // --- Grids & Feed View ---
+        function renderGridItems(keys, containerId, page, isTrash) {
+            const container = document.getElementById(containerId);
+            const showScores = document.getElementById('show-scores-chk') && document.getElementById('show-scores-chk').checked;
+            const slice = keys.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+            if(slice.length === 0) return false;
+
+            slice.forEach((k, index) => {
+                const item = mediaData[k];
+                const el = document.createElement('div'); el.className = 'grid-item glass';
+                
+                const thumb = document.createElement('div'); thumb.className = 'media-thumb';
+                const mediaEl = createMediaElement(item.file);
+                if(mediaEl.tagName === 'VIDEO') mediaEl.removeAttribute('controls');
+                thumb.appendChild(mediaEl); el.appendChild(thumb);
+
+                if(!isTrash) el.onclick = () => openDetailView(keys, page * PAGE_SIZE + index);
+
+                const footer = document.createElement('div'); footer.className = 'grid-footer';
+                const rankText = isTrash ? 'TRASHED' : `#${page * PAGE_SIZE + index + 1}`;
+                footer.innerHTML = `<span class="grid-badge">${rankText}</span>`;
+                
+                if(showScores || isTrash) { const sc = document.createElement('span'); sc.className = 'grid-score'; sc.textContent = `μ:${item.mu.toFixed(1)} σ:${item.sigma.toFixed(1)} ⚔️${item.matches}`; footer.appendChild(sc); }
+                
+                if (isTrash) {
+                    const resBtn = document.createElement('button'); resBtn.className = 'btn success'; resBtn.textContent = '♻️ RESTORE'; resBtn.style.padding='4px'; resBtn.style.fontSize='0.65rem';
+                    resBtn.onclick = (e) => { 
+                        e.stopPropagation(); mediaData[k].trashed = false; 
+                        const blobEl = el.querySelector('[data-blob-url]');
+                        if (blobEl) URL.revokeObjectURL(blobEl.dataset.blobUrl);
+                        el.remove(); updateStats(); autoSaveToDB();
+                    }; footer.appendChild(resBtn);
+                }
+                el.appendChild(footer); container.appendChild(el);
+            });
+            return true;
+        }
+
+        function loadLeaderboardPage() {
+            let keys = mediaKeys.filter(k => !mediaData[k].trashed && mediaData[k].matches > 0 && (mediaMode === 'video' ? isVideo(mediaData[k].file) : !isVideo(mediaData[k].file))).sort((a, b) => ordinal(mediaData[b]) - ordinal(mediaData[a]));
+            if (sortOrder === 'asc') keys.reverse();
+            if(renderGridItems(keys, 'leaderboard-grid', leaderboardPage, false)) leaderboardPage++;
+        }
+        function loadTrashPage() {
+            const keys = mediaKeys.filter(k => mediaData[k].trashed && (mediaMode === 'video' ? isVideo(mediaData[k].file) : !isVideo(mediaData[k].file)));
+            if(renderGridItems(keys, 'trash-grid', trashPage, true)) trashPage++;
+        }
+
+        document.getElementById('show-scores-chk').addEventListener('change', () => refreshCurrentScreen());
+        const lbObserver = new IntersectionObserver((ents) => { if(ents[0].isIntersecting && currentScreen === 'leaderboard') loadLeaderboardPage(); }); lbObserver.observe(document.getElementById('leaderboard-trigger'));
+        const trObserver = new IntersectionObserver((ents) => { if(ents[0].isIntersecting && currentScreen === 'trash') loadTrashPage(); }); trObserver.observe(document.getElementById('trash-trigger'));
+
+        // --- Detail Feed View ---
+        let detailKeys = []; let feedStartIndex = 0; let feedCurrentRendered = 0;
+        
+        const feedVideoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const vid = entry.target.querySelector('video');
+                if (vid) { if (entry.isIntersecting) vid.play().catch(e=>{}); else vid.pause(); }
+                if (entry.isIntersecting) { document.getElementById('detail-rank-header').textContent = `RANK #${parseInt(entry.target.dataset.index) + 1}`; }
+            });
+        }, { threshold: 0.5 });
+
+        const feedLoadObserver = new IntersectionObserver((ents) => {
+            if(ents[0].isIntersecting && !document.getElementById('detail-view-modal').classList.contains('hidden')) {
+                loadMoreFeed();
+            }
+        }, {rootMargin: "500px"});
+        feedLoadObserver.observe(document.getElementById('detail-feed-trigger'));
+
+        function openDetailView(keys, index) {
+            detailKeys = keys; 
+            feedStartIndex = Math.max(0, index - PAGE_SIZE); 
+            feedCurrentRendered = 0;
+            clearContainerAndRevoke('detail-feed-container');
+            document.getElementById('detail-view-modal').classList.remove('hidden');
+            
+            const container = document.getElementById('detail-feed-container');
+            const end = Math.min(index + PAGE_SIZE, detailKeys.length);
+            for (let i = feedStartIndex; i < end; i++) {
+                renderFeedItem(i, container);
+            }
+            feedCurrentRendered = end - feedStartIndex;
+            
+            setTimeout(() => {
+                const target = container.querySelector(`[data-index="${index}"]`);
+                if(target) target.scrollIntoView();
+            }, 50);
+        }
+
+        function renderFeedItem(i, container) {
+            const k = detailKeys[i]; const item = mediaData[k];
+            const feedItem = document.createElement('div'); feedItem.className = 'detail-feed-item';
+            feedItem.dataset.index = i; feedItem.dataset.key = k;
+
+            const content = document.createElement('div'); content.className = 'detail-content';
+            content.appendChild(createMediaElement(item.file)); feedItem.appendChild(content);
+
+            const footer = document.createElement('div'); footer.className = 'detail-footer';
+            footer.innerHTML = `<div style="color:var(--primary); font-family:Orbitron; font-size:0.85rem; margin-bottom: 5px;">μ: ${item.mu.toFixed(2)} | σ: ${item.sigma.toFixed(2)} | ⚔️: ${item.matches}</div><div style="color:var(--danger); font-size:0.75rem; font-family:Orbitron; letter-spacing: 1px;">⇦ SWIPE LEFT TO TRASH</div>`;
+            feedItem.appendChild(footer); container.appendChild(feedItem);
+
+            feedVideoObserver.observe(feedItem);
+            attachFeedGestures(feedItem, i);
+        }
+
+        function loadMoreFeed() {
+            const container = document.getElementById('detail-feed-container');
+            const end = Math.min(feedStartIndex + feedCurrentRendered + PAGE_SIZE, detailKeys.length);
+            for (let i = feedStartIndex + feedCurrentRendered; i < end; i++) {
+                renderFeedItem(i, container);
+            }
+            feedCurrentRendered += (end - (feedStartIndex + feedCurrentRendered));
+        }
+
+        document.getElementById('btn-close-detail').addEventListener('click', () => {
+            document.getElementById('detail-view-modal').classList.add('hidden');
+            clearContainerAndRevoke('detail-feed-container');
+            refreshCurrentScreen();
+        });
+
+        function attachFeedGestures(el, index) {
+            let startX=0, startY=0, curX=0, curY=0, isDrag=false, isH=false, isV=false;
+            el.addEventListener('touchstart', e => {
+                if(e.target.tagName === 'VIDEO' && e.touches[0].clientY > e.target.getBoundingClientRect().bottom - 60) return;
+                startX = e.touches[0].clientX; startY = e.touches[0].clientY; curX = startX; curY = startY;
+                isDrag = true; isH = false; isV = false; el.style.transition = 'none';
+            }, {passive: true});
+            el.addEventListener('touchmove', e => {
+                if(!isDrag) return;
+                curX = e.touches[0].clientX; curY = e.touches[0].clientY; let diffX = curX - startX; let diffY = curY - startY;
+                if(!isH && !isV) { if(Math.abs(diffX) > 20) isH = true; else if(Math.abs(diffY) > 20) isV = true; }
+                if(isH) { if(e.cancelable) e.preventDefault(); el.style.transform = `translateX(${diffX}px) rotate(${diffX*0.02}deg)`; }
+            }, {passive: false});
+            el.addEventListener('touchcancel', () => {
+                if(!isDrag) return; isDrag = false; el.style.transition = 'transform 0.3s ease'; el.style.transform = '';
+            });
+            el.addEventListener('touchend', e => {
+                if(!isDrag) return; isDrag = false; let diffX = curX - startX; el.style.transition = 'transform 0.3s ease, height 0.3s ease, opacity 0.3s ease';
+                if (isH && diffX < -100) {
+                    el.style.transform = `translateX(-100vw)`;
+                    setTimeout(() => {
+                        mediaData[el.dataset.key].trashed = true; updateStats(); autoSaveToDB();
+                        const blobEl = el.querySelector('[data-blob-url]');
+                        if (blobEl) URL.revokeObjectURL(blobEl.dataset.blobUrl);
+                        el.style.height = '0'; el.style.opacity = '0';
+                        setTimeout(() => {
+                            el.remove();
+                            // If we trashed the last item and feed is empty, close.
+                            if(document.getElementById('detail-feed-container').children.length === 0) {
+                                document.getElementById('btn-close-detail').click();
+                            }
+                        }, 300);
+                    }, 300);
+                } else { el.style.transform = ''; }
+            });
+        }
+
+        // --- Export & Backups ---
+        function getFormattedDateTime() {
+            const now = new Date();
+            const y = now.getFullYear(); const m = String(now.getMonth()+1).padStart(2,'0'); const d = String(now.getDate()).padStart(2,'0');
+            const hh = String(now.getHours()).padStart(2,'0'); const mm = String(now.getMinutes()).padStart(2,'0'); const ss = String(now.getSeconds()).padStart(2,'0');
+            return `${y}-${m}-${d}_${hh}-${mm}-${ss}`;
+        }
+
+        function exportSave(isAuto = false) {
+            if (!isAuto && currentSaveName === "save" && !loadedSaveData) {
+                const userChoice = prompt("Enter a name for this backup session:", "MySession");
+                if (userChoice === null) return;
+                currentSaveName = userChoice.trim() || "MySession";
+            }
+            let baseName = currentSaveName;
+            if (isAuto && currentSaveName === "save" && !loadedSaveData) baseName = "autosave";
+
+            const saveObj = {}; 
+            mediaKeys.forEach(k => { 
+                if((mediaData[k].matches > 0 || mediaData[k].trashed) && mediaData[k].hash) {
+                    const h = mediaData[k].hash;
+                    if (!saveObj[h]) saveObj[h] = { mu: mediaData[k].mu, sigma: mediaData[k].sigma, trashed: mediaData[k].trashed, matches: mediaData[k].matches, known_paths: [] };
+                    saveObj[h].known_paths.push(k);
+                }
+            });
+            downloadBlob(JSON.stringify(saveObj), 'application/json', `${baseName}_${getFormattedDateTime()}.json`);
+        }
 
 
 
-window.handleMediaError = function() {
-    destroyPanzoomAndWheel();
-    elements.mediaContainer.innerHTML = `
-        <div class="empty-state glass-panel" style="padding: 40px; border: 2px dashed rgba(255, 71, 87, 0.5);">
-            <i class="fa-solid fa-triangle-exclamation" style="font-size: 48px; margin-bottom: 15px; color: var(--accent-red);"></i>
-            <h2 style="color: var(--accent-red);">Corrupted Media</h2>
-            <p>This file is corrupted or its format is unsupported by your browser.</p>
-            <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">Tip: You can use the Executioner tool to safely queue this broken file for deletion.</p>
-        </div>
-    `;
-};
+        document.getElementById('btn-export-script').addEventListener('click', () => {
+            let script = `import os
 
-document.addEventListener('DOMContentLoaded', init);
+# Run this script inside your selected media folder!
+files_to_delete = [
+`; 
+            mediaKeys.filter(k => mediaData[k].trashed).forEach(k => script += `    r'''${k}''',
+`);
+            script += `]
 
-// Resize Handle Logic
-let isResizing = false;
-let startY = 0;
-let startSize = 60;
-const resizeHandle = document.getElementById('footer-resize-handle');
-resizeHandle.addEventListener('pointerdown', (e) => {
-    isResizing = true;
-    startY = e.clientY;
-    const rootStyles = getComputedStyle(document.documentElement);
-    startSize = parseInt(rootStyles.getPropertyValue('--thumb-size')) || 60;
-    document.body.style.userSelect = 'none';
-    resizeHandle.setPointerCapture(e.pointerId);
-});
-resizeHandle.addEventListener('pointermove', (e) => {
-    if (!isResizing) return;
-    const dy = startY - e.clientY;
-    let newSize = startSize + dy;
-    if (newSize < 40) newSize = 40;
-    if (newSize > window.innerHeight * 0.5) newSize = window.innerHeight * 0.5;
-    document.documentElement.style.setProperty('--thumb-size', `${newSize}px`);
-});
-resizeHandle.addEventListener('pointerup', (e) => {
-    isResizing = false;
-    document.body.style.userSelect = '';
-});
-resizeHandle.addEventListener('pointercancel', (e) => {
-    isResizing = false;
-    document.body.style.userSelect = '';
-});
-</script>
+for f in files_to_delete:
+    try:
+        os.remove(f)
+        print(f'Deleted: {f}')
+    except Exception as e:
+        print(f'Error deleting {f}: {e}')
+`;
+            downloadBlob(script, 'text/plain', `cleanup_script.py`);
+        });
+        function downloadBlob(content, type, filename) { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
+        document.getElementById('btn-stop-scan').addEventListener('click', () => { scanCancel = true; });
+        document.getElementById('btn-wipe-db').addEventListener('click', () => {
+            if(confirm("Are you sure you want to delete the local IndexedDB cache? All progress not exported will be lost.")) {
+                indexedDB.deleteDatabase('DynamicMediaSorterDB');
+                alert("Cache wiped. Please reload the page.");
+                location.reload();
+            }
+        });
+    </script>
 </body>
 </html>
