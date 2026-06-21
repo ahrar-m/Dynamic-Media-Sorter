@@ -485,17 +485,51 @@
         function pickNextBatch() {
             if(isAnimating) return;
             const active = getActiveKeys();
-            if (active.length < 2) { document.getElementById('arena-grid').innerHTML = `<div style="margin:auto; text-align:center; padding:50px; grid-column: 1 / -1;"><h3 style="color:var(--primary); text-shadow:var(--glow);">NO MORE ${mediaMode.toUpperCase()}S LEFT</h3></div>`; return; }
+            if (active.length < 2) { 
+                clearContainerAndRevoke('arena-grid');
+                document.getElementById('arena-grid').innerHTML = `<div style="margin:auto; text-align:center; padding:50px; grid-column: 1 / -1;"><h3 style="color:var(--primary); text-shadow:var(--glow);">NO MORE ${mediaMode.toUpperCase()}S LEFT</h3></div>`; 
+                return; 
+            }
             
-            active.sort((a,b) => mediaData[a].matches - mediaData[b].matches);
-            const poolSize = Math.min(active.length, 50);
-            const pool = active.slice(0, poolSize);
-            
+            const discoveryPool = [];
+            const rankedPool = [];
+            active.forEach(k => {
+                if (mediaData[k].matches === 0) discoveryPool.push(k);
+                else rankedPool.push(k);
+            });
+
             currentBatchKeys = [];
             const numToPick = Math.min(10, active.length);
-            for(let i=0; i<numToPick; i++) {
-                const rIdx = Math.floor(Math.random() * pool.length);
-                currentBatchKeys.push(pool.splice(rIdx, 1)[0]);
+
+            for(let i=discoveryPool.length-1; i>0; i--) {
+                const j = Math.floor(Math.random()*(i+1));
+                [discoveryPool[i], discoveryPool[j]] = [discoveryPool[j], discoveryPool[i]];
+            }
+
+            const numDiscovery = Math.min(discoveryPool.length, Math.ceil(numToPick * 0.3));
+            for(let i=0; i<numDiscovery; i++) currentBatchKeys.push(discoveryPool[i]);
+
+            const neededRanked = Math.min(numToPick - currentBatchKeys.length, rankedPool.length);
+            if (neededRanked > 0) {
+                let seedMu = 25;
+                if (rankedPool.length > 0) {
+                    const seedIndex = Math.floor(Math.random() * rankedPool.length);
+                    seedMu = mediaData[rankedPool[seedIndex]].mu;
+                    rankedPool.sort((a, b) => Math.abs(mediaData[a].mu - seedMu) - Math.abs(mediaData[b].mu - seedMu));
+                    for(let i=0; i<neededRanked; i++) currentBatchKeys.push(rankedPool[i]);
+                }
+            }
+
+            let remaining = numToPick - currentBatchKeys.length;
+            let dIndex = numDiscovery;
+            while(remaining > 0 && dIndex < discoveryPool.length) {
+                currentBatchKeys.push(discoveryPool[dIndex]);
+                dIndex++; remaining--;
+            }
+
+            for(let i=currentBatchKeys.length-1; i>0; i--) {
+                const j = Math.floor(Math.random()*(i+1));
+                [currentBatchKeys[i], currentBatchKeys[j]] = [currentBatchKeys[j], currentBatchKeys[i]];
             }
             
             rankedOrder = [];
@@ -674,8 +708,8 @@
             
             const lastRank = rankedOrder.length + 1;
             untappeds.forEach(k => {
-                if (trashUnranked) { mediaData[k].trashed = true; } 
-                else { teams.push([{ mu: mediaData[k].mu, sigma: mediaData[k].sigma, key: k }]); ranks.push(lastRank); }
+                teams.push([{ mu: mediaData[k].mu, sigma: mediaData[k].sigma, key: k }]);
+                ranks.push(lastRank);
             });
             
             if (teams.length > 1) {
@@ -687,6 +721,10 @@
                     mediaData[key].matches++;
                 });
             } else if (teams.length === 1) { mediaData[teams[0][0].key].matches++; }
+            
+            if (trashUnranked) {
+                untappeds.forEach(k => { mediaData[k].trashed = true; });
+            }
             
             isAnimating = false; pickNextBatch(); updateStats(); autoSaveToDB();
         }
