@@ -138,7 +138,7 @@
             display: flex; flex-direction: column; background: #000; cursor: pointer; transition: border-color 0.2s;
         }
         .grid-item:hover { border-color: var(--primary); }
-        .grid-item .media-thumb { position: relative; height: 140px; width: 100%; overflow: hidden; }
+        .grid-item .media-thumb { position: relative; aspect-ratio: 1/1; width: 100%; overflow: hidden; }
         .grid-item img, .grid-item video { width: 100%; height: 100%; object-fit: cover; }
         
         .grid-footer {
@@ -856,10 +856,30 @@
             const imgRect = img.getBoundingClientRect();
             const frameRect = document.getElementById('crop-frame-box').getBoundingClientRect();
             
-            let x = ((frameRect.left - imgRect.left) / imgRect.width) * 100;
-            let y = ((frameRect.top - imgRect.top) / imgRect.height) * 100;
-            let w = (frameRect.width / imgRect.width) * 100;
-            let h = (frameRect.height / imgRect.height) * 100;
+            const naturalWidth = img.naturalWidth;
+            const naturalHeight = img.naturalHeight;
+            const imgRatio = naturalWidth / naturalHeight;
+            const containerRatio = imgRect.width / imgRect.height;
+            
+            let contentWidth, contentHeight, contentLeft, contentTop;
+            if (imgRatio > containerRatio) {
+                // Letterboxed (horizontal black bars at top and bottom)
+                contentWidth = imgRect.width;
+                contentHeight = imgRect.width / imgRatio;
+                contentLeft = imgRect.left;
+                contentTop = imgRect.top + (imgRect.height - contentHeight) / 2;
+            } else {
+                // Pillarboxed (vertical black bars at sides)
+                contentHeight = imgRect.height;
+                contentWidth = imgRect.height * imgRatio;
+                contentLeft = imgRect.left + (imgRect.width - contentWidth) / 2;
+                contentTop = imgRect.top;
+            }
+            
+            let x = ((frameRect.left - contentLeft) / contentWidth) * 100;
+            let y = ((frameRect.top - contentTop) / contentHeight) * 100;
+            let w = (frameRect.width / contentWidth) * 100;
+            let h = (frameRect.height / contentHeight) * 100;
             
             if (w <= 100) {
                 if (x < 0) x = 0;
@@ -958,6 +978,9 @@
         window.addEventListener('hashchange', (e) => {
             if (location.hash !== '#fullscreen' && !document.getElementById('fullscreen-view-modal').classList.contains('hidden')) {
                 closeFullscreen();
+            }
+            if (location.hash !== '#detail' && !document.getElementById('detail-view-modal').classList.contains('hidden')) {
+                if (typeof closeDetailView === 'function') closeDetailView();
             }
         });
         
@@ -1142,6 +1165,7 @@
             feedCurrentRendered = 0;
             clearContainerAndRevoke('detail-feed-container');
             document.getElementById('detail-view-modal').classList.remove('hidden');
+            location.hash = 'detail';
             
             const container = document.getElementById('detail-feed-container');
             const end = Math.min(index + PAGE_SIZE, detailKeys.length);
@@ -1185,10 +1209,14 @@
             feedCurrentRendered += (end - (feedStartIndex + feedCurrentRendered));
         }
 
-        document.getElementById('btn-close-detail').addEventListener('click', () => {
+        function closeDetailView() {
             document.getElementById('detail-view-modal').classList.add('hidden');
             clearContainerAndRevoke('detail-feed-container');
             refreshCurrentScreen();
+        }
+
+        document.getElementById('btn-close-detail').addEventListener('click', () => {
+            if (location.hash === '#detail') { history.back(); } else { closeDetailView(); }
         });
 
         function attachFeedGestures(el, index) {
