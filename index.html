@@ -86,7 +86,7 @@
         #home-screen { align-items: center; justify-content: center; text-align: center; padding: 20px; }
         #home-screen h1 { font-size: 2.5rem; margin-bottom: 15px; color: var(--primary); text-shadow: var(--glow); }
         .action-cards { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 30px; }
-        .card { padding: 30px; width: 300px; border-radius: 8px; }
+        .card { padding: 30px; width: 100%; max-width: 300px; border-radius: 8px; }
         .card input[type="file"] { display: none; }
 
                 .arena-grid { padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; flex: 1; align-content: start; }
@@ -302,11 +302,23 @@
         const screens = { home: document.getElementById('home-screen'), arena: document.getElementById('arena-screen'), leaderboard: document.getElementById('leaderboard-screen'), trash: document.getElementById('trash-screen') };
         // --- IndexedDB Setup ---
         let db;
-        const request = indexedDB.open('DynamicMediaSorterDB', 1);
-        request.onupgradeneeded = function(e) {
-            db = e.target.result;
-            if (!db.objectStoreNames.contains('saves')) { db.createObjectStore('saves', { keyPath: 'id' }); }
-        };
+        let request;
+        try {
+            request = indexedDB.open('DynamicMediaSorterDB', 1);
+            request.onupgradeneeded = function(e) {
+                db = e.target.result;
+                if (!db.objectStoreNames.contains('saves')) { db.createObjectStore('saves', { keyPath: 'id' }); }
+            };
+            request.onsuccess = function(e) {
+                db = e.target.result;
+                loadFromDB();
+            };
+            request.onerror = function(e) {
+                console.error("IDB error", e);
+            };
+        } catch (e) {
+            console.error("IDB Blocked", e);
+        }
         request.onsuccess = function(e) {
             db = e.target.result;
             loadFromDB();
@@ -411,11 +423,10 @@
         }
 
         function refreshCurrentScreen() {
+            updateStats();
             document.getElementById('main-scroll').scrollTo(0,0);
-            if (currentScreen === 'arena') pickNextBatch();
             if (currentScreen === 'leaderboard') { leaderboardPage = 0; clearContainerAndRevoke('leaderboard-grid'); loadLeaderboardPage(); }
             if (currentScreen === 'trash') { trashPage = 0; clearContainerAndRevoke('trash-grid'); loadTrashPage(); }
-            updateStats();
         }
 
         function updateHeaderActions() {
@@ -487,6 +498,7 @@
             const active = getActiveKeys();
             if (active.length < 2) { 
                 clearContainerAndRevoke('arena-grid');
+                currentBatchKeys = [];
                 document.getElementById('arena-grid').innerHTML = `<div style="margin:auto; text-align:center; padding:50px; grid-column: 1 / -1;"><h3 style="color:var(--primary); text-shadow:var(--glow);">NO MORE ${mediaMode.toUpperCase()}S LEFT</h3></div>`; 
                 return; 
             }
@@ -535,6 +547,20 @@
             rankedOrder = [];
             renderArenaGrid();
             updateHeaderActions(); 
+        }
+
+        function undoAction() {
+            if (!previousState) return;
+            previousState.keys.forEach(k => {
+                mediaData[k] = {...previousState.data[k]};
+            });
+            currentBatchKeys = [...previousState.keys];
+            rankedOrder = [];
+            previousState = null;
+            renderArenaGrid();
+            updateStats();
+            updateHeaderActions();
+            autoSaveToDB();
         }
 
         function createMediaElement(file) {
@@ -622,7 +648,7 @@
                 if (badge) badge.remove();
                 
                 rankedOrder.forEach((k, idx) => {
-                    const el = document.querySelector(`.arena-card[data-key="${k}"]`);
+                    const el = document.querySelector(`.arena-card[data-key="${CSS.escape(k)}"]`);
                     if (el) {
                         const b = el.querySelector('.rank-badge');
                         if (b) b.textContent = `#${idx + 1}`;
@@ -674,7 +700,7 @@
             modal.classList.add('hidden');
             const content = document.getElementById('fullscreen-content');
             if(content.firstChild && content.firstChild.tagName === 'VIDEO') content.firstChild.pause();
-            content.innerHTML = '';
+            clearContainerAndRevoke('fullscreen-content');
         }
 
         window.addEventListener('popstate', (e) => {
@@ -688,15 +714,23 @@
         document.getElementById('btn-arena-submit').addEventListener('click', () => submitBatch(false));
         document.getElementById('btn-arena-trash-unranked').addEventListener('click', () => submitBatch(true));
 
-        function submitBatch(trashUnranked) {
-            if (currentBatchKeys.length < 2) return;
+        let isProcessing = false;
+        async function submitBatch(trashUnranked) {
+            if (isProcessing || currentBatchKeys.length < 2) return;
             if (rankedOrder.length === 0 && !trashUnranked) { alert("Tap at least one item to rank it!"); return; }
+            
+            isProcessing = true;
+            isAnimating = true; 
+            saveHistory();
+            
+            // JIT Hashing
+            await Promise.all(currentBatchKeys.map(k => ensureHashedAndHealed(k)));
+            
             if (rankedOrder.length === 0 && trashUnranked) {
                 currentBatchKeys.forEach(k => mediaData[k].trashed = true);
-                pickNextBatch(); updateStats(); return;
+                isProcessing = false; isAnimating = false;
+                pickNextBatch(); updateStats(); autoSaveToDB(); return;
             }
-            
-            isAnimating = true; saveHistory();
             
             const untappeds = currentBatchKeys.filter(k => !rankedOrder.includes(k));
             let teams = []; let ranks = [];
@@ -726,7 +760,7 @@
                 untappeds.forEach(k => { mediaData[k].trashed = true; });
             }
             
-            isAnimating = false; pickNextBatch(); updateStats(); autoSaveToDB();
+            isProcessing = false; isAnimating = false; pickNextBatch(); updateStats(); autoSaveToDB();
         }
 
         function saveHistory() {
@@ -867,7 +901,7 @@
         function attachFeedGestures(el, index) {
             let startX=0, startY=0, curX=0, curY=0, isDrag=false, isH=false, isV=false;
             el.addEventListener('touchstart', e => {
-                if(e.target.tagName === 'VIDEO' && e.touches[0].clientY > el.getBoundingClientRect().bottom - 90) return;
+                if(e.target.tagName === 'VIDEO' && e.touches[0].clientY > e.target.getBoundingClientRect().bottom - 60) return;
                 startX = e.touches[0].clientX; startY = e.touches[0].clientY; curX = startX; curY = startY;
                 isDrag = true; isH = false; isV = false; el.style.transition = 'none';
             }, {passive: true});
@@ -877,6 +911,9 @@
                 if(!isH && !isV) { if(Math.abs(diffX) > 20) isH = true; else if(Math.abs(diffY) > 20) isV = true; }
                 if(isH) { if(e.cancelable) e.preventDefault(); el.style.transform = `translateX(${diffX}px) rotate(${diffX*0.02}deg)`; }
             }, {passive: false});
+            el.addEventListener('touchcancel', () => {
+                if(!isDrag) return; isDrag = false; el.style.transition = 'transform 0.3s ease'; el.style.transform = '';
+            });
             el.addEventListener('touchend', e => {
                 if(!isDrag) return; isDrag = false; let diffX = curX - startX; el.style.transition = 'transform 0.3s ease, height 0.3s ease, opacity 0.3s ease';
                 if (isH && diffX < -100) {
@@ -948,6 +985,7 @@ for f in files_to_delete:
             downloadBlob(script, 'text/plain', `cleanup_script.py`);
         });
         function downloadBlob(content, type, filename) { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
+        document.getElementById('btn-stop-scan').addEventListener('click', () => { scanCancel = true; });
     </script>
 </body>
 </html>
