@@ -16,10 +16,9 @@
 ## Technical Architecture & Design Decisions
 - **UI & Navigation**: 
   - **Bottom Navigation Bar**: Modern, app-like navigation with icons for Arena, Leaderboard, and Trash.
-  - **Full Screen Mode**: Added a dedicated full-screen button to the top bar for an uninterrupted sorting experience.
-  - **Clean Layout**: UI elements are compact. Absolutely no overlays on top of the images/videos in the arena.
-  - **Scrollable & Responsive**: The app allows natural vertical scrolling where necessary, using `100dvh` to prevent mobile browser cutoff.
+  - **Clean Layout**: The winner/trash buttons are removed. Media fills the container. Trash and Info (three dots) are small floating overlay icons in the top corners to maximize media visibility.
+  - **Scrollable & Responsive**: The app allows natural vertical scrolling where necessary, using `100dvh` to prevent mobile browser cutoff. Diagonal/vertical scrolling is intelligently ignored by the swipe gesture engine.
 - **File Access**: `<input type="file" webkitdirectory multiple>`
 - **Ranking Engine**: Openskill.js (ES Module import).
 - **Performance**: Lazy load grid items 16 at a time to prevent DOM bloat and crashing.
-- **Aesthetics**: Premium, dark-mode focused, glassmorphism UI with smooth micro-animations.
+- **Aesthetics**: Futuristic, cyberpunk-inspired dark mode. Features neon cyan and red glows, Orbitron fonts, glassmorphism modal panels, and subtle grid backgrounds.
