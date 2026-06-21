@@ -254,7 +254,7 @@
         <div id="detail-feed-trigger" class="load-more-trigger"></div>
     </div>
 
-    <script type="module">
+    <script>
         import { rating, rate, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@5.0.1/+esm';
 
         window.addEventListener('contextmenu', e => e.preventDefault());
@@ -323,10 +323,6 @@
         } catch (e) {
             console.error("IDB Blocked", e);
         }
-        request.onsuccess = function(e) {
-            db = e.target.result;
-            loadFromDB();
-        };
 
         function loadFromDB() {
             if(!db) return;
@@ -373,7 +369,7 @@
 
         document.getElementById('folder-input').addEventListener('change', (e) => {
             const files = e.target.files; if (files.length === 0) return;
-            mediaData = {}; mediaKeys = [];
+            mediaData = {}; mediaKeys = []; currentBatchKeys = [];
             
             const pathToHashStats = {};
             if (loadedSaveData) {
