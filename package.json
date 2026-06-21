@@ -1,0 +1,37 @@
+{
+  "name": "dynamic-media-sorter",
+  "version": "1.0.0",
+  "description": "A powerful, entirely local media ranking tool built in a single HTML file. Stop struggling with manual sorting—let mathematical matchmaking figure out your favorite images and videos!",
+  "main": "build.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahrar-m/Dynamic-Media-Sorter.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ahrar-m/Dynamic-Media-Sorter/issues"
+  },
+  "homepage": "https://github.com/ahrar-m/Dynamic-Media-Sorter#readme",
+  "devDependencies": {
+    "@capacitor/cli": "^8.4.1",
+    "vite": "^8.0.16"
+  },
+  "dependencies": {
+    "@capacitor-community/sqlite": "^8.1.0",
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/share": "^8.0.1",
+    "@capawesome/capacitor-file-picker": "^8.0.2",
+    "@panzoom/panzoom": "^4.6.2",
+    "openskill": "^5.0.1"
+  }
+}

@@ -1,4 +1,19 @@
-import { rate, rating, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@4.1.1/+esm';
+import Panzoom from '@panzoom/panzoom';
+import { Capacitor } from "@capacitor/core";
+import { FilePicker } from "@capawesome/capacitor-file-picker";
+import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
+import { CapacitorSQLite, SQLiteConnection } from "@capacitor-community/sqlite";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
+import { App } from "@capacitor/app";
+import { Share } from "@capacitor/share";
+
+import { rate, rating, ordinal } from 'openskill';
+
+
+window.getObjectUrl = function(file) {
+    if (file.capacitorPath) return Capacitor.convertFileSrc(file.capacitorPath);
+    return URL.createObjectURL(file);
+};
 
 window.onerror = function(msg, url, lineNo, columnNo, error) {
     showErrorToast(`Error: ${msg}`);
@@ -200,7 +215,7 @@ function bindElements() {
 
 function getFileId(file) {
     if (!file) return '';
-    return file.webkitRelativePath || file.name;
+    return file.name + '_' + (file.size !== undefined ? file.size : 0);
 }
 
 let legacyRatingsIndex = null;
@@ -793,7 +808,7 @@ function updateMatchupProgress() {
     document.getElementById('matchup-circle').setAttribute('stroke-dasharray', `${percentage}, 100`);
 }
 
-async function submitMatch() {
+async function submitMatch() { if (Capacitor.isNativePlatform()) Haptics.impact({ style: ImpactStyle.Medium });
     if (state.currentMatchup.length === 0 || state.appMode !== 'matchmaking' || state.isAnimating) return;
     
     if (state.hasSeen.size < state.currentMatchup.length || Object.keys(state.currentRankings).length < state.currentMatchup.length) {
@@ -956,7 +971,7 @@ function renderCurrentMedia() {
     state.hasSeen.add(activeId);
     checkSubmitUnlock();
 
-    objectUrlA = URL.createObjectURL(activeFile);
+    objectUrlA = window.getObjectUrl(activeFile);
 
     let fitClass = '';
     if (state.fitMode === 'contain') fitClass = 'media-fit-contain';
@@ -1049,7 +1064,7 @@ function renderPlacementStrip() {
         thumb.style.flexShrink = '0';
         
         if (!state.matchupUrls) state.matchupUrls = {};
-        if (!state.matchupUrls[id]) state.matchupUrls[id] = URL.createObjectURL(file);
+        if (!state.matchupUrls[id]) state.matchupUrls[id] = window.getObjectUrl(file);
         
         let mediaEl;
         if (file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i)) {
@@ -1169,7 +1184,7 @@ function renderLeaderboard() {
             const rank = isTopList ? index + 1 : sorted.length - index;
             const r = state.ratings[getFileId(file)];
             const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mkv|avi|mov|m4v)$/i);
-            const objUrl = URL.createObjectURL(file);
+            const objUrl = window.getObjectUrl(file);
             state.leaderboardUrls.push(objUrl);
             
             let mediaHtml;
@@ -1229,7 +1244,7 @@ function renderExecutionerMedia() {
         return;
     }
     const id = getFileId(file);
-    objectUrlA = URL.createObjectURL(file);
+    objectUrlA = window.getObjectUrl(file);
     
     elements.matchStatusIndicator.classList.remove('hidden');
     elements.matchStatusIndicator.textContent = `Staged File ${state.executionerIndex + 1} of ${state.executionerQueue.length}`;
@@ -1341,7 +1356,7 @@ function renderLeaderboardViewerMedia() {
     }
     const id = getFileId(file);
     const rating = state.ratings[id];
-    objectUrlA = URL.createObjectURL(file);
+    objectUrlA = window.getObjectUrl(file);
     
     let rank = state.leaderboardReverse ? state.leaderboardQueue.length - state.leaderboardIndex : state.leaderboardIndex + 1;
     
@@ -1421,8 +1436,12 @@ function setupEventListeners() {
         showToast(message);
     });
 
-    elements.folderInput.addEventListener('change', handleFilesSelected);
-    elements.fileInput.addEventListener('change', handleFilesSelected);
+    
+    // elements.folderInput.addEventListener('change', handleFilesSelected);
+
+    
+    // elements.fileInput.addEventListener('change', handleFilesSelected);
+
     
     elements.folderInput.addEventListener('click', () => {
         showToast("Opening folder selector...", 15000);
@@ -1692,20 +1711,15 @@ function setupEventListeners() {
     elements.btnCopyScript.addEventListener('click', () => { elements.scriptOutput.select(); document.execCommand('copy'); showToast("Copied!"); });
 
     elements.btnHardReset.addEventListener('click', async () => {
-        if (!confirm("Are you sure? This will wipe all ratings completely!")) return;
-        state.currentLoadSession++;
-        state.appMode = 'matchmaking';
-        localStorage.removeItem('eloSorterRatings');
-        try {
-            const db = await openDB();
-            const tx = db.transaction('ratings', 'readwrite');
-            tx.objectStore('ratings').clear();
-        } catch (e) { console.error("Error clearing IndexedDB", e); }
-        state.ratings = {}; state.images = []; state.videos = [];
-        state.stagedFilesMap.clear();
-        state.loadedIds.clear(); state.unparsedFiles = [];
-        pickNextMatchup(); elements.settingsModal.classList.remove('active');
-    });
+    if(confirm("Are you sure you want to completely wipe your ratings database?")) {
+        if (Capacitor.isNativePlatform() && db) {
+            await db.execute('DELETE FROM ratings');
+        }
+        state.ratings = {};
+        renderLeaderboard();
+        alert("Database wiped.");
+    }
+});
     
     elements.btnExport.addEventListener('click', () => exportRatings(false));
     elements.importInput.addEventListener('change', importRatings);
@@ -2157,6 +2171,36 @@ async function copyFavoritesDirectly() {
 }
 
 async function deleteStagedFilesDirectly() {
+    if (Capacitor.isNativePlatform()) {
+        if(state.stagedFilesMap.size === 0) {
+            showToast("No files left to delete.");
+            return;
+        }
+        let deletedCount = 0;
+        let freedBytes = 0;
+        let processedIds = [];
+        elements.purgeModal.classList.remove('active');
+
+        for (const [id, f] of state.stagedFilesMap.entries()) {
+            try {
+                if (f.capacitorPath) {
+                    await Filesystem.deleteFile({ path: f.capacitorPath });
+                    freedBytes += f.size || 0;
+                    deletedCount++;
+                    processedIds.push(id);
+                    state.stagedFilesMap.delete(id);
+                    if (!state.ratings[id]) state.ratings[id] = { mu: 25.0, sigma: 8.333, matches: 0 };
+                    state.ratings[id].blacklisted = true;
+                }
+            } catch (err) {
+                console.error("Failed to delete", f.name, err);
+            }
+        }
+        if (processedIds.length > 0) saveRatingsToStorage(processedIds);
+        showToast(`Successfully deleted ${deletedCount} files, freeing ${(freedBytes / (1024*1024)).toFixed(2)} MB.`);
+        return;
+    }
+
     if (!window.showDirectoryPicker) {
         showToast("Direct Delete is unsupported on Android browsers. Generating script instead...");
         generateScripts();
@@ -2249,3 +2293,6 @@ resizeHandle.addEventListener('pointercancel', (e) => {
     isResizing = false;
     document.body.style.userSelect = '';
 });
+
+window.loadFilesCapacitor = async () => { try { const res = await FilePicker.pickFiles({ limit: 0 }); if (res.files && res.files.length > 0) { const mappedFiles = res.files.map(f => ({ name: f.name, size: f.size, type: f.mimeType || '', capacitorPath: f.path, webkitRelativePath: f.path })); handleFilesSelected({ target: { files: mappedFiles } }); } } catch(e) { console.error(e); } };
+window.loadFolderCapacitor = async () => { try { const res = await FilePicker.pickDirectory(); if (res.path) { showToast('<i class="fa-solid fa-spinner fa-spin"></i> Scanning folder...', 0); let files = []; async function walk(path) { try { const r = await Filesystem.readdir({ path }); for(const f of r.files) { const fullPath = path + '/' + f.name; if(f.type === 'directory') await walk(fullPath); else files.push({ name: f.name, size: f.size, type: '', capacitorPath: fullPath, webkitRelativePath: fullPath }); } } catch(e) { console.warn('Failed to read', path, e); } } await walk(res.path); handleFilesSelected({ target: { files } }); } } catch(e) { console.error(e); } };

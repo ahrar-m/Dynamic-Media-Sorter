@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">dynamic-media-sorter</string>
+    <string name="title_activity_main">dynamic-media-sorter</string>
+    <string name="package_name">com.ahrar.dynamicmediasorter</string>
+    <string name="custom_url_scheme">com.ahrar.dynamicmediasorter</string>
+</resources>
