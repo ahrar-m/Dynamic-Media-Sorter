@@ -251,7 +251,7 @@
 
         let mediaData = {}; let mediaKeys = []; let loadedSaveData = null; 
         let mediaMode = 'image'; let currentScreen = 'home'; let currentPair = null;
-        let previousState = null; 
+        let previousState = null; let currentSaveName = "save";
         const PAGE_SIZE = 16; let leaderboardPage = 0; let trashPage = 0;
         let sortOrder = 'desc';
         let isAnimating = false;
@@ -266,6 +266,11 @@
                 loadedSaveData = JSON.parse(await file.text()); 
                 document.getElementById('savefile-status').classList.remove('hidden'); 
                 document.getElementById('resume-card').classList.add('hidden');
+                
+                // Extract base name for future saves
+                const nameWithoutExt = file.name.replace(/\.json$/i, '');
+                const match = nameWithoutExt.match(/^(.*)_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})$/);
+                currentSaveName = match ? match[1] : nameWithoutExt;
             } catch (err) { alert("Invalid save file."); }
         });
 
@@ -325,7 +330,7 @@
             btnFs.onclick = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(e=>{}); else document.exitFullscreen(); };
             headerActionsContainer.appendChild(btnFs);
 
-            const btnSave = document.createElement('button'); btnSave.className = 'btn'; btnSave.innerHTML = '💾 SAVE'; btnSave.onclick = exportSave; headerActionsContainer.appendChild(btnSave);
+            const btnSave = document.createElement('button'); btnSave.className = 'btn'; btnSave.innerHTML = '💾 SAVE'; btnSave.onclick = () => exportSave(false); headerActionsContainer.appendChild(btnSave);
             if (currentScreen === 'arena') {
                 const btnUndo = document.createElement('button'); btnUndo.className = 'btn'; btnUndo.innerHTML = '↩ UNDO';
                 btnUndo.disabled = !previousState; btnUndo.onclick = undoAction; headerActionsContainer.appendChild(btnUndo);
@@ -494,7 +499,7 @@
         }
 
         function loadLeaderboardPage() {
-            let keys = mediaKeys.filter(k => !mediaData[k].trashed && (mediaMode === 'video' ? isVideo(mediaData[k].file) : !isVideo(mediaData[k].file))).sort((a, b) => ordinal(mediaData[b]) - ordinal(mediaData[a]));
+            let keys = mediaKeys.filter(k => !mediaData[k].trashed && mediaData[k].matches > 0 && (mediaMode === 'video' ? isVideo(mediaData[k].file) : !isVideo(mediaData[k].file))).sort((a, b) => ordinal(mediaData[b]) - ordinal(mediaData[a]));
             if (sortOrder === 'asc') keys.reverse();
             if(renderGridItems(keys, 'leaderboard-grid', leaderboardPage, false)) leaderboardPage++;
         }
@@ -592,11 +597,37 @@
             });
         }
 
-        // --- Export ---
-        function exportSave() {
-            const saveObj = {}; mediaKeys.forEach(k => { if(mediaData[k].matches > 0 || mediaData[k].trashed) saveObj[k] = { mu: mediaData[k].mu, sigma: mediaData[k].sigma, trashed: mediaData[k].trashed, matches: mediaData[k].matches }; });
-            downloadBlob(JSON.stringify(saveObj), 'application/json', `save_${Date.now()}.json`);
+        // --- Export & Backups ---
+        function getFormattedDateTime() {
+            const now = new Date();
+            const y = now.getFullYear(); const m = String(now.getMonth()+1).padStart(2,'0'); const d = String(now.getDate()).padStart(2,'0');
+            const hh = String(now.getHours()).padStart(2,'0'); const mm = String(now.getMinutes()).padStart(2,'0'); const ss = String(now.getSeconds()).padStart(2,'0');
+            return `${y}-${m}-${d}_${hh}-${mm}-${ss}`;
         }
+
+        function exportSave(isAuto = false) {
+            if (!isAuto && currentSaveName === "save" && !loadedSaveData) {
+                const userChoice = prompt("Enter a name for this backup session:", "MySession");
+                if (userChoice === null) return;
+                currentSaveName = userChoice.trim() || "MySession";
+            }
+            let baseName = currentSaveName;
+            if (isAuto && currentSaveName === "save" && !loadedSaveData) baseName = "autosave";
+
+            const saveObj = {}; 
+            mediaKeys.forEach(k => { 
+                if(mediaData[k].matches > 0 || mediaData[k].trashed) {
+                    saveObj[k] = { mu: mediaData[k].mu, sigma: mediaData[k].sigma, trashed: mediaData[k].trashed, matches: mediaData[k].matches }; 
+                }
+            });
+            downloadBlob(JSON.stringify(saveObj), 'application/json', `${baseName}_${getFormattedDateTime()}.json`);
+        }
+
+        setInterval(() => {
+            const hasData = mediaKeys.some(k => mediaData[k].matches > 0 || mediaData[k].trashed);
+            if (hasData) exportSave(true);
+        }, 5 * 60 * 1000);
+
         document.getElementById('btn-export-script').addEventListener('click', () => {
             let script = "import os\n\nfiles_to_delete = [\n"; mediaKeys.filter(k => mediaData[k].trashed).forEach(k => script += `    r"${k.replace(/"/g, '\\"')}",\n`);
             script += "]\n\nfor f in files_to_delete:\n    try:\n        os.remove(f)\n        print(f'Deleted: {f}')\n    except Exception as e:\n        print(f'Error deleting {f}: {e}')\n";
