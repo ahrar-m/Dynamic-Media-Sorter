@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynamic Media Sorter</title>
-    <!-- Openskill.js from CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/openskill@latest/dist/openskill.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -435,16 +433,15 @@
         </section>
     </main>
 
-    <script>
+    <script type="module">
+        import { rating, rate, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@5.0.1/+esm';
+
         // --- State Management ---
         // mediaData: path -> { file, mu, sigma, trashed }
         let mediaData = {};
         let mediaKeys = [];
         let currentPair = null;
         let loadedSaveData = null; // Temporary holding for loaded JSON
-
-        // Openskill instance shortcut
-        const { rating, rate, ordinal } = openskill;
 
         // --- DOM Elements ---
         const screens = {
