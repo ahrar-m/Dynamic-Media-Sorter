@@ -7,13 +7,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0f172a;
+            --bg-color: #000000;
             --text-color: #f8fafc;
             --primary: #6366f1;
             --primary-hover: #4f46e5;
             --danger: #ef4444;
             --danger-hover: #dc2626;
-            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-bg: rgba(15, 23, 42, 0.6);
             --glass-border: rgba(255, 255, 255, 0.1);
         }
 
@@ -27,11 +27,11 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
-            min-height: 100vh;
+            height: 100vh;
+            width: 100vw;
             display: flex;
             flex-direction: column;
-            overflow-x: hidden;
-            background: radial-gradient(circle at top left, #1e1b4b, #0f172a 50%);
+            overflow: hidden;
         }
 
         /* Utility Classes */
@@ -41,8 +41,7 @@
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
         }
 
         /* Buttons */
@@ -50,7 +49,7 @@
             background: var(--primary);
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 10px 20px;
             border-radius: 8px;
             font-size: 1rem;
             font-weight: 600;
@@ -60,10 +59,11 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
         }
         button:hover, .btn:hover {
             background: var(--primary-hover);
-            transform: translateY(-2px);
+            transform: translateY(-1px);
         }
         button.danger {
             background: var(--danger);
@@ -71,42 +71,32 @@
         button.danger:hover {
             background: var(--danger-hover);
         }
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Header */
-        header {
-            padding: 20px;
-            text-align: center;
-            border-bottom: 1px solid var(--glass-border);
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(8px);
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        header h1 {
-            font-size: 1.5rem;
-            background: linear-gradient(to right, #818cf8, #c084fc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
 
         /* Screens */
         main {
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
             width: 100%;
+            height: 100%;
         }
 
+        /* Generic Header for non-compare screens */
+        .generic-header {
+            padding: 20px;
+            text-align: center;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 10;
+        }
+        .generic-header h1 {
+            font-size: 1.5rem;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Home Screen */
         #home-screen {
             flex: 1;
             display: flex;
@@ -115,22 +105,14 @@
             justify-content: center;
             text-align: center;
             gap: 30px;
+            padding: 20px;
+            background: radial-gradient(circle at top left, #1e1b4b, #000000 50%);
+            overflow-y: auto;
         }
 
-        #home-screen .hero {
-            max-width: 600px;
-        }
-
-        #home-screen h2 {
-            font-size: 2.5rem;
-            margin-bottom: 16px;
-        }
-
-        #home-screen p {
-            color: #94a3b8;
-            font-size: 1.1rem;
-            line-height: 1.5;
-        }
+        #home-screen .hero { max-width: 600px; }
+        #home-screen h2 { font-size: 2.5rem; margin-bottom: 16px; }
+        #home-screen p { color: #94a3b8; font-size: 1.1rem; line-height: 1.5; }
 
         .action-cards {
             display: flex;
@@ -148,98 +130,112 @@
             align-items: center;
             gap: 15px;
             text-align: center;
-            transition: transform 0.3s ease;
         }
-
-        .card:hover {
-            transform: translateY(-5px);
-        }
-
-        .card input[type="file"] {
-            display: none;
-        }
+        .card input[type="file"] { display: none; }
+        .progress-text { color: #94a3b8; font-size: 0.9rem; }
 
         /* Compare Screen */
         #compare-screen {
             flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
+            position: relative;
+            background: #000;
         }
 
-        .compare-header {
+        /* Floating Controls Over Media */
+        .floating-top {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
+            pointer-events: none;
+            z-index: 100;
         }
 
-        .progress-text {
-            color: #94a3b8;
-            font-size: 0.9rem;
+        .floating-top > * {
+            pointer-events: auto; /* Re-enable clicks for buttons */
         }
 
+        .stats-badge {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .actions-group {
+            display: flex;
+            gap: 8px;
+        }
+        .actions-group button {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            background: rgba(99, 102, 241, 0.8);
+        }
+
+        /* Media Layout */
         .media-container {
             display: flex;
-            flex: 1;
-            gap: 20px;
-            min-height: 0; /* Important for flex child with overflow */
+            width: 100%;
+            height: 100%;
+            gap: 2px;
         }
 
         @media (max-width: 768px) {
-            .media-container {
-                flex-direction: column;
-            }
+            .media-container { flex-direction: column; }
         }
 
         .media-item {
             flex: 1;
             position: relative;
-            display: flex;
-            flex-direction: column;
-            border-radius: 16px;
+            background: #111;
             overflow: hidden;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            background: #000;
-        }
-
-        .media-item:hover {
-            transform: scale(1.02);
-            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
-        }
-
-        .media-item.winner {
-            box-shadow: 0 0 0 4px #22c55e, 0 0 30px rgba(34, 197, 94, 0.5);
-        }
-
-        .media-content {
-            flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
-            min-height: 200px; /* For mobile */
+        }
+
+        .media-item.winner-anim {
+            animation: pulseWinner 0.4s ease-out;
+        }
+        @keyframes pulseWinner {
+            0% { box-shadow: inset 0 0 0 4px transparent; }
+            50% { box-shadow: inset 0 0 0 10px #22c55e; }
+            100% { box-shadow: inset 0 0 0 4px transparent; }
+        }
+
+        .media-content {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .media-content img, .media-content video {
-            max-width: 100%;
-            max-height: 60vh;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
-            pointer-events: none; /* Let clicks pass to the container */
+            pointer-events: auto; /* Allow seeking videos */
         }
 
-        .media-actions {
+        /* Action overlays per media item */
+        .media-overlay {
             position: absolute;
             bottom: 0;
             left: 0;
             right: 0;
             padding: 15px;
-            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            background: linear-gradient(transparent, rgba(0,0,0,0.9));
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
+            pointer-events: none; /* Let video clicks pass through */
+        }
+
+        .media-overlay > * {
+            pointer-events: auto;
         }
 
         .filename {
@@ -248,44 +244,57 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 70%;
+            max-width: 40%;
+            text-shadow: 0 1px 2px #000;
+        }
+
+        .btn-pick {
+            background: #22c55e;
+            font-size: 1.1rem;
+            padding: 12px 24px;
+            border-radius: 24px;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+        }
+        .btn-pick:hover {
+            background: #16a34a;
+            transform: scale(1.05);
         }
 
         .btn-trash {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.5);
+            background: rgba(239, 68, 68, 0.8);
+            color: white;
             padding: 8px 12px;
             border-radius: 6px;
             font-size: 0.9rem;
-            z-index: 2; /* Clickable above the main div */
-            backdrop-filter: blur(4px);
         }
-
-        .btn-trash:hover {
-            background: rgba(239, 68, 68, 0.4);
-        }
+        .btn-trash:hover { background: #ef4444; }
 
         .vs-badge {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: var(--primary);
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
             color: white;
-            padding: 10px 15px;
+            padding: 8px 12px;
             border-radius: 20px;
-            font-weight: bold;
+            font-weight: 800;
+            font-style: italic;
             z-index: 10;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
             pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         /* Leaderboard Screen */
         #leaderboard-screen {
+            flex: 1;
             display: flex;
             flex-direction: column;
             gap: 20px;
+            padding: 20px;
+            background: var(--bg-color);
+            overflow-y: auto;
         }
 
         .leaderboard-controls {
@@ -305,7 +314,7 @@
             border-radius: 12px;
             overflow: hidden;
             aspect-ratio: 1;
-            background: #000;
+            background: #111;
         }
 
         .grid-item img, .grid-item video {
@@ -317,17 +326,11 @@
         .grid-item .overlay {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 50%, rgba(0,0,0,0.8) 100%);
+            background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 50%, rgba(0,0,0,0.8) 100%);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             padding: 10px;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .grid-item:hover .overlay {
-            opacity: 1;
         }
 
         .rank-badge {
@@ -343,18 +346,16 @@
             display: flex;
             justify-content: flex-end;
         }
-
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>Dynamic Media Sorter</h1>
-    </header>
-
     <main>
         <!-- Home Screen -->
         <section id="home-screen">
+            <div class="generic-header">
+                <h1>Dynamic Media Sorter</h1>
+            </div>
             <div class="hero">
                 <h2>Sort 50,000+ Media Files Smoothly</h2>
                 <p>Curate your best photos and videos using a smart comparison engine. Trash the worst, save your progress, and generate cleanup scripts.</p>
@@ -384,24 +385,26 @@
 
         <!-- Compare Screen -->
         <section id="compare-screen" class="hidden">
-            <div class="compare-header glass" style="padding: 15px;">
-                <div>
-                    <span class="progress-text" id="stats-text">Ranked: 0 | Trashed: 0 | Total: 0</span>
+            
+            <div class="floating-top">
+                <div class="stats-badge glass" id="stats-text">
+                    Ranked: 0 | Trashed: 0 | Total: 0
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <button id="btn-leaderboard" class="btn">🏆 Leaderboard</button>
-                    <button id="btn-save" class="btn">💾 Save & Exit</button>
+                <div class="actions-group">
+                    <button id="btn-leaderboard" class="btn glass">🏆 Leaderboard</button>
+                    <button id="btn-save" class="btn glass">💾 Save</button>
                 </div>
             </div>
 
             <div class="media-container" id="arena">
-                <div class="vs-badge">VS</div>
+                <div class="vs-badge" id="vs-text">VS</div>
                 
                 <!-- Media 1 -->
                 <div class="media-item" id="media1-container">
                     <div class="media-content" id="media1-content"></div>
-                    <div class="media-actions">
+                    <div class="media-overlay">
                         <span class="filename" id="media1-filename">file.jpg</span>
+                        <button class="btn-pick" id="btn-pick1">Winner</button>
                         <button class="btn-trash" id="btn-trash1">🗑️ Trash</button>
                     </div>
                 </div>
@@ -409,8 +412,9 @@
                 <!-- Media 2 -->
                 <div class="media-item" id="media2-container">
                     <div class="media-content" id="media2-content"></div>
-                    <div class="media-actions">
+                    <div class="media-overlay">
                         <span class="filename" id="media2-filename">file.jpg</span>
+                        <button class="btn-pick" id="btn-pick2">Winner</button>
                         <button class="btn-trash" id="btn-trash2">🗑️ Trash</button>
                     </div>
                 </div>
@@ -419,17 +423,15 @@
 
         <!-- Leaderboard Screen -->
         <section id="leaderboard-screen" class="hidden">
-            <div class="glass" style="padding: 20px; margin-bottom: 20px;">
-                <h2 style="margin-bottom: 15px;">Leaderboard & Cleanup</h2>
+            <div class="generic-header" style="border-radius: 12px; text-align: left; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <h2 style="margin: 0;">Leaderboard & Cleanup</h2>
                 <div class="leaderboard-controls">
                     <button id="btn-back-sort" class="btn">🔙 Back to Sorting</button>
                     <button id="btn-export-script" class="btn danger">📜 Export Deletion Script</button>
                 </div>
             </div>
 
-            <div class="grid" id="leaderboard-grid">
-                <!-- Grid items generated by JS -->
-            </div>
+            <div class="grid" id="leaderboard-grid"></div>
         </section>
     </main>
 
@@ -437,11 +439,10 @@
         import { rating, rate, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@5.0.1/+esm';
 
         // --- State Management ---
-        // mediaData: path -> { file, mu, sigma, trashed }
         let mediaData = {};
         let mediaKeys = [];
         let currentPair = null;
-        let loadedSaveData = null; // Temporary holding for loaded JSON
+        let loadedSaveData = null; 
 
         // --- DOM Elements ---
         const screens = {
@@ -462,11 +463,14 @@
             m2Content: document.getElementById('media2-content'),
             m1Name: document.getElementById('media1-filename'),
             m2Name: document.getElementById('media2-filename'),
+            btnPick1: document.getElementById('btn-pick1'),
+            btnPick2: document.getElementById('btn-pick2'),
             btnTrash1: document.getElementById('btn-trash1'),
             btnTrash2: document.getElementById('btn-trash2'),
             m1Container: document.getElementById('media1-container'),
             m2Container: document.getElementById('media2-container'),
-            leaderboardGrid: document.getElementById('leaderboard-grid')
+            leaderboardGrid: document.getElementById('leaderboard-grid'),
+            vsText: document.getElementById('vs-text')
         };
 
         // --- Initialization & File Handling ---
@@ -491,7 +495,6 @@
             mediaData = {};
             mediaKeys = [];
 
-            // Regex to check if file is media
             const mediaRegex = /\.(jpe?g|png|webp|gif|mp4|webm|mov)$/i;
 
             for (let i = 0; i < files.length; i++) {
@@ -500,14 +503,15 @@
                     const path = f.webkitRelativePath || f.name;
                     mediaKeys.push(path);
                     
-                    // Default rating or load from save
                     let r = rating();
                     let trashed = false;
+                    let matches = 0;
                     
                     if (loadedSaveData && loadedSaveData[path]) {
                         r.mu = loadedSaveData[path].mu;
                         r.sigma = loadedSaveData[path].sigma;
                         trashed = loadedSaveData[path].trashed || false;
+                        matches = loadedSaveData[path].matches || 0;
                     }
 
                     mediaData[path] = {
@@ -515,7 +519,7 @@
                         mu: r.mu,
                         sigma: r.sigma,
                         trashed: trashed,
-                        matches: 0 // Optional: track how many times it was compared this session
+                        matches: matches
                     };
                 }
             }
@@ -542,44 +546,59 @@
             return mediaKeys.filter(k => !mediaData[k].trashed);
         }
 
+        function isVideo(file) {
+            return file.type.startsWith('video/');
+        }
+
         function pickNextPair() {
             const active = getActiveKeys();
-            if (active.length < 2) {
-                alert("Not enough non-trashed media left to compare!");
+            
+            // Separate into images and videos
+            const images = active.filter(k => !isVideo(mediaData[k].file));
+            const videos = active.filter(k => isVideo(mediaData[k].file));
+
+            const validGroups = [];
+            if (images.length >= 2) validGroups.push(images);
+            if (videos.length >= 2) validGroups.push(videos);
+
+            if (validGroups.length === 0) {
+                alert("No more valid pairs of the same media type left!");
                 showScreen('leaderboard');
                 return;
             }
 
-            // Simple random selection for now
-            // To optimize, we could pick items with similar 'mu' or lowest 'matches'
-            // For 50k files, random is fast and creates diverse matchups initially.
+            // Pick a random group (either images or videos)
+            const groupIndex = Math.floor(Math.random() * validGroups.length);
+            const group = validGroups[groupIndex];
+
+            // Pick 2 random distinct items from the group
+            let idx1 = Math.floor(Math.random() * group.length);
+            let k1 = group[idx1];
             
-            // Pick random 1
-            let idx1 = Math.floor(Math.random() * active.length);
-            let k1 = active[idx1];
-            
-            // Pick random 2
-            let idx2 = Math.floor(Math.random() * active.length);
+            let idx2 = Math.floor(Math.random() * group.length);
             while (idx2 === idx1) {
-                idx2 = Math.floor(Math.random() * active.length);
+                idx2 = Math.floor(Math.random() * group.length);
             }
-            let k2 = active[idx2];
+            let k2 = group[idx2];
 
             currentPair = [k1, k2];
+            
+            UI.vsText.textContent = isVideo(mediaData[k1].file) ? 'VIDEO VS' : 'IMG VS';
+            
             renderPair(k1, k2);
         }
 
         function createMediaElement(file) {
-            const isVideo = file.type.startsWith('video/');
             const url = URL.createObjectURL(file);
             let el;
-            if (isVideo) {
+            if (isVideo(file)) {
                 el = document.createElement('video');
                 el.src = url;
-                el.controls = true;
+                el.controls = true; // Enabled seeking
                 el.autoplay = true;
                 el.loop = true;
-                el.muted = true; // Auto-play requires muted on many browsers
+                el.muted = true; 
+                el.playsInline = true;
             } else {
                 el = document.createElement('img');
                 el.src = url;
@@ -595,8 +614,8 @@
                 }
                 container.innerHTML = '';
             });
-            UI.m1Container.classList.remove('winner');
-            UI.m2Container.classList.remove('winner');
+            UI.m1Container.classList.remove('winner-anim');
+            UI.m2Container.classList.remove('winner-anim');
         }
 
         function renderPair(k1, k2) {
@@ -619,22 +638,19 @@
             const item1 = mediaData[k1];
             const item2 = mediaData[k2];
 
-            // Reconstruct Openskill rating objects
             let r1 = { mu: item1.mu, sigma: item1.sigma };
             let r2 = { mu: item2.mu, sigma: item2.sigma };
 
             let team1 = [r1];
             let team2 = [r2];
 
-            // Rate
             let newRatings;
             if (winnerIndex === 1) {
-                newRatings = rate([team1, team2]); // team1 wins
+                newRatings = rate([team1, team2]);
             } else {
-                newRatings = rate([team2, team1]); // team2 wins
+                newRatings = rate([team2, team1]);
             }
 
-            // Extract and save
             if (winnerIndex === 1) {
                 item1.mu = newRatings[0][0].mu; item1.sigma = newRatings[0][0].sigma;
                 item2.mu = newRatings[1][0].mu; item2.sigma = newRatings[1][0].sigma;
@@ -646,25 +662,23 @@
             item1.matches++;
             item2.matches++;
 
-            // Visual feedback
-            if (winnerIndex === 1) UI.m1Container.classList.add('winner');
-            else UI.m2Container.classList.add('winner');
+            if (winnerIndex === 1) {
+                UI.m1Container.classList.add('winner-anim');
+            } else {
+                UI.m2Container.classList.add('winner-anim');
+            }
 
             updateStats();
 
-            // Short delay to show winner
             setTimeout(() => {
                 pickNextPair();
-            }, 300);
+            }, 350);
         }
 
-        function handleTrash(index, e) {
-            e.stopPropagation(); // Prevent triggering a win
+        function handleTrash(index) {
             if (!currentPair) return;
-            
             const key = currentPair[index - 1];
             mediaData[key].trashed = true;
-            
             updateStats();
             pickNextPair();
         }
@@ -672,31 +686,25 @@
         function updateStats() {
             const total = mediaKeys.length;
             const trashed = mediaKeys.filter(k => mediaData[k].trashed).length;
-            // Count items with more than 0 matches
-            const ranked = mediaKeys.filter(k => mediaData[k].matches && mediaData[k].matches > 0).length;
-            
+            const ranked = mediaKeys.filter(k => mediaData[k].matches > 0).length;
             UI.statsText.textContent = `Ranked: ${ranked} | Trashed: ${trashed} | Total: ${total}`;
         }
 
-        // Event Listeners for Compare Screen
-        UI.m1Container.addEventListener('click', () => handleMatch(1));
-        UI.m2Container.addEventListener('click', () => handleMatch(2));
+        // Button Event Listeners
+        UI.btnPick1.addEventListener('click', () => handleMatch(1));
+        UI.btnPick2.addEventListener('click', () => handleMatch(2));
         
-        UI.btnTrash1.addEventListener('click', (e) => handleTrash(1, e));
-        UI.btnTrash2.addEventListener('click', (e) => handleTrash(2, e));
+        UI.btnTrash1.addEventListener('click', () => handleTrash(1));
+        UI.btnTrash2.addEventListener('click', () => handleTrash(2));
 
-        document.getElementById('btn-leaderboard').addEventListener('click', () => {
-            showScreen('leaderboard');
-        });
+        document.getElementById('btn-leaderboard').addEventListener('click', () => showScreen('leaderboard'));
 
         document.getElementById('btn-save').addEventListener('click', () => {
-            // Create a save object mapping path -> { mu, sigma, trashed }
             const saveObj = {};
             mediaKeys.forEach(k => {
                 const item = mediaData[k];
-                // Only save if it's modified from default or trashed
                 if (item.matches > 0 || item.trashed) {
-                    saveObj[k] = { mu: item.mu, sigma: item.sigma, trashed: item.trashed };
+                    saveObj[k] = { mu: item.mu, sigma: item.sigma, trashed: item.trashed, matches: item.matches };
                 }
             });
 
@@ -714,15 +722,12 @@
         function renderLeaderboard() {
             UI.leaderboardGrid.innerHTML = '';
             
-            // Calculate ordinal for all active media and sort
             const sorted = getActiveKeys().map(k => {
                 const item = mediaData[k];
-                // Ordinal = mu - 3 * sigma
                 const ord = ordinal({mu: item.mu, sigma: item.sigma});
                 return { key: k, item, ord };
-            }).sort((a, b) => b.ord - a.ord); // Descending
+            }).sort((a, b) => b.ord - a.ord);
 
-            // Render top 100 max to prevent UI freeze
             const topN = sorted.slice(0, 100);
 
             topN.forEach((data, index) => {
@@ -732,14 +737,12 @@
                 const file = data.item.file;
                 const mediaEl = createMediaElement(file);
                 
-                // Mute videos for grid
                 if (mediaEl.tagName === 'VIDEO') {
                     mediaEl.removeAttribute('controls');
                 }
 
                 el.appendChild(mediaEl);
 
-                // Overlay
                 const overlay = document.createElement('div');
                 overlay.className = 'overlay';
 
@@ -753,6 +756,7 @@
                 const shareBtn = document.createElement('button');
                 shareBtn.className = 'btn';
                 shareBtn.style.padding = '4px 8px';
+                shareBtn.style.fontSize = '0.8rem';
                 shareBtn.textContent = 'Share';
                 shareBtn.onclick = async () => {
                     if (navigator.share) {
@@ -761,16 +765,13 @@
                                 files: [file],
                                 title: file.name
                             });
-                        } catch (err) {
-                            console.error("Share failed:", err);
-                        }
+                        } catch (err) {}
                     } else {
                         alert("Web Share API not supported on this device.");
                     }
                 };
 
                 actions.appendChild(shareBtn);
-                
                 overlay.appendChild(rank);
                 overlay.appendChild(actions);
                 el.appendChild(overlay);
@@ -779,24 +780,14 @@
             });
         }
 
-        document.getElementById('btn-back-sort').addEventListener('click', () => {
-            showScreen('compare');
-        });
+        document.getElementById('btn-back-sort').addEventListener('click', () => showScreen('compare'));
 
         document.getElementById('btn-export-script').addEventListener('click', () => {
-            // Get all trashed AND bottom 10% of ranked
-            const activeSorted = getActiveKeys().map(k => {
-                return { key: k, ord: ordinal({mu: mediaData[k].mu, sigma: mediaData[k].sigma}) };
-            }).sort((a, b) => a.ord - b.ord); // Ascending (worst first)
-
             const trashedKeys = mediaKeys.filter(k => mediaData[k].trashed);
             
-            // Just output everything trashed + worst files
-            // For a safe script, we'll generate a list of relative paths for a bash script
             let scriptContent = "#!/bin/bash\n\n# Generated Deletion Script\n# Run this in the root of your media folder to delete useless files.\n\n";
             
             trashedKeys.forEach(k => {
-                // Escape quotes in path
                 const safePath = k.replace(/"/g, '\\"');
                 scriptContent += `rm "${safePath}"\n`;
             });

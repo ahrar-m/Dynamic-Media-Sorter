@@ -4,12 +4,15 @@
 - **Scale**: Needs to handle around 50,000 media files (photos and videos).
 - **Core Functionality**:
   - Sort and rank media files using the **Openskill ranking system** (1v1 comparisons).
+  - **Media Separation**: Images and Videos are matched separately. Images are only compared against images, and videos against videos.
+  - **Video Seeking**: Videos have seek controls enabled.
   - **Instant "Trash" Action**: During 1v1 comparisons, instantly mark useless media for deletion so it never appears in future match-ups.
   - Delete the lowest-ranked and "trashed" media by **generating a deletion script** or a text list of bad files for the user to run/use later via PC or file manager.
   - View a leaderboard of the best media with their rankings.
   - Share media directly from the app (using Web Share API).
 - **Workflow & State Management**:
-  - **Randomized Comparisons**: The app picks unranked or closely-ranked files for comparison. Users can stop and resume over multiple sessions to avoid being overwhelmed.
+  - **Immersive UI**: UI elements are minimized to maximize space for media.
+  - **Randomized Comparisons**: The app picks unranked or closely-ranked files of the same type for comparison. Users can stop and resume over multiple sessions to avoid being overwhelmed.
   - **Save/Load State**: Users download a lightweight `.json` save file when stopping. To resume, they upload the `.json` and re-select the media folder.
 - **Distribution & Execution**:
   - Packaged as a **single, standalone HTML file** (all CSS/JS inlined) hosted on GitHub.
