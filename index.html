@@ -393,46 +393,41 @@
                 let hasLongPressed = false;
                 let startX = 0, startY = 0;
                 
-                card.addEventListener('touchstart', (e) => {
-                    startX = e.touches[0].clientX;
-                    startY = e.touches[0].clientY;
+                card.addEventListener('pointerdown', (e) => {
+                    if (e.button !== 0 && e.pointerType === 'mouse') return;
+                    startX = e.clientX;
+                    startY = e.clientY;
                     isDragging = false;
                     hasLongPressed = false;
                     pressTimer = setTimeout(() => {
                         hasLongPressed = true;
                         openFullscreen(item.file);
                     }, 400);
-                }, {passive: true});
+                });
                 
-                card.addEventListener('touchmove', (e) => {
+                card.addEventListener('pointermove', (e) => {
                     if (hasLongPressed) return;
-                    let dx = Math.abs(e.touches[0].clientX - startX);
-                    let dy = Math.abs(e.touches[0].clientY - startY);
+                    let dx = Math.abs(e.clientX - startX);
+                    let dy = Math.abs(e.clientY - startY);
                     if (dx > 10 || dy > 10) {
                         isDragging = true;
                         clearTimeout(pressTimer);
                     }
-                }, {passive: true});
+                });
                 
-                card.addEventListener('touchend', (e) => {
+                card.addEventListener('pointerup', (e) => {
                     clearTimeout(pressTimer);
                     if(!isDragging && !hasLongPressed) { 
-                        if(e.cancelable) e.preventDefault(); 
                         handleArenaTap(key, card); 
                     }
                 });
                 
-                card.addEventListener('contextmenu', (e) => e.preventDefault());
-                
-                card.addEventListener('mousedown', (e) => {
-                    isDragging = false; hasLongPressed = false;
-                    pressTimer = setTimeout(() => { hasLongPressed = true; openFullscreen(item.file); }, 400);
-                });
-                card.addEventListener('mousemove', () => { isDragging = true; clearTimeout(pressTimer); });
-                card.addEventListener('mouseup', (e) => {
+                card.addEventListener('pointercancel', () => {
                     clearTimeout(pressTimer);
-                    if(!isDragging && !hasLongPressed) handleArenaTap(key, card);
+                    isDragging = true;
                 });
+                
+                card.addEventListener('contextmenu', (e) => e.preventDefault());
                 
                 container.appendChild(card);
             });
