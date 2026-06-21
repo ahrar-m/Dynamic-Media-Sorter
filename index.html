@@ -386,10 +386,11 @@
                 const f = files[i];
                 if (mediaRegex.test(f.name)) {
                     const path = f.webkitRelativePath || f.name; mediaKeys.push(path);
+                    const isVid = f.type.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(f.name);
                     if (pathToHashStats[path]) {
-                        mediaData[path] = { file: f, hash: pathToHashStats[path].hash, mu: pathToHashStats[path].mu, sigma: pathToHashStats[path].sigma, trashed: pathToHashStats[path].trashed, matches: pathToHashStats[path].matches };
+                        mediaData[path] = { file: f, isVid: isVid, hash: pathToHashStats[path].hash, mu: pathToHashStats[path].mu, sigma: pathToHashStats[path].sigma, trashed: pathToHashStats[path].trashed, matches: pathToHashStats[path].matches };
                     } else {
-                        mediaData[path] = { file: f, hash: null, mu: 25, sigma: 8.333, trashed: false, matches: 0 };
+                        mediaData[path] = { file: f, isVid: isVid, hash: null, mu: 25, sigma: 8.333, trashed: false, matches: 0 };
                     }
                 }
             }
@@ -481,8 +482,7 @@
 
             mediaKeys.forEach(k => {
                 const item = mediaData[k];
-                const isVid = isVideo(item.file);
-                if (isVid) { vidTotal++; if (item.trashed) vidTrashed++; if (!item.trashed && item.matches > 0) vidRanked++; }
+                if (item.isVid) { vidTotal++; if (item.trashed) vidTrashed++; if (!item.trashed && item.matches > 0) vidRanked++; }
                 else { imgTotal++; if (item.trashed) imgTrashed++; if (!item.trashed && item.matches > 0) imgRanked++; }
             });
 
@@ -491,8 +491,8 @@
                 `VID - RANKED: ${vidRanked} | TRASHED: ${vidTrashed} | TOTAL: ${vidTotal}`;
         }
 
-        function isVideo(file) { return file.type.startsWith('video/'); }
-        function getActiveKeys() { return mediaKeys.filter(k => !mediaData[k].trashed && (mediaMode === 'video' ? isVideo(mediaData[k].file) : !isVideo(mediaData[k].file))); }
+        function isVideo(file) { return file.type.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(file.name); }
+        function getActiveKeys() { return mediaKeys.filter(k => !mediaData[k].trashed && (mediaMode === 'video' ? mediaData[k].isVid : !mediaData[k].isVid)); }
 
         function pickNextBatch() {
             if(isAnimating) return;
@@ -595,8 +595,7 @@
                     hasLongPressed = false;
                     pressTimer = setTimeout(() => {
                         hasLongPressed = true;
-                        if (navigator.vibrate) navigator.vibrate(50);
-                        openFullscreen(item.file);
+                        openFullscreen(item.file, mediaEl.src);
                     }, 250);
                 });
                 
@@ -664,10 +663,10 @@
             }
         });
 
-        function openFullscreen(file) {
+        function openFullscreen(file, existingSrc) {
             const modal = document.getElementById('fullscreen-view-modal');
             const content = document.getElementById('fullscreen-content');
-            clearContainerAndRevoke('fullscreen-content');
+            content.innerHTML = '';
             
             document.getElementById('fullscreen-dropdown').classList.add('hidden');
             document.getElementById('fullscreen-info-path').textContent = file.webkitRelativePath || file.name;
@@ -676,7 +675,9 @@
                 else alert("Share not supported on this browser.");
             };
 
-            const el = createMediaElement(file);
+            const el = document.createElement(isVideo(file) ? 'video' : 'img');
+            el.src = existingSrc || URL.createObjectURL(file);
+            if (!existingSrc) el.dataset.blobUrl = el.src;
             el.style.width = '100%'; el.style.height = '100%'; el.style.objectFit = 'contain';
             if(el.tagName === 'VIDEO') { el.controls = true; el.play().catch(()=>{}); }
             content.appendChild(el);
@@ -805,12 +806,12 @@
         }
 
         function loadLeaderboardPage() {
-            let keys = mediaKeys.filter(k => !mediaData[k].trashed && mediaData[k].matches > 0 && (mediaMode === 'video' ? isVideo(mediaData[k].file) : !isVideo(mediaData[k].file))).sort((a, b) => ordinal(mediaData[b]) - ordinal(mediaData[a]));
+            let keys = mediaKeys.filter(k => !mediaData[k].trashed && mediaData[k].matches > 0 && (mediaMode === 'video' ? mediaData[k].isVid : !mediaData[k].isVid)).sort((a, b) => ordinal(mediaData[b]) - ordinal(mediaData[a]));
             if (sortOrder === 'asc') keys.reverse();
             if(renderGridItems(keys, 'leaderboard-grid', leaderboardPage, false)) leaderboardPage++;
         }
         function loadTrashPage() {
-            const keys = mediaKeys.filter(k => mediaData[k].trashed && (mediaMode === 'video' ? isVideo(mediaData[k].file) : !isVideo(mediaData[k].file)));
+            const keys = mediaKeys.filter(k => mediaData[k].trashed && (mediaMode === 'video' ? mediaData[k].isVid : !mediaData[k].isVid));
             if(renderGridItems(keys, 'trash-grid', trashPage, true)) trashPage++;
         }
 
