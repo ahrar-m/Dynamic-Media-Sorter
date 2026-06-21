@@ -496,10 +496,15 @@
         document.getElementById('sort-order').addEventListener('change', (e) => { sortOrder = e.target.value; refreshCurrentScreen(); });
 
         function setMode(mode) {
-            mediaMode = mode;
-            document.getElementById('toggle-images').classList.toggle('active', mode === 'image');
-            document.getElementById('toggle-videos').classList.toggle('active', mode === 'video');
-            refreshCurrentScreen();
+            if (mediaMode !== mode) {
+                mediaMode = mode;
+                document.getElementById('toggle-images').classList.toggle('active', mode === 'image');
+                document.getElementById('toggle-videos').classList.toggle('active', mode === 'video');
+                currentBatchKeys = [];
+                rankedOrder = [];
+                markedForTrash.clear();
+                refreshCurrentScreen();
+            }
         }
 
         navButtons.forEach(btn => btn.addEventListener('click', () => switchScreen(btn.dataset.target)));
