@@ -231,7 +231,7 @@
             max-width: 1000px;
             position: relative;
             transform-origin: 50% 100%;
-            touch-action: none;
+            touch-action: pan-y;
             box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         }
 
@@ -328,7 +328,6 @@
                     <div class="icon-btn icon-trash" id="btn-trash1">🗑️</div>
                     
                     <div class="info-dropdown hidden glass" id="dropdown1">
-                        <div class="info-row"><b>File:</b> <span id="info-file1"></span></div>
                         <div class="info-row"><b>Path:</b> <span id="info-path1"></span></div>
                         <button class="btn" id="btn-share1" style="width:100%; margin-top:10px;">Share</button>
                     </div>
@@ -346,7 +345,6 @@
                     <div class="icon-btn icon-trash" id="btn-trash2">🗑️</div>
                     
                     <div class="info-dropdown hidden glass" id="dropdown2">
-                        <div class="info-row"><b>File:</b> <span id="info-file2"></span></div>
                         <div class="info-row"><b>Path:</b> <span id="info-path2"></span></div>
                         <button class="btn" id="btn-share2" style="width:100%; margin-top:10px;">Share</button>
                     </div>
@@ -382,7 +380,6 @@
 
     <!-- Bottom Navigation -->
     <nav id="bottom-nav" class="hidden">
-        <button data-target="home"><span class="icon">SYS</span></button>
         <button data-target="arena" class="active"><span class="icon">ARENA</span></button>
         <button data-target="leaderboard"><span class="icon">LDRBRD</span></button>
         <button data-target="trash"><span class="icon">TRASH</span></button>
@@ -457,7 +454,7 @@
 
         function updateHeaderActions() {
             headerActionsContainer.innerHTML = '';
-            const btnFs = document.createElement('button'); btnFs.className = 'btn'; btnFs.style.padding = '8px 10px'; btnFs.innerHTML = document.fullscreenElement ? '🗗' : '⛶';
+            const btnFs = document.createElement('button'); btnFs.className = 'btn'; btnFs.style.padding = '8px 10px'; btnFs.innerHTML = document.fullscreenElement ? '✖' : '⛶';
             btnFs.onclick = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(e=>{}); else document.exitFullscreen(); };
             headerActionsContainer.appendChild(btnFs);
 
@@ -507,7 +504,6 @@
                 if(contentDiv.firstChild) URL.revokeObjectURL(contentDiv.firstChild.src);
                 contentDiv.innerHTML = ''; contentDiv.appendChild(createMediaElement(f));
                 
-                document.getElementById(`info-file${i}`).textContent = f.name;
                 document.getElementById(`info-path${i}`).textContent = f.webkitRelativePath || f.name;
                 document.getElementById(`btn-share${i}`).onclick = async () => { if(navigator.share) await navigator.share({files: [f]}).catch(e=>{}); else alert("Not supported."); };
                 
@@ -567,7 +563,6 @@
             const cDiv = document.getElementById(`media${idx}-content`);
             if(cDiv.firstChild) URL.revokeObjectURL(cDiv.firstChild.src);
             cDiv.innerHTML = ''; cDiv.appendChild(createMediaElement(mediaData[newKey].file));
-            document.getElementById(`info-file${idx}`).textContent = mediaData[newKey].file.name;
             document.getElementById(`info-path${idx}`).textContent = mediaData[newKey].file.webkitRelativePath || mediaData[newKey].file.name;
             document.getElementById(`btn-share${idx}`).onclick = async () => { if(navigator.share) await navigator.share({files: [mediaData[newKey].file]}).catch(e=>{}); };
             updateStats();
@@ -678,8 +673,10 @@
             downloadBlob(JSON.stringify(saveObj), 'application/json', `save_${Date.now()}.json`);
         }
         document.getElementById('btn-export-script').addEventListener('click', () => {
-            let script = "#!/bin/bash\n\n"; mediaKeys.filter(k => mediaData[k].trashed).forEach(k => script += `rm "${k.replace(/"/g, '\\"')}"\n`);
-            downloadBlob(script, 'text/plain', `cleanup_script.sh`);
+            let script = "import os\n\nfiles_to_delete = [\n"; 
+            mediaKeys.filter(k => mediaData[k].trashed).forEach(k => script += `    r"${k.replace(/"/g, '\\"')}",\n`);
+            script += "]\n\nfor f in files_to_delete:\n    try:\n        os.remove(f)\n        print(f'Deleted: {f}')\n    except Exception as e:\n        print(f'Error deleting {f}: {e}')\n";
+            downloadBlob(script, 'text/plain', `cleanup_script.py`);
         });
         function downloadBlob(content, type, filename) { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
     </script>
