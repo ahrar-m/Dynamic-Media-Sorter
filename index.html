@@ -22,7 +22,7 @@
             --header-height: 60px;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 
         h1, h2, h3, .grid-badge, .swipe-hint { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 
@@ -237,6 +237,8 @@
     <script type="module">
         import { rating, rate, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@5.0.1/+esm';
 
+        window.addEventListener('contextmenu', e => e.preventDefault());
+        
         let mediaData = {}; let mediaKeys = []; let loadedSaveData = null; 
         let mediaMode = 'image'; let currentScreen = 'home'; let currentBatchKeys = []; let rankedOrder = [];
         let previousState = null; let currentSaveName = "save";
