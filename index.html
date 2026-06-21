@@ -171,6 +171,10 @@
                     <input type="file" id="savefile-input" accept=".json">
                     <span id="savefile-status" class="hidden" style="color:var(--primary); font-size:0.75rem; margin-top:10px;">Save loaded. Select folder to continue.</span>
                 </div>
+                <div class="card glass" id="wipe-cache-card">
+                    <button class="btn danger" id="btn-wipe-db">Wipe Cache</button>
+                    <p style="font-size:0.75rem; margin-top:10px; color:#94a3b8;">Deletes the IndexedDB backup.</p>
+                </div>
             </div>
         </section>
 
@@ -425,6 +429,7 @@
         function refreshCurrentScreen() {
             updateStats();
             document.getElementById('main-scroll').scrollTo(0,0);
+            if (currentScreen === 'arena' && currentBatchKeys.length === 0) pickNextBatch();
             if (currentScreen === 'leaderboard') { leaderboardPage = 0; clearContainerAndRevoke('leaderboard-grid'); loadLeaderboardPage(); }
             if (currentScreen === 'trash') { trashPage = 0; clearContainerAndRevoke('trash-grid'); loadTrashPage(); }
         }
@@ -986,6 +991,13 @@ for f in files_to_delete:
         });
         function downloadBlob(content, type, filename) { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
         document.getElementById('btn-stop-scan').addEventListener('click', () => { scanCancel = true; });
+        document.getElementById('btn-wipe-db').addEventListener('click', () => {
+            if(confirm("Are you sure you want to delete the local IndexedDB cache? All progress not exported will be lost.")) {
+                indexedDB.deleteDatabase('DynamicMediaSorterDB');
+                alert("Cache wiped. Please reload the page.");
+                location.reload();
+            }
+        });
     </script>
 </body>
 </html>
