@@ -257,6 +257,43 @@
         let mediaData = {}; let mediaKeys = []; let loadedSaveData = null; 
         let mediaMode = 'image'; let currentScreen = 'home'; let currentBatchKeys = []; let rankedOrder = [];
         let previousState = null; let currentSaveName = "save";
+        let isScanning = false; let scanCancel = false;
+
+        async function generateFileHash(file) {
+            if (file.size === 0) return `0-empty`;
+            const start = file.slice(0, 1024);
+            const middle = file.slice(Math.floor(file.size/2), Math.floor(file.size/2) + 1024);
+            const b1 = await start.arrayBuffer();
+            const b2 = await middle.arrayBuffer();
+            const hash1 = await crypto.subtle.digest('SHA-1', b1);
+            const hash2 = await crypto.subtle.digest('SHA-1', b2);
+            const hex1 = Array.from(new Uint8Array(hash1)).map(b => b.toString(16).padStart(2, '0')).join('');
+            const hex2 = Array.from(new Uint8Array(hash2)).map(b => b.toString(16).padStart(2, '0')).join('');
+            return `${file.size}-${hex1}${hex2}`;
+        }
+
+        async function ensureHashedAndHealed(k) {
+            if (mediaData[k].hash) return;
+            mediaData[k].hash = await generateFileHash(mediaData[k].file);
+            const h = mediaData[k].hash;
+            let healed = false;
+            if (loadedSaveData && loadedSaveData[h]) {
+                mediaData[k].mu = loadedSaveData[h].mu;
+                mediaData[k].sigma = loadedSaveData[h].sigma;
+                mediaData[k].matches = loadedSaveData[h].matches;
+                mediaData[k].trashed = loadedSaveData[h].trashed || false;
+                healed = true;
+            }
+            if (!healed) {
+                const existing = mediaKeys.find(otherKey => otherKey !== k && mediaData[otherKey].hash === h && (mediaData[otherKey].matches > 0 || mediaData[otherKey].trashed));
+                if (existing) {
+                    mediaData[k].mu = mediaData[existing].mu;
+                    mediaData[k].sigma = mediaData[existing].sigma;
+                    mediaData[k].matches = mediaData[existing].matches;
+                    mediaData[k].trashed = mediaData[existing].trashed;
+                }
+            }
+        }
         const PAGE_SIZE = 16; let leaderboardPage = 0; let trashPage = 0;
         let sortOrder = 'desc';
         let isAnimating = false;
