@@ -278,6 +278,29 @@
         let previousState = null; let currentSaveName = "save";
         let isScanning = false; let scanCancel = false;
 
+        let activeImageKeys = new Set();
+        let activeVideoKeys = new Set();
+        let trashedImageKeys = new Set();
+        let trashedVideoKeys = new Set();
+
+        function setItemTrashed(k, trashed) {
+            const item = mediaData[k];
+            if (!item) return;
+            activeImageKeys.delete(k);
+            activeVideoKeys.delete(k);
+            trashedImageKeys.delete(k);
+            trashedVideoKeys.delete(k);
+            
+            item.trashed = trashed;
+            if (trashed) {
+                if (item.isVid) trashedVideoKeys.add(k);
+                else trashedImageKeys.add(k);
+            } else {
+                if (item.isVid) activeVideoKeys.add(k);
+                else activeImageKeys.add(k);
+            }
+        }
+
         async function generateFileHash(file) {
             if (file.size === 0) return `0-empty`;
             const start = file.slice(0, 1024);
@@ -300,7 +323,7 @@
                 mediaData[k].mu = loadedSaveData[h].mu;
                 mediaData[k].sigma = loadedSaveData[h].sigma;
                 mediaData[k].matches = loadedSaveData[h].matches;
-                mediaData[k].trashed = loadedSaveData[h].trashed || false;
+                setItemTrashed(k, loadedSaveData[h].trashed || false);
                 healed = true;
             }
             if (!healed) {
@@ -309,7 +332,7 @@
                     mediaData[k].mu = mediaData[existing].mu;
                     mediaData[k].sigma = mediaData[existing].sigma;
                     mediaData[k].matches = mediaData[existing].matches;
-                    mediaData[k].trashed = mediaData[existing].trashed;
+                    setItemTrashed(k, mediaData[existing].trashed);
                 }
             }
         }
@@ -384,6 +407,10 @@
         document.getElementById('folder-input').addEventListener('change', (e) => {
             const files = e.target.files; if (files.length === 0) return;
             mediaData = {}; mediaKeys = []; currentBatchKeys = [];
+            activeImageKeys.clear();
+            activeVideoKeys.clear();
+            trashedImageKeys.clear();
+            trashedVideoKeys.clear();
             
             const pathToHashStats = {};
             if (loadedSaveData) {
@@ -401,10 +428,19 @@
                 if (mediaRegex.test(f.name)) {
                     const path = f.webkitRelativePath || f.name; mediaKeys.push(path);
                     const isVid = f.type.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(f.name);
+                    let item;
                     if (pathToHashStats[path]) {
-                        mediaData[path] = { file: f, isVid: isVid, hash: pathToHashStats[path].hash, mu: pathToHashStats[path].mu, sigma: pathToHashStats[path].sigma, trashed: pathToHashStats[path].trashed, matches: pathToHashStats[path].matches };
+                        item = { file: f, isVid: isVid, hash: pathToHashStats[path].hash, mu: pathToHashStats[path].mu, sigma: pathToHashStats[path].sigma, trashed: pathToHashStats[path].trashed, matches: pathToHashStats[path].matches };
                     } else {
-                        mediaData[path] = { file: f, isVid: isVid, hash: null, mu: 25, sigma: 8.333, trashed: false, matches: 0 };
+                        item = { file: f, isVid: isVid, hash: null, mu: 25, sigma: 8.333, trashed: false, matches: 0 };
+                    }
+                    mediaData[path] = item;
+                    if (item.trashed) {
+                        if (isVid) trashedVideoKeys.add(path);
+                        else trashedImageKeys.add(path);
+                    } else {
+                        if (isVid) activeVideoKeys.add(path);
+                        else activeImageKeys.add(path);
                     }
                 }
             }
@@ -491,14 +527,15 @@
         document.addEventListener('fullscreenchange', updateHeaderActions);
 
         function updateStats() {
-            let imgRanked = 0, imgTrashed = 0, imgTotal = 0;
-            let vidRanked = 0, vidTrashed = 0, vidTotal = 0;
+            let imgTotal = activeImageKeys.size + trashedImageKeys.size;
+            let imgTrashed = trashedImageKeys.size;
+            let imgRanked = 0;
+            activeImageKeys.forEach(k => { if (mediaData[k].matches > 0) imgRanked++; });
 
-            mediaKeys.forEach(k => {
-                const item = mediaData[k];
-                if (item.isVid) { vidTotal++; if (item.trashed) vidTrashed++; if (!item.trashed && item.matches > 0) vidRanked++; }
-                else { imgTotal++; if (item.trashed) imgTrashed++; if (!item.trashed && item.matches > 0) imgRanked++; }
-            });
+            let vidTotal = activeVideoKeys.size + trashedVideoKeys.size;
+            let vidTrashed = trashedVideoKeys.size;
+            let vidRanked = 0;
+            activeVideoKeys.forEach(k => { if (mediaData[k].matches > 0) vidRanked++; });
 
             document.getElementById('stats-text').innerHTML = 
                 `IMG - RANKED: ${imgRanked} | TRASHED: ${imgTrashed} | TOTAL: ${imgTotal}<br>` +
@@ -506,7 +543,7 @@
         }
 
         function isVideo(file) { return file.type.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(file.name); }
-        function getActiveKeys() { return mediaKeys.filter(k => !mediaData[k].trashed && (mediaMode === 'video' ? mediaData[k].isVid : !mediaData[k].isVid)); }
+        function getActiveKeys() { return mediaMode === 'video' ? Array.from(activeVideoKeys) : Array.from(activeImageKeys); }
 
         function pickNextBatch() {
             if(isAnimating) return;
@@ -542,8 +579,9 @@
                 if (rankedPool.length > 0) {
                     const seedIndex = Math.floor(Math.random() * rankedPool.length);
                     seedMu = mediaData[rankedPool[seedIndex]].mu;
-                    rankedPool.sort((a, b) => Math.abs(mediaData[a].mu - seedMu) - Math.abs(mediaData[b].mu - seedMu));
-                    for(let i=0; i<neededRanked; i++) currentBatchKeys.push(rankedPool[i]);
+                    const mapped = rankedPool.map(k => ({ key: k, diff: Math.abs(mediaData[k].mu - seedMu) }));
+                    mapped.sort((a, b) => a.diff - b.diff);
+                    for(let i=0; i<neededRanked; i++) currentBatchKeys.push(mapped[i].key);
                 }
             }
 
@@ -705,7 +743,7 @@
             await Promise.all(currentBatchKeys.map(k => ensureHashedAndHealed(k)));
             
             if (rankedOrder.length === 0 && trashUnranked) {
-                currentBatchKeys.forEach(k => mediaData[k].trashed = true);
+                currentBatchKeys.forEach(k => setItemTrashed(k, true));
                 isProcessing = false; isAnimating = false;
                 pickNextBatch(); updateStats(); autoSaveToDB(); return;
             }
@@ -735,7 +773,7 @@
             } else if (teams.length === 1) { mediaData[teams[0][0].key].matches++; }
             
             if (trashUnranked) {
-                untappeds.forEach(k => { mediaData[k].trashed = true; });
+                untappeds.forEach(k => setItemTrashed(k, true));
             }
             
             isProcessing = false; isAnimating = false; pickNextBatch(); updateStats(); autoSaveToDB();
@@ -750,7 +788,12 @@
         function undoAction() {
             if(!previousState || isAnimating) return;
             const {keys, data} = previousState;
-            keys.forEach(k => { Object.assign(mediaData[k], data[k]); });
+            keys.forEach(k => { 
+                const targetTrashed = data[k].trashed;
+                Object.assign(mediaData[k], data[k]); 
+                mediaData[k].trashed = !targetTrashed;
+                setItemTrashed(k, targetTrashed);
+            });
             currentBatchKeys = keys; rankedOrder = []; previousState = null; 
             renderArenaGrid(); updateHeaderActions(); updateStats(); autoSaveToDB();
         }
@@ -782,7 +825,7 @@
                 if (isTrash) {
                     const resBtn = document.createElement('button'); resBtn.className = 'btn success'; resBtn.textContent = '♻️ RESTORE'; resBtn.style.padding='4px'; resBtn.style.fontSize='0.65rem';
                     resBtn.onclick = (e) => { 
-                        e.stopPropagation(); mediaData[k].trashed = false; 
+                        e.stopPropagation(); setItemTrashed(k, false); 
                         const blobEl = el.querySelector('[data-blob-url]');
                         if (blobEl) URL.revokeObjectURL(blobEl.dataset.blobUrl);
                         el.remove(); updateStats(); autoSaveToDB();
@@ -794,12 +837,20 @@
         }
 
         function loadLeaderboardPage() {
-            let keys = mediaKeys.filter(k => !mediaData[k].trashed && mediaData[k].matches > 0 && (mediaMode === 'video' ? mediaData[k].isVid : !mediaData[k].isVid)).sort((a, b) => ordinal(mediaData[b]) - ordinal(mediaData[a]));
+            const activeSet = mediaMode === 'video' ? activeVideoKeys : activeImageKeys;
+            const matchedKeys = [];
+            activeSet.forEach(k => {
+                if (mediaData[k].matches > 0) matchedKeys.push(k);
+            });
+            const mapped = matchedKeys.map(k => ({ key: k, score: ordinal(mediaData[k]) }));
+            mapped.sort((a, b) => b.score - a.score);
+            let keys = mapped.map(x => x.key);
             if (sortOrder === 'asc') keys.reverse();
             if(renderGridItems(keys, 'leaderboard-grid', leaderboardPage, false)) leaderboardPage++;
         }
         function loadTrashPage() {
-            const keys = mediaKeys.filter(k => mediaData[k].trashed && (mediaMode === 'video' ? mediaData[k].isVid : !mediaData[k].isVid));
+            const trashSet = mediaMode === 'video' ? trashedVideoKeys : trashedImageKeys;
+            const keys = Array.from(trashSet);
             if(renderGridItems(keys, 'trash-grid', trashPage, true)) trashPage++;
         }
 
@@ -897,7 +948,7 @@
                 if (isH && diffX < -100) {
                     el.style.transform = `translateX(-100vw)`;
                     setTimeout(() => {
-                        mediaData[el.dataset.key].trashed = true; updateStats(); autoSaveToDB();
+                        setItemTrashed(el.dataset.key, true); updateStats(); autoSaveToDB();
                         const blobEl = el.querySelector('[data-blob-url]');
                         if (blobEl) URL.revokeObjectURL(blobEl.dataset.blobUrl);
                         el.style.height = '0'; el.style.opacity = '0';
