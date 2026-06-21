@@ -343,15 +343,25 @@
         function isVideo(file) { return file.type.startsWith('video/'); }
         function getActiveKeys() { return mediaKeys.filter(k => !mediaData[k].trashed && (mediaMode === 'video' ? isVideo(mediaData[k].file) : !isVideo(mediaData[k].file))); }
 
-        function pickNextPair() {
+        function pickNextBatch() {
             if(isAnimating) return;
             const active = getActiveKeys();
-            if (active.length < 2) { document.getElementById('arena').innerHTML = `<div style="margin:auto; text-align:center; padding:50px;"><h3 style="color:var(--primary); text-shadow:var(--glow);">NO MORE ${mediaMode.toUpperCase()}S LEFT</h3></div>`; return; }
-            if(!document.getElementById('media1-container')) location.reload();
+            if (active.length < 2) { document.getElementById('arena-grid').innerHTML = `<div style="margin:auto; text-align:center; padding:50px; grid-column: 1 / -1;"><h3 style="color:var(--primary); text-shadow:var(--glow);">NO MORE ${mediaMode.toUpperCase()}S LEFT</h3></div>`; return; }
             
-            let idx1 = Math.floor(Math.random() * active.length); let k1 = active[idx1];
-            let idx2 = Math.floor(Math.random() * active.length); while (idx2 === idx1) idx2 = Math.floor(Math.random() * active.length); let k2 = active[idx2];
-            currentPair = [k1, k2]; renderPair(k1, k2); updateHeaderActions(); 
+            active.sort((a,b) => mediaData[a].matches - mediaData[b].matches);
+            const poolSize = Math.min(active.length, 50);
+            const pool = active.slice(0, poolSize);
+            
+            currentBatchKeys = [];
+            const numToPick = Math.min(10, active.length);
+            for(let i=0; i<numToPick; i++) {
+                const rIdx = Math.floor(Math.random() * pool.length);
+                currentBatchKeys.push(pool.splice(rIdx, 1)[0]);
+            }
+            
+            rankedOrder = [];
+            renderArenaGrid();
+            updateHeaderActions(); 
         }
 
         function createMediaElement(file) {
@@ -360,107 +370,148 @@
             return el;
         }
 
-        function renderPair(k1, k2) {
-            [1, 2].forEach(i => {
-                const f = mediaData[i===1?k1:k2].file;
-                const contentDiv = document.getElementById(`media${i}-content`);
-                if(contentDiv.firstChild) URL.revokeObjectURL(contentDiv.firstChild.src);
-                contentDiv.innerHTML = ''; contentDiv.appendChild(createMediaElement(f));
+        function renderArenaGrid() {
+            const container = document.getElementById('arena-grid');
+            container.innerHTML = '';
+            
+            currentBatchKeys.forEach((key) => {
+                const item = mediaData[key];
+                const card = document.createElement('div');
+                card.className = 'arena-card glass';
+                card.dataset.key = key;
                 
-                document.getElementById(`info-path${i}`).textContent = f.webkitRelativePath || f.name;
-                document.getElementById(`btn-share${i}`).onclick = async () => { if(navigator.share) await navigator.share({files: [f]}).catch(e=>{}); else alert("Not supported."); };
+                const mediaEl = createMediaElement(item.file);
+                if(mediaEl.tagName === 'VIDEO') mediaEl.removeAttribute('controls');
+                card.appendChild(mediaEl);
                 
-                const container = document.getElementById(`media${i}-container`);
-                container.style.transition = 'none'; container.style.transform = ''; container.style.opacity = '1';
-                container.classList.remove('swipe-right-win', 'swipe-left-lose', 'glow-win', 'glow-lose');
-                document.getElementById(`dropdown${i}`).classList.add('hidden');
+                let pressTimer;
+                let isDragging = false;
+                card.addEventListener('touchstart', (e) => {
+                    isDragging = false;
+                    pressTimer = setTimeout(() => {
+                        openFullscreen(item.file);
+                        isDragging = true;
+                    }, 500);
+                }, {passive: true});
+                card.addEventListener('touchmove', () => { isDragging = true; clearTimeout(pressTimer); }, {passive: true});
+                card.addEventListener('touchend', (e) => {
+                    clearTimeout(pressTimer);
+                    if(!isDragging) { e.preventDefault(); handleArenaTap(key, card); }
+                });
+                card.addEventListener('mousedown', (e) => {
+                    isDragging = false;
+                    pressTimer = setTimeout(() => { openFullscreen(item.file); isDragging = true; }, 500);
+                });
+                card.addEventListener('mousemove', () => { isDragging = true; clearTimeout(pressTimer); });
+                card.addEventListener('mouseup', (e) => {
+                    clearTimeout(pressTimer);
+                    if(!isDragging) handleArenaTap(key, card);
+                });
+                
+                container.appendChild(card);
             });
         }
 
-        function saveHistory() { if(!currentPair) return; const [k1, k2] = currentPair; previousState = { k1, k2, d1: { ...mediaData[k1] }, d2: { ...mediaData[k2] } }; updateHeaderActions(); }
+        function handleArenaTap(key, cardEl) {
+            const rankIdx = rankedOrder.indexOf(key);
+            if (rankIdx > -1) {
+                if (rankIdx === rankedOrder.length - 1) {
+                    rankedOrder.pop();
+                    cardEl.classList.remove('ranked');
+                    const badge = cardEl.querySelector('.rank-badge');
+                    if (badge) badge.remove();
+                }
+            } else {
+                rankedOrder.push(key);
+                cardEl.classList.add('ranked');
+                const badge = document.createElement('div');
+                badge.className = 'rank-badge';
+                badge.textContent = `#${rankedOrder.length}`;
+                cardEl.appendChild(badge);
+            }
+        }
+
+        function openFullscreen(file) {
+            const modal = document.getElementById('fullscreen-view-modal');
+            const content = document.getElementById('fullscreen-content');
+            content.innerHTML = '';
+            const el = createMediaElement(file);
+            el.style.width = '100%'; el.style.height = '100%'; el.style.objectFit = 'contain';
+            if(el.tagName === 'VIDEO') { el.controls = true; el.play().catch(()=>{}); }
+            content.appendChild(el);
+            modal.classList.remove('hidden');
+            history.pushState({ fullscreen: true }, '');
+        }
+        
+        function closeFullscreen() {
+            const modal = document.getElementById('fullscreen-view-modal');
+            modal.classList.add('hidden');
+            const content = document.getElementById('fullscreen-content');
+            if(content.firstChild && content.firstChild.tagName === 'VIDEO') content.firstChild.pause();
+            content.innerHTML = '';
+        }
+
+        window.addEventListener('popstate', (e) => {
+            if (!document.getElementById('fullscreen-view-modal').classList.contains('hidden')) closeFullscreen();
+        });
+        
+        document.getElementById('btn-close-fullscreen').addEventListener('click', () => {
+            if (history.state && history.state.fullscreen) { history.back(); } else { closeFullscreen(); }
+        });
+
+        document.getElementById('btn-arena-submit').addEventListener('click', () => submitBatch(false));
+        document.getElementById('btn-arena-trash-unranked').addEventListener('click', () => submitBatch(true));
+
+        function submitBatch(trashUnranked) {
+            if (currentBatchKeys.length < 2) return;
+            if (rankedOrder.length === 0 && !trashUnranked) { alert("Tap at least one item to rank it!"); return; }
+            if (rankedOrder.length === 0 && trashUnranked) {
+                currentBatchKeys.forEach(k => mediaData[k].trashed = true);
+                pickNextBatch(); updateStats(); return;
+            }
+            
+            isAnimating = true; saveHistory();
+            
+            const untappeds = currentBatchKeys.filter(k => !rankedOrder.includes(k));
+            let teams = []; let ranks = [];
+            
+            rankedOrder.forEach((k, idx) => {
+                teams.push([{ mu: mediaData[k].mu, sigma: mediaData[k].sigma, key: k }]);
+                ranks.push(idx + 1);
+            });
+            
+            const lastRank = rankedOrder.length + 1;
+            untappeds.forEach(k => {
+                if (trashUnranked) { mediaData[k].trashed = true; } 
+                else { teams.push([{ mu: mediaData[k].mu, sigma: mediaData[k].sigma, key: k }]); ranks.push(lastRank); }
+            });
+            
+            if (teams.length > 1) {
+                const newRatings = rate(teams, { rank: ranks });
+                teams.forEach((team, teamIdx) => {
+                    const key = team[0].key;
+                    mediaData[key].mu = newRatings[teamIdx][0].mu;
+                    mediaData[key].sigma = newRatings[teamIdx][0].sigma;
+                    mediaData[key].matches++;
+                });
+            } else if (teams.length === 1) { mediaData[teams[0][0].key].matches++; }
+            
+            isAnimating = false; pickNextBatch(); updateStats();
+        }
+
+        function saveHistory() {
+            if(currentBatchKeys.length === 0) return;
+            previousState = { keys: [...currentBatchKeys], data: currentBatchKeys.reduce((acc, k) => { acc[k] = {...mediaData[k]}; return acc; }, {}) };
+            updateHeaderActions();
+        }
 
         function undoAction() {
             if(!previousState || isAnimating) return;
-            const {k1, k2, d1, d2} = previousState; Object.assign(mediaData[k1], d1); Object.assign(mediaData[k2], d2);
-            currentPair = [k1, k2]; previousState = null; renderPair(k1, k2); updateHeaderActions(); updateStats();
+            const {keys, data} = previousState;
+            keys.forEach(k => { Object.assign(mediaData[k], data[k]); });
+            currentBatchKeys = keys; rankedOrder = []; previousState = null; 
+            renderArenaGrid(); updateHeaderActions(); updateStats();
         }
-
-        function triggerWin(winnerIdx) {
-            if(isAnimating || !currentPair) return;
-            isAnimating = true; saveHistory();
-
-            const m1 = document.getElementById('media1-container'); const m2 = document.getElementById('media2-container');
-            m1.style.transition = 'all 0.4s ease'; m2.style.transition = 'all 0.4s ease';
-            if (winnerIdx === 1) { m1.classList.add('swipe-right-win'); m2.classList.add('swipe-left-lose'); } else { m2.classList.add('swipe-right-win'); m1.classList.add('swipe-left-lose'); }
-
-            const [k1, k2] = currentPair; let team1 = [{ mu: mediaData[k1].mu, sigma: mediaData[k1].sigma }]; let team2 = [{ mu: mediaData[k2].mu, sigma: mediaData[k2].sigma }];
-            let newR = winnerIdx === 1 ? rate([team1, team2]) : rate([team2, team1]);
-            
-            if(winnerIdx === 1) { Object.assign(mediaData[k1], newR[0][0]); Object.assign(mediaData[k2], newR[1][0]); } else { Object.assign(mediaData[k2], newR[0][0]); Object.assign(mediaData[k1], newR[1][0]); }
-            mediaData[k1].matches++; mediaData[k2].matches++;
-
-            setTimeout(() => { isAnimating = false; pickNextPair(); updateStats(); }, 400);
-        }
-
-        function handleTrash(idx) {
-            if(isAnimating || !currentPair) return;
-            saveHistory();
-            const trashedKey = currentPair[idx - 1]; mediaData[trashedKey].trashed = true;
-            const remainingKey = currentPair[idx === 1 ? 1 : 0];
-            const choices = getActiveKeys().filter(k => k !== remainingKey && k !== trashedKey);
-            
-            if (choices.length === 0) { pickNextPair(); return; }
-            const newKey = choices[Math.floor(Math.random() * choices.length)]; currentPair[idx - 1] = newKey;
-            
-            const cDiv = document.getElementById(`media${idx}-content`);
-            if(cDiv.firstChild) URL.revokeObjectURL(cDiv.firstChild.src);
-            cDiv.innerHTML = ''; cDiv.appendChild(createMediaElement(mediaData[newKey].file));
-            document.getElementById(`info-path${idx}`).textContent = mediaData[newKey].file.webkitRelativePath || mediaData[newKey].file.name;
-            document.getElementById(`btn-share${idx}`).onclick = async () => { if(navigator.share) await navigator.share({files: [mediaData[newKey].file]}).catch(e=>{}); };
-            updateStats();
-        }
-
-        [1, 2].forEach(idx => {
-            const el = document.getElementById(`media${idx}-container`); const otherEl = document.getElementById(`media${idx===1?2:1}-container`);
-            let startX = 0, startY = 0, currentX = 0, currentY = 0; let isDragging = false, isVerticalScroll = false, isHorizontalSwipe = false;
-
-            document.getElementById(`btn-menu${idx}`).addEventListener('click', (e) => { e.stopPropagation(); document.getElementById(`dropdown${idx}`).classList.toggle('hidden'); });
-            document.getElementById(`btn-trash${idx}`).addEventListener('click', (e) => { e.stopPropagation(); handleTrash(idx); });
-
-            el.addEventListener('touchstart', e => {
-                if(isAnimating) return; if(e.target.closest('.icon-btn') || e.target.closest('.info-dropdown')) return;
-                if(e.target.tagName === 'VIDEO' && e.touches[0].clientY > el.getBoundingClientRect().bottom - 60) return;
-                
-                startX = e.touches[0].clientX; startY = e.touches[0].clientY; currentX = startX; currentY = startY;
-                isDragging = true; isVerticalScroll = false; isHorizontalSwipe = false; el.style.transition = 'none';
-            }, {passive: true});
-
-            el.addEventListener('touchmove', e => {
-                if(!isDragging || isAnimating) return;
-                currentX = e.touches[0].clientX; currentY = e.touches[0].clientY; let diffX = currentX - startX; let diffY = currentY - startY;
-
-                if (!isHorizontalSwipe && !isVerticalScroll) {
-                    if (Math.abs(diffY) > 15) isVerticalScroll = true; else if (Math.abs(diffX) > 15) isHorizontalSwipe = true;
-                }
-                if (isVerticalScroll) return;
-
-                if (isHorizontalSwipe) {
-                    if (e.cancelable) e.preventDefault();
-                    el.style.transform = `translateX(${diffX}px) rotate(${diffX * 0.05}deg)`;
-                    if(diffX > 50) { el.classList.add('glow-win'); el.classList.remove('glow-lose'); otherEl.classList.add('glow-lose'); otherEl.classList.remove('glow-win'); }
-                    else if(diffX < -50) { el.classList.add('glow-lose'); el.classList.remove('glow-win'); otherEl.classList.add('glow-win'); otherEl.classList.remove('glow-lose'); }
-                    else { el.classList.remove('glow-win', 'glow-lose'); otherEl.classList.remove('glow-win', 'glow-lose'); }
-                }
-            }, {passive: false});
-
-            el.addEventListener('touchend', e => {
-                if(!isDragging || isAnimating || isVerticalScroll) { isDragging = false; return; }
-                isDragging = false; let diffX = currentX - startX;
-                el.style.transition = 'transform 0.3s ease'; 
-                el.classList.remove('glow-win', 'glow-lose'); otherEl.classList.remove('glow-win', 'glow-lose');
-                if (isHorizontalSwipe) { if (diffX > 100) triggerWin(idx); else if (diffX < -100) triggerWin(idx === 1 ? 2 : 1); else el.style.transform = ''; } else { el.style.transform = ''; }
-            });
-        });
 
         // --- Grids & Feed View ---
         function renderGridItems(keys, containerId, page, isTrash) {
