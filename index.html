@@ -864,6 +864,21 @@
             
             mediaData[currentFullscreenKey].crop = { x, y, w, h };
             autoSaveToDB();
+            
+            // Update Arena card thumbnail style instantly
+            const arenaCard = document.querySelector(`.arena-card[data-key="${CSS.escape(currentFullscreenKey)}"]`);
+            if (arenaCard) {
+                const mediaEl = arenaCard.querySelector('img, video');
+                if (mediaEl) {
+                    mediaEl.style.position = 'absolute';
+                    mediaEl.style.left = `${-x / w * 100}%`;
+                    mediaEl.style.top = `${-y / h * 100}%`;
+                    mediaEl.style.width = `${100 / w * 100}%`;
+                    mediaEl.style.height = `${100 / h * 100}%`;
+                    mediaEl.style.objectFit = 'fill';
+                }
+            }
+            
             exitCropMode();
             refreshCurrentScreen();
         });
