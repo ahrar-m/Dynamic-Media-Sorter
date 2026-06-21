@@ -16,8 +16,9 @@
 ## Technical Architecture & Design Decisions
 - **UI & Navigation**: 
   - **Bottom Navigation Bar**: Modern, app-like navigation with icons for Arena, Leaderboard, and Trash.
+  - **Full Screen Mode**: Added a dedicated full-screen button to the top bar for an uninterrupted sorting experience.
   - **Clean Layout**: UI elements are compact. Absolutely no overlays on top of the images/videos in the arena.
-  - **Scrollable & Responsive**: The app allows natural vertical scrolling where necessary.
+  - **Scrollable & Responsive**: The app allows natural vertical scrolling where necessary, using `100dvh` to prevent mobile browser cutoff.
 - **File Access**: `<input type="file" webkitdirectory multiple>`
 - **Ranking Engine**: Openskill.js (ES Module import).
 - **Performance**: Lazy load grid items 16 at a time to prevent DOM bloat and crashing.

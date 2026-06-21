@@ -33,6 +33,7 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             height: 100vh;
+            height: 100dvh;
             width: 100vw;
             display: flex;
             flex-direction: column;
@@ -438,12 +439,25 @@
 
         function updateHeaderActions() {
             headerActionsContainer.innerHTML = '';
+            
+            const btnFs = document.createElement('button');
+            btnFs.className = 'btn';
+            btnFs.style.padding = '8px 10px';
+            btnFs.innerHTML = document.fullscreenElement ? '🗗' : '⛶';
+            btnFs.onclick = () => {
+                if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(e=>{});
+                else document.exitFullscreen();
+            };
+            headerActionsContainer.appendChild(btnFs);
+
             const btnSave = document.createElement('button'); btnSave.className = 'btn'; btnSave.innerHTML = '💾 Save'; btnSave.onclick = exportSave; headerActionsContainer.appendChild(btnSave);
             if (currentScreen === 'arena') {
                 const btnUndo = document.createElement('button'); btnUndo.className = 'btn'; btnUndo.innerHTML = '↩️ Undo';
                 btnUndo.disabled = !previousState; btnUndo.onclick = undoAction; headerActionsContainer.appendChild(btnUndo);
             }
         }
+
+        document.addEventListener('fullscreenchange', updateHeaderActions);
 
         function updateStats() {
             const total = mediaKeys.length;
