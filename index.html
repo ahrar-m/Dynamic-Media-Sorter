@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Media Sorter</title>
+    <!-- Openskill.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/openskill@latest/dist/openskill.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --text-color: #f8fafc;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background: radial-gradient(circle at top left, #1e1b4b, #0f172a 50%);
+        }
+
+        /* Utility Classes */
+        .hidden { display: none !important; }
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Buttons */
+        button, .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        button:hover, .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+        button.danger {
+            background: var(--danger);
+        }
+        button.danger:hover {
+            background: var(--danger-hover);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Header */
+        header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Screens */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        #home-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 30px;
+        }
+
+        #home-screen .hero {
+            max-width: 600px;
+        }
+
+        #home-screen h2 {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+
+        #home-screen p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        .action-cards {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .card {
+            padding: 30px;
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card input[type="file"] {
+            display: none;
+        }
+
+        /* Compare Screen */
+        #compare-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .compare-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .progress-text {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .media-container {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            min-height: 0; /* Important for flex child with overflow */
+        }
+
+        @media (max-width: 768px) {
+            .media-container {
+                flex-direction: column;
+            }
+        }
+
+        .media-item {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            background: #000;
+        }
+
+        .media-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .media-item.winner {
+            box-shadow: 0 0 0 4px #22c55e, 0 0 30px rgba(34, 197, 94, 0.5);
+        }
+
+        .media-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            min-height: 200px; /* For mobile */
+        }
+
+        .media-content img, .media-content video {
+            max-width: 100%;
+            max-height: 60vh;
+            object-fit: contain;
+            pointer-events: none; /* Let clicks pass to the container */
+        }
+
+        .media-actions {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 15px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .filename {
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 70%;
+        }
+
+        .btn-trash {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            z-index: 2; /* Clickable above the main div */
+            backdrop-filter: blur(4px);
+        }
+
+        .btn-trash:hover {
+            background: rgba(239, 68, 68, 0.4);
+        }
+
+        .vs-badge {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--primary);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+
+        /* Leaderboard Screen */
+        #leaderboard-screen {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .leaderboard-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .grid-item {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 1;
+            background: #000;
+        }
+
+        .grid-item img, .grid-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .grid-item .overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 50%, rgba(0,0,0,0.8) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .grid-item:hover .overlay {
+            opacity: 1;
+        }
+
+        .rank-badge {
+            align-self: flex-start;
+            background: var(--primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .item-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Dynamic Media Sorter</h1>
+    </header>
+
+    <main>
+        <!-- Home Screen -->
+        <section id="home-screen">
+            <div class="hero">
+                <h2>Sort 50,000+ Media Files Smoothly</h2>
+                <p>Curate your best photos and videos using a smart comparison engine. Trash the worst, save your progress, and generate cleanup scripts.</p>
+            </div>
+
+            <div class="action-cards">
+                <div class="card glass">
+                    <h3>Start New</h3>
+                    <p>Select your media folder to begin sorting from scratch.</p>
+                    <label class="btn" for="folder-input">
+                        📁 Select Folder
+                    </label>
+                    <input type="file" id="folder-input" webkitdirectory multiple accept="image/*,video/*">
+                </div>
+
+                <div class="card glass">
+                    <h3>Resume Session</h3>
+                    <p>Upload a previous save file, then select your folder to continue.</p>
+                    <label class="btn" for="savefile-input">
+                        💾 Load Save File (.json)
+                    </label>
+                    <input type="file" id="savefile-input" accept=".json">
+                    <span id="savefile-status" class="progress-text hidden">Save loaded. Now select folder above.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Compare Screen -->
+        <section id="compare-screen" class="hidden">
+            <div class="compare-header glass" style="padding: 15px;">
+                <div>
+                    <span class="progress-text" id="stats-text">Ranked: 0 | Trashed: 0 | Total: 0</span>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button id="btn-leaderboard" class="btn">🏆 Leaderboard</button>
+                    <button id="btn-save" class="btn">💾 Save & Exit</button>
+                </div>
+            </div>
+
+            <div class="media-container" id="arena">
+                <div class="vs-badge">VS</div>
+                
+                <!-- Media 1 -->
+                <div class="media-item" id="media1-container">
+                    <div class="media-content" id="media1-content"></div>
+                    <div class="media-actions">
+                        <span class="filename" id="media1-filename">file.jpg</span>
+                        <button class="btn-trash" id="btn-trash1">🗑️ Trash</button>
+                    </div>
+                </div>
+
+                <!-- Media 2 -->
+                <div class="media-item" id="media2-container">
+                    <div class="media-content" id="media2-content"></div>
+                    <div class="media-actions">
+                        <span class="filename" id="media2-filename">file.jpg</span>
+                        <button class="btn-trash" id="btn-trash2">🗑️ Trash</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Leaderboard Screen -->
+        <section id="leaderboard-screen" class="hidden">
+            <div class="glass" style="padding: 20px; margin-bottom: 20px;">
+                <h2 style="margin-bottom: 15px;">Leaderboard & Cleanup</h2>
+                <div class="leaderboard-controls">
+                    <button id="btn-back-sort" class="btn">🔙 Back to Sorting</button>
+                    <button id="btn-export-script" class="btn danger">📜 Export Deletion Script</button>
+                </div>
+            </div>
+
+            <div class="grid" id="leaderboard-grid">
+                <!-- Grid items generated by JS -->
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // --- State Management ---
+        // mediaData: path -> { file, mu, sigma, trashed }
+        let mediaData = {};
+        let mediaKeys = [];
+        let currentPair = null;
+        let loadedSaveData = null; // Temporary holding for loaded JSON
+
+        // Openskill instance shortcut
+        const { rating, rate, ordinal } = openskill;
+
+        // --- DOM Elements ---
+        const screens = {
+            home: document.getElementById('home-screen'),
+            compare: document.getElementById('compare-screen'),
+            leaderboard: document.getElementById('leaderboard-screen')
+        };
+
+        const inputs = {
+            folder: document.getElementById('folder-input'),
+            savefile: document.getElementById('savefile-input')
+        };
+
+        const UI = {
+            saveStatus: document.getElementById('savefile-status'),
+            statsText: document.getElementById('stats-text'),
+            m1Content: document.getElementById('media1-content'),
+            m2Content: document.getElementById('media2-content'),
+            m1Name: document.getElementById('media1-filename'),
+            m2Name: document.getElementById('media2-filename'),
+            btnTrash1: document.getElementById('btn-trash1'),
+            btnTrash2: document.getElementById('btn-trash2'),
+            m1Container: document.getElementById('media1-container'),
+            m2Container: document.getElementById('media2-container'),
+            leaderboardGrid: document.getElementById('leaderboard-grid')
+        };
+
+        // --- Initialization & File Handling ---
+
+        inputs.savefile.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                loadedSaveData = JSON.parse(text);
+                UI.saveStatus.classList.remove('hidden');
+                UI.saveStatus.textContent = `Loaded ${Object.keys(loadedSaveData).length} ratings. Now select your media folder.`;
+            } catch (err) {
+                alert("Invalid save file.");
+            }
+        });
+
+        inputs.folder.addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (files.length === 0) return;
+
+            mediaData = {};
+            mediaKeys = [];
+
+            // Regex to check if file is media
+            const mediaRegex = /\.(jpe?g|png|webp|gif|mp4|webm|mov)$/i;
+
+            for (let i = 0; i < files.length; i++) {
+                const f = files[i];
+                if (mediaRegex.test(f.name)) {
+                    const path = f.webkitRelativePath || f.name;
+                    mediaKeys.push(path);
+                    
+                    // Default rating or load from save
+                    let r = rating();
+                    let trashed = false;
+                    
+                    if (loadedSaveData && loadedSaveData[path]) {
+                        r.mu = loadedSaveData[path].mu;
+                        r.sigma = loadedSaveData[path].sigma;
+                        trashed = loadedSaveData[path].trashed || false;
+                    }
+
+                    mediaData[path] = {
+                        file: f,
+                        mu: r.mu,
+                        sigma: r.sigma,
+                        trashed: trashed,
+                        matches: 0 // Optional: track how many times it was compared this session
+                    };
+                }
+            }
+
+            if (mediaKeys.length < 2) {
+                alert("Need at least 2 media files in the folder.");
+                return;
+            }
+
+            showScreen('compare');
+            pickNextPair();
+        });
+
+        // --- Core Logic ---
+
+        function showScreen(screenName) {
+            Object.values(screens).forEach(s => s.classList.add('hidden'));
+            screens[screenName].classList.remove('hidden');
+            if (screenName === 'compare') updateStats();
+            if (screenName === 'leaderboard') renderLeaderboard();
+        }
+
+        function getActiveKeys() {
+            return mediaKeys.filter(k => !mediaData[k].trashed);
+        }
+
+        function pickNextPair() {
+            const active = getActiveKeys();
+            if (active.length < 2) {
+                alert("Not enough non-trashed media left to compare!");
+                showScreen('leaderboard');
+                return;
+            }
+
+            // Simple random selection for now
+            // To optimize, we could pick items with similar 'mu' or lowest 'matches'
+            // For 50k files, random is fast and creates diverse matchups initially.
+            
+            // Pick random 1
+            let idx1 = Math.floor(Math.random() * active.length);
+            let k1 = active[idx1];
+            
+            // Pick random 2
+            let idx2 = Math.floor(Math.random() * active.length);
+            while (idx2 === idx1) {
+                idx2 = Math.floor(Math.random() * active.length);
+            }
+            let k2 = active[idx2];
+
+            currentPair = [k1, k2];
+            renderPair(k1, k2);
+        }
+
+        function createMediaElement(file) {
+            const isVideo = file.type.startsWith('video/');
+            const url = URL.createObjectURL(file);
+            let el;
+            if (isVideo) {
+                el = document.createElement('video');
+                el.src = url;
+                el.controls = true;
+                el.autoplay = true;
+                el.loop = true;
+                el.muted = true; // Auto-play requires muted on many browsers
+            } else {
+                el = document.createElement('img');
+                el.src = url;
+            }
+            return el;
+        }
+
+        function cleanupMediaElements() {
+            [UI.m1Content, UI.m2Content].forEach(container => {
+                const el = container.firstChild;
+                if (el && el.src) {
+                    URL.revokeObjectURL(el.src);
+                }
+                container.innerHTML = '';
+            });
+            UI.m1Container.classList.remove('winner');
+            UI.m2Container.classList.remove('winner');
+        }
+
+        function renderPair(k1, k2) {
+            cleanupMediaElements();
+            
+            const f1 = mediaData[k1].file;
+            const f2 = mediaData[k2].file;
+
+            UI.m1Content.appendChild(createMediaElement(f1));
+            UI.m2Content.appendChild(createMediaElement(f2));
+
+            UI.m1Name.textContent = f1.name;
+            UI.m2Name.textContent = f2.name;
+        }
+
+        function handleMatch(winnerIndex) {
+            if (!currentPair) return;
+            
+            const [k1, k2] = currentPair;
+            const item1 = mediaData[k1];
+            const item2 = mediaData[k2];
+
+            // Reconstruct Openskill rating objects
+            let r1 = { mu: item1.mu, sigma: item1.sigma };
+            let r2 = { mu: item2.mu, sigma: item2.sigma };
+
+            let team1 = [r1];
+            let team2 = [r2];
+
+            // Rate
+            let newRatings;
+            if (winnerIndex === 1) {
+                newRatings = rate([team1, team2]); // team1 wins
+            } else {
+                newRatings = rate([team2, team1]); // team2 wins
+            }
+
+            // Extract and save
+            if (winnerIndex === 1) {
+                item1.mu = newRatings[0][0].mu; item1.sigma = newRatings[0][0].sigma;
+                item2.mu = newRatings[1][0].mu; item2.sigma = newRatings[1][0].sigma;
+            } else {
+                item2.mu = newRatings[0][0].mu; item2.sigma = newRatings[0][0].sigma;
+                item1.mu = newRatings[1][0].mu; item1.sigma = newRatings[1][0].sigma;
+            }
+
+            item1.matches++;
+            item2.matches++;
+
+            // Visual feedback
+            if (winnerIndex === 1) UI.m1Container.classList.add('winner');
+            else UI.m2Container.classList.add('winner');
+
+            updateStats();
+
+            // Short delay to show winner
+            setTimeout(() => {
+                pickNextPair();
+            }, 300);
+        }
+
+        function handleTrash(index, e) {
+            e.stopPropagation(); // Prevent triggering a win
+            if (!currentPair) return;
+            
+            const key = currentPair[index - 1];
+            mediaData[key].trashed = true;
+            
+            updateStats();
+            pickNextPair();
+        }
+
+        function updateStats() {
+            const total = mediaKeys.length;
+            const trashed = mediaKeys.filter(k => mediaData[k].trashed).length;
+            // Count items with more than 0 matches
+            const ranked = mediaKeys.filter(k => mediaData[k].matches && mediaData[k].matches > 0).length;
+            
+            UI.statsText.textContent = `Ranked: ${ranked} | Trashed: ${trashed} | Total: ${total}`;
+        }
+
+        // Event Listeners for Compare Screen
+        UI.m1Container.addEventListener('click', () => handleMatch(1));
+        UI.m2Container.addEventListener('click', () => handleMatch(2));
+        
+        UI.btnTrash1.addEventListener('click', (e) => handleTrash(1, e));
+        UI.btnTrash2.addEventListener('click', (e) => handleTrash(2, e));
+
+        document.getElementById('btn-leaderboard').addEventListener('click', () => {
+            showScreen('leaderboard');
+        });
+
+        document.getElementById('btn-save').addEventListener('click', () => {
+            // Create a save object mapping path -> { mu, sigma, trashed }
+            const saveObj = {};
+            mediaKeys.forEach(k => {
+                const item = mediaData[k];
+                // Only save if it's modified from default or trashed
+                if (item.matches > 0 || item.trashed) {
+                    saveObj[k] = { mu: item.mu, sigma: item.sigma, trashed: item.trashed };
+                }
+            });
+
+            const blob = new Blob([JSON.stringify(saveObj)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `media_sort_save_${new Date().getTime()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // --- Leaderboard Screen ---
+
+        function renderLeaderboard() {
+            UI.leaderboardGrid.innerHTML = '';
+            
+            // Calculate ordinal for all active media and sort
+            const sorted = getActiveKeys().map(k => {
+                const item = mediaData[k];
+                // Ordinal = mu - 3 * sigma
+                const ord = ordinal({mu: item.mu, sigma: item.sigma});
+                return { key: k, item, ord };
+            }).sort((a, b) => b.ord - a.ord); // Descending
+
+            // Render top 100 max to prevent UI freeze
+            const topN = sorted.slice(0, 100);
+
+            topN.forEach((data, index) => {
+                const el = document.createElement('div');
+                el.className = 'grid-item glass';
+                
+                const file = data.item.file;
+                const mediaEl = createMediaElement(file);
+                
+                // Mute videos for grid
+                if (mediaEl.tagName === 'VIDEO') {
+                    mediaEl.removeAttribute('controls');
+                }
+
+                el.appendChild(mediaEl);
+
+                // Overlay
+                const overlay = document.createElement('div');
+                overlay.className = 'overlay';
+
+                const rank = document.createElement('span');
+                rank.className = 'rank-badge';
+                rank.textContent = `#${index + 1}`;
+                
+                const actions = document.createElement('div');
+                actions.className = 'item-actions';
+                
+                const shareBtn = document.createElement('button');
+                shareBtn.className = 'btn';
+                shareBtn.style.padding = '4px 8px';
+                shareBtn.textContent = 'Share';
+                shareBtn.onclick = async () => {
+                    if (navigator.share) {
+                        try {
+                            await navigator.share({
+                                files: [file],
+                                title: file.name
+                            });
+                        } catch (err) {
+                            console.error("Share failed:", err);
+                        }
+                    } else {
+                        alert("Web Share API not supported on this device.");
+                    }
+                };
+
+                actions.appendChild(shareBtn);
+                
+                overlay.appendChild(rank);
+                overlay.appendChild(actions);
+                el.appendChild(overlay);
+
+                UI.leaderboardGrid.appendChild(el);
+            });
+        }
+
+        document.getElementById('btn-back-sort').addEventListener('click', () => {
+            showScreen('compare');
+        });
+
+        document.getElementById('btn-export-script').addEventListener('click', () => {
+            // Get all trashed AND bottom 10% of ranked
+            const activeSorted = getActiveKeys().map(k => {
+                return { key: k, ord: ordinal({mu: mediaData[k].mu, sigma: mediaData[k].sigma}) };
+            }).sort((a, b) => a.ord - b.ord); // Ascending (worst first)
+
+            const trashedKeys = mediaKeys.filter(k => mediaData[k].trashed);
+            
+            // Just output everything trashed + worst files
+            // For a safe script, we'll generate a list of relative paths for a bash script
+            let scriptContent = "#!/bin/bash\n\n# Generated Deletion Script\n# Run this in the root of your media folder to delete useless files.\n\n";
+            
+            trashedKeys.forEach(k => {
+                // Escape quotes in path
+                const safePath = k.replace(/"/g, '\\"');
+                scriptContent += `rm "${safePath}"\n`;
+            });
+
+            const blob = new Blob([scriptContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cleanup_script.sh`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+    </script>
+</body>
+</html>
