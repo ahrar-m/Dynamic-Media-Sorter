@@ -11,7 +11,8 @@
   - View a leaderboard of the best media with their rankings.
   - Share media directly from the app (using Web Share API).
 - **Workflow & State Management**:
-  - **Immersive UI**: UI elements are minimized to maximize space for media.
+  - **Clean Layout**: UI elements (buttons, stats) are kept compact and separated from the media. Absolutely no overlays on top of the images/videos.
+  - **Scrollable & Responsive**: The app allows natural scrolling, especially on mobile devices where media items stack vertically.
   - **Randomized Comparisons**: The app picks unranked or closely-ranked files of the same type for comparison. Users can stop and resume over multiple sessions to avoid being overwhelmed.
   - **Save/Load State**: Users download a lightweight `.json` save file when stopping. To resume, they upload the `.json` and re-select the media folder.
 - **Distribution & Execution**:
