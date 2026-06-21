@@ -18,7 +18,7 @@
             --glass-border: rgba(0, 240, 255, 0.2);
             --glow: 0 0 12px rgba(0, 240, 255, 0.5);
             --danger-glow: 0 0 12px rgba(255, 0, 60, 0.5);
-            --nav-height: 65px;
+            --nav-height: 50px;
             --header-height: 60px;
         }
 
@@ -93,24 +93,21 @@
         /* Overlay Icons */
         .icon-btn {
             position: absolute;
-            width: 42px;
-            height: 42px;
-            background: rgba(0,0,0,0.6);
-            border: 1px solid var(--glass-border);
-            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            backdrop-filter: blur(8px);
             z-index: 100;
-            font-size: 1.2rem;
+            font-size: 0.9rem;
             transition: all 0.2s;
+            padding: 10px 15px; /* Pad out to corner */
+            border: none;
+            background: transparent;
         }
-        .icon-trash { right: 12px; top: 12px; color: var(--danger); border-color: rgba(255,0,60,0.4); }
-        .icon-trash:hover { background: rgba(255,0,60,0.2); box-shadow: var(--danger-glow); }
-        .icon-menu { left: 12px; top: 12px; color: var(--primary); }
-        .icon-menu:hover { background: rgba(0,240,255,0.2); box-shadow: var(--glow); }
+        .icon-trash { right: 0; top: 0; color: var(--danger); background: radial-gradient(circle at top right, rgba(0,0,0,0.85) 0%, transparent 80%); }
+        .icon-trash:hover { text-shadow: var(--danger-glow); }
+        .icon-menu { left: 0; top: 0; color: var(--primary); background: radial-gradient(circle at top left, rgba(0,0,0,0.85) 0%, transparent 80%); }
+        .icon-menu:hover { text-shadow: var(--glow); }
 
         /* Info Dropdown Modal */
         .info-dropdown {
@@ -186,7 +183,7 @@
             position: fixed;
             bottom: 0; left: 0; right: 0;
             height: var(--nav-height);
-            background: var(--surface);
+            background: var(--bg-color); /* completely opaque */
             border-top: 1px solid var(--glass-border);
             display: flex;
             justify-content: space-around;
@@ -196,11 +193,11 @@
         nav button {
             border: none; box-shadow: none; background: transparent;
             color: #475569;
-            flex-direction: column; gap: 4px; font-size: 0.7rem; padding: 8px; width: 100%;
+            flex-direction: column; gap: 2px; font-size: 0.6rem; padding: 4px; width: 100%;
         }
         nav button:hover { background: rgba(0,240,255,0.05); }
         nav button.active { color: var(--primary); text-shadow: 0 0 8px rgba(0,240,255,0.5); }
-        nav span.icon { font-size: 1.2rem; }
+        nav span.icon { font-size: 1.1rem; }
 
         /* Home Screen */
         #home-screen { align-items: center; justify-content: center; text-align: center; padding: 20px; }
@@ -304,17 +301,17 @@
     <main id="main-scroll">
         <!-- Home Screen -->
         <section id="home-screen">
-            <h1>NEON SORTER</h1>
-            <p style="color:#94a3b8;">High-Capacity Cybernetic Media Ranker</p>
+            <h1>Dynamic Media Sorter</h1>
+            <p style="color:#94a3b8;">Let the math do the ranking for your media.</p>
             <div class="action-cards">
                 <div class="card glass">
-                    <label class="btn" for="folder-input">Initialize Directory</label>
+                    <label class="btn" for="folder-input">Select Media Folder</label>
                     <input type="file" id="folder-input" webkitdirectory multiple accept="image/*,video/*">
                 </div>
                 <div class="card glass">
-                    <label class="btn" for="savefile-input">Load State Matrix</label>
+                    <label class="btn" for="savefile-input">Resume Session</label>
                     <input type="file" id="savefile-input" accept=".json">
-                    <span id="savefile-status" class="hidden" style="color:var(--primary); font-size:0.75rem; margin-top:10px;">Matrix Loaded.</span>
+                    <span id="savefile-status" class="hidden" style="color:var(--primary); font-size:0.75rem; margin-top:10px;">Save loaded. Select folder to continue.</span>
                 </div>
             </div>
         </section>
@@ -380,7 +377,7 @@
 
     <!-- Bottom Navigation -->
     <nav id="bottom-nav" class="hidden">
-        <button data-target="arena" class="active"><span class="icon">ARENA</span></button>
+        <button data-target="arena"><span class="icon">ARENA</span></button>
         <button data-target="leaderboard"><span class="icon">LDRBRD</span></button>
         <button data-target="trash"><span class="icon">TRASH</span></button>
     </nav>
@@ -454,7 +451,7 @@
 
         function updateHeaderActions() {
             headerActionsContainer.innerHTML = '';
-            const btnFs = document.createElement('button'); btnFs.className = 'btn'; btnFs.style.padding = '8px 10px'; btnFs.innerHTML = document.fullscreenElement ? '✖' : '⛶';
+            const btnFs = document.createElement('button'); btnFs.className = 'btn'; btnFs.style.padding = '8px 10px'; btnFs.innerHTML = document.fullscreenElement ? '_' : '⛶';
             btnFs.onclick = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(e=>{}); else document.exitFullscreen(); };
             headerActionsContainer.appendChild(btnFs);
 
