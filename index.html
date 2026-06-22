@@ -212,7 +212,7 @@
                     <input type="file" id="savefile-input" accept=".json">
                     <span id="savefile-status" class="hidden" style="color:var(--primary); font-size:0.75rem; margin-top:10px;">Save loaded. Select folder to continue.</span>
                 </div>
-                <div class="card glass" id="wipe-cache-card">
+                <div class="card glass hidden" id="wipe-cache-card">
                     <button class="btn danger" id="btn-wipe-db">Wipe Cache</button>
                     <p style="font-size:0.75rem; margin-top:10px; color:#94a3b8;">Deletes the IndexedDB backup. Your previously saved backups are safe.</p>
                 </div>
@@ -443,6 +443,9 @@
                 if (req.result && req.result.data) {
                     loadedSaveData = req.result.data;
                     console.log("Loaded save from IndexedDB.");
+                    if (Object.keys(loadedSaveData).length > 0) {
+                        document.getElementById('wipe-cache-card').classList.remove('hidden');
+                    }
                 }
             };
         }
@@ -459,6 +462,9 @@
             });
             const tx = db.transaction(['saves'], 'readwrite');
             tx.objectStore('saves').put({ id: 'currentSave', data: saveObj, timestamp: Date.now() });
+            if (Object.keys(saveObj).length > 0) {
+                document.getElementById('wipe-cache-card').classList.remove('hidden');
+            }
         }
 
         const navButtons = document.querySelectorAll('#bottom-nav button');
