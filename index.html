@@ -1432,6 +1432,13 @@ for f in files_to_delete:
         document.getElementById('btn-stop-scan').addEventListener('click', () => { scanCancel = true; });
         document.getElementById('btn-wipe-db').addEventListener('click', () => {
             if(confirm("Are you sure you want to delete the local IndexedDB cache? All progress not exported will be lost.")) {
+                if (db) {
+                    try {
+                        db.close();
+                    } catch (e) {
+                        console.error("Error closing DB connection:", e);
+                    }
+                }
                 const req = indexedDB.deleteDatabase('DynamicMediaSorterDB');
                 req.onsuccess = () => {
                     document.getElementById('btn-wipe-db').classList.add('hidden');
@@ -1442,6 +1449,13 @@ for f in files_to_delete:
                 };
                 req.onerror = () => {
                     alert("Error wiping cache.");
+                };
+                req.onblocked = () => {
+                    document.getElementById('btn-wipe-db').classList.add('hidden');
+                    setTimeout(() => {
+                        alert("Cache wipe is pending. Please reload the page to finalize.");
+                        location.reload();
+                    }, 50);
                 };
             }
         });
