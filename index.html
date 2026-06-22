@@ -127,6 +127,25 @@
             touch-action: manipulation; -webkit-tap-highlight-color: transparent;
         }
         .btn-fs-overlay:hover { transform: scale(1.1); filter: brightness(1.2); }
+        .btn-shortcut {
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            color: var(--primary);
+            font-family: 'Orbitron';
+            font-size: 0.65rem;
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        .btn-shortcut:hover {
+            background: rgba(0, 240, 255, 0.25);
+            border-color: var(--primary);
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+        }
         .arena-controls { padding: 10px; display: flex; justify-content: center; gap: 15px; background: rgba(0,0,0,0.8); border-top: 1px solid var(--glass-border); flex-shrink: 0; }
 
         /* Leaderboard / Grid */
@@ -280,6 +299,20 @@
             <div style="width: 100%; display: flex; align-items: center; gap: 10px;">
                 <span style="font-size: 0.8rem; color: var(--primary); font-family: Orbitron; min-width: 40px;">ZOOM</span>
                 <input type="range" id="crop-zoom-slider" min="0.1" max="4" step="0.01" value="1" style="flex: 1; accent-color: var(--primary);">
+            </div>
+            <div id="crop-presets" style="display: flex; gap: 6px; justify-content: center; width: 100%; flex-wrap: wrap; align-items: center;">
+                <span style="font-size: 0.6rem; color: #94a3b8; font-family: Orbitron; min-width: 42px;">CROP:</span>
+                <button class="btn-shortcut" id="btn-crop-fit">FIT</button>
+                <button class="btn-shortcut" id="btn-crop-fill">FILL</button>
+                <button class="btn-shortcut" id="btn-crop-fit-w">FIT W</button>
+                <button class="btn-shortcut" id="btn-crop-fit-h">FIT H</button>
+            </div>
+            <div id="zoom-presets" style="display: flex; gap: 6px; justify-content: center; width: 100%; flex-wrap: wrap; align-items: center;">
+                <span style="font-size: 0.6rem; color: #94a3b8; font-family: Orbitron; min-width: 42px;">ZOOM:</span>
+                <button class="btn-shortcut" id="btn-zoom-05">0.5x</button>
+                <button class="btn-shortcut" id="btn-zoom-10">1.0x</button>
+                <button class="btn-shortcut" id="btn-zoom-20">2.0x</button>
+                <button class="btn-shortcut" id="btn-zoom-30">3.0x</button>
             </div>
             <div style="display: flex; gap: 15px; width: 100%;">
                 <button class="btn danger" id="btn-crop-cancel" style="flex: 1;">Cancel</button>
@@ -934,6 +967,74 @@
             const img = content.firstChild;
             if (img) img.style.transform = `translate(${cropPanX}px, ${cropPanY}px) scale(${cropScale})`;
         });
+
+        function applyCropTransform(scale, panX = 0, panY = 0) {
+            cropScale = scale;
+            cropPanX = panX;
+            cropPanY = panY;
+            const slider = document.getElementById('crop-zoom-slider');
+            slider.value = Math.max(parseFloat(slider.min), Math.min(scale, parseFloat(slider.max)));
+            const content = document.getElementById('fullscreen-content');
+            const img = content.firstChild;
+            if (img) img.style.transform = `translate(${cropPanX}px, ${cropPanY}px) scale(${cropScale})`;
+        }
+
+        function getCropperImageContentDims() {
+            const content = document.getElementById('fullscreen-content');
+            const img = content.firstChild;
+            if (!img || img.tagName !== 'IMG') return null;
+            
+            const containerRect = content.getBoundingClientRect();
+            const naturalWidth = img.naturalWidth;
+            const naturalHeight = img.naturalHeight;
+            const imgRatio = naturalWidth / naturalHeight;
+            const containerRatio = containerRect.width / containerRect.height;
+            
+            let contentWidth, contentHeight;
+            if (imgRatio > containerRatio) {
+                // Letterboxed (horizontal black bars at top and bottom)
+                contentWidth = containerRect.width;
+                contentHeight = containerRect.width / imgRatio;
+            } else {
+                // Pillarboxed (vertical black bars at sides)
+                contentHeight = containerRect.height;
+                contentWidth = containerRect.height * imgRatio;
+            }
+            return { contentWidth, contentHeight };
+        }
+
+        document.getElementById('btn-crop-fit').addEventListener('click', () => {
+            const dims = getCropperImageContentDims();
+            if (dims) {
+                const scale = Math.min(280 / dims.contentWidth, 280 / dims.contentHeight);
+                applyCropTransform(scale, 0, 0);
+            }
+        });
+        document.getElementById('btn-crop-fill').addEventListener('click', () => {
+            const dims = getCropperImageContentDims();
+            if (dims) {
+                const scale = Math.max(280 / dims.contentWidth, 280 / dims.contentHeight);
+                applyCropTransform(scale, 0, 0);
+            }
+        });
+        document.getElementById('btn-crop-fit-w').addEventListener('click', () => {
+            const dims = getCropperImageContentDims();
+            if (dims) {
+                const scale = 280 / dims.contentWidth;
+                applyCropTransform(scale, 0, 0);
+            }
+        });
+        document.getElementById('btn-crop-fit-h').addEventListener('click', () => {
+            const dims = getCropperImageContentDims();
+            if (dims) {
+                const scale = 280 / dims.contentHeight;
+                applyCropTransform(scale, 0, 0);
+            }
+        });
+        document.getElementById('btn-zoom-05').addEventListener('click', () => applyCropTransform(0.5, 0, 0));
+        document.getElementById('btn-zoom-10').addEventListener('click', () => applyCropTransform(1.0, 0, 0));
+        document.getElementById('btn-zoom-20').addEventListener('click', () => applyCropTransform(2.0, 0, 0));
+        document.getElementById('btn-zoom-30').addEventListener('click', () => applyCropTransform(3.0, 0, 0));
 
         const fsContent = document.getElementById('fullscreen-content');
         
