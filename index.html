@@ -313,6 +313,8 @@
                 <button class="btn-shortcut" id="btn-zoom-075">0.75x</button>
                 <button class="btn-shortcut" id="btn-zoom-09">0.9x</button>
                 <button class="btn-shortcut" id="btn-zoom-10">1.0x</button>
+                <button class="btn-shortcut" id="btn-zoom-20">2.0x</button>
+                <button class="btn-shortcut" id="btn-zoom-40">4.0x</button>
             </div>
             <div style="display: flex; gap: 15px; width: 100%;">
                 <button class="btn danger" id="btn-crop-cancel" style="flex: 1;">Cancel</button>
@@ -1019,13 +1021,13 @@
         });
         document.getElementById('btn-zoom-out').addEventListener('click', () => {
             const slider = document.getElementById('crop-zoom-slider');
-            const step = 0.05;
+            const step = 0.01;
             const newScale = Math.max(parseFloat(slider.min), cropScale - step);
             applyCropTransform(newScale, cropPanX, cropPanY);
         });
         document.getElementById('btn-zoom-in').addEventListener('click', () => {
             const slider = document.getElementById('crop-zoom-slider');
-            const step = 0.05;
+            const step = 0.01;
             const newScale = Math.min(parseFloat(slider.max), cropScale + step);
             applyCropTransform(newScale, cropPanX, cropPanY);
         });
@@ -1033,6 +1035,8 @@
         document.getElementById('btn-zoom-075').addEventListener('click', () => applyCropTransform(0.75, 0, 0));
         document.getElementById('btn-zoom-09').addEventListener('click', () => applyCropTransform(0.9, 0, 0));
         document.getElementById('btn-zoom-10').addEventListener('click', () => applyCropTransform(1.0, 0, 0));
+        document.getElementById('btn-zoom-20').addEventListener('click', () => applyCropTransform(2.0, 0, 0));
+        document.getElementById('btn-zoom-40').addEventListener('click', () => applyCropTransform(4.0, 0, 0));
 
         const fsContent = document.getElementById('fullscreen-content');
         
