@@ -201,7 +201,7 @@
     <main id="main-scroll">
         <section id="home-screen">
             <h1>Dynamic Media Sorter</h1>
-            <p style="color:#94a3b8;">Let the math do the ranking for your media.</p>
+            <p style="color:#94a3b8;">Let the math do the ranking for your media!</p>
             <div class="action-cards">
                 <div class="card glass" id="folder-card">
                     <label class="btn" for="folder-input">Select Media Folder</label>
@@ -214,7 +214,7 @@
                 </div>
                 <div class="card glass" id="wipe-cache-card">
                     <button class="btn danger" id="btn-wipe-db">Wipe Cache</button>
-                    <p style="font-size:0.75rem; margin-top:10px; color:#94a3b8;">Deletes the IndexedDB backup.</p>
+                    <p style="font-size:0.75rem; margin-top:10px; color:#94a3b8;">Deletes the IndexedDB backup. Your previously saved backups are safe.</p>
                 </div>
             </div>
         </section>
@@ -1432,9 +1432,17 @@ for f in files_to_delete:
         document.getElementById('btn-stop-scan').addEventListener('click', () => { scanCancel = true; });
         document.getElementById('btn-wipe-db').addEventListener('click', () => {
             if(confirm("Are you sure you want to delete the local IndexedDB cache? All progress not exported will be lost.")) {
-                indexedDB.deleteDatabase('DynamicMediaSorterDB');
-                alert("Cache wiped. Please reload the page.");
-                location.reload();
+                const req = indexedDB.deleteDatabase('DynamicMediaSorterDB');
+                req.onsuccess = () => {
+                    document.getElementById('btn-wipe-db').classList.add('hidden');
+                    setTimeout(() => {
+                        alert("Cache wiped. Please reload the page.");
+                        location.reload();
+                    }, 50);
+                };
+                req.onerror = () => {
+                    alert("Error wiping cache.");
+                };
             }
         });
     </script>
