@@ -186,6 +186,34 @@
         .detail-content { flex: 1; display: flex; align-items: center; justify-content: center; margin-top: var(--header-height); background: #000; overflow: hidden; }
         .detail-content img, .detail-content video { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: auto; }
         .detail-footer { height: 60px; padding: 10px; background: rgba(0,0,0,0.9); text-align: center; border-top: 1px solid var(--glass-border); flex-shrink: 0; }
+        
+        /* Widescreen View Mode styles */
+        .arena-grid.widescreen-view {
+            grid-template-columns: 1fr;
+            justify-items: center;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .arena-grid.widescreen-view .arena-card {
+            width: 100%;
+            max-width: 100%;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+        .arena-grid.widescreen-view .arena-card img,
+        .arena-grid.widescreen-view .arena-card video {
+            object-fit: contain;
+            pointer-events: auto;
+        }
+        .arena-grid.widescreen-view .arena-card .rank-badge,
+        .arena-grid.widescreen-view .arena-card .trash-badge {
+            top: auto;
+            bottom: 12px;
+            transform: translateX(-50%);
+            font-size: 2rem;
+        }
     </style>
 </head>
 <body>
@@ -220,9 +248,12 @@
         </section>
 
                 <section id="arena-screen" class="hidden">
-            <div class="grid-header glass" style="justify-content: center; flex-direction: column; padding: 10px;">
-                <h3 style="color:var(--primary); text-shadow:var(--glow); font-size: 1rem; margin: 0;">TAP TO RANK (1ST to WORST)</h3>
-                <div style="font-size: 0.75rem; color: #94a3b8; text-align: center; width: 100%; margin-top: 5px;">Long-press to view fullscreen</div>
+            <div class="grid-header glass" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; width: 100%; box-sizing: border-box;">
+                <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                    <h3 style="color:var(--primary); text-shadow:var(--glow); font-size: 1rem; margin: 0; font-family: Orbitron;">TAP TO RANK</h3>
+                    <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px;">Long-press to view fullscreen</div>
+                </div>
+                <button class="btn-shortcut" id="btn-arena-toggle-view" style="padding: 4px 10px; font-size: 0.7rem;">VIEW: GRID</button>
             </div>
             <div class="arena-grid" id="arena-grid"></div>
             <div class="arena-controls">
@@ -352,6 +383,7 @@
         let currentFullscreenKey = null;
         let isCropping = false;
         let cropPanX = 0; let cropPanY = 0; let cropScale = 1;
+        let arenaViewMode = localStorage.getItem('arenaViewMode') || 'grid';
         let isDraggingCropImage = false;
         let dragStartX = 0; let dragStartY = 0;
 
@@ -536,6 +568,17 @@
         document.getElementById('toggle-videos').addEventListener('click', () => setMode('video'));
         document.getElementById('sort-order').addEventListener('change', (e) => { sortOrder = e.target.value; refreshCurrentScreen(); });
 
+        const toggleBtn = document.getElementById('btn-arena-toggle-view');
+        if (toggleBtn) {
+            toggleBtn.textContent = `VIEW: ${arenaViewMode.toUpperCase()}`;
+            toggleBtn.addEventListener('click', () => {
+                arenaViewMode = arenaViewMode === 'grid' ? 'widescreen' : 'grid';
+                localStorage.setItem('arenaViewMode', arenaViewMode);
+                toggleBtn.textContent = `VIEW: ${arenaViewMode.toUpperCase()}`;
+                renderArenaGrid();
+            });
+        }
+
         function setMode(mode) {
             if (mediaMode !== mode) {
                 mediaMode = mode;
@@ -710,6 +753,14 @@
             const container = document.getElementById('arena-grid');
             container.innerHTML = '';
             
+            if (arenaViewMode === 'widescreen') {
+                container.classList.add('widescreen-view');
+                container.classList.remove('grid-view');
+            } else {
+                container.classList.remove('widescreen-view');
+                container.classList.add('grid-view');
+            }
+            
             currentBatchKeys.forEach((key) => {
                 const item = mediaData[key];
                 const card = document.createElement('div');
@@ -717,9 +768,24 @@
                 card.dataset.key = key;
                 
                 const mediaEl = createMediaElement(item.file);
-                if(mediaEl.tagName === 'VIDEO') {
-                    mediaEl.removeAttribute('controls');
-                } else if (item.crop) {
+                if (mediaEl.tagName === 'VIDEO') {
+                    if (arenaViewMode === 'widescreen') {
+                        mediaEl.controls = true;
+                        mediaEl.muted = true; // Compliant with autoplay
+                        
+                        const filterControlsEvent = (e) => {
+                            const rect = mediaEl.getBoundingClientRect();
+                            const controlsHeight = 48; // Standard bottom control zone height
+                            if (e.clientY > rect.bottom - controlsHeight) {
+                                e.stopPropagation();
+                            }
+                        };
+                        mediaEl.addEventListener('click', filterControlsEvent);
+                        mediaEl.addEventListener('pointerdown', filterControlsEvent);
+                    } else {
+                        mediaEl.removeAttribute('controls');
+                    }
+                } else if (item.crop && arenaViewMode === 'grid') {
                     mediaEl.style.position = 'absolute';
                     mediaEl.style.left = `${-item.crop.x / item.crop.w * 100}%`;
                     mediaEl.style.top = `${-item.crop.y / item.crop.h * 100}%`;
@@ -727,6 +793,7 @@
                     mediaEl.style.height = `${100 / item.crop.h * 100}%`;
                     mediaEl.style.objectFit = 'fill';
                 }
+                
                 const wrapper = document.createElement('div');
                 wrapper.style.position = 'absolute';
                 wrapper.style.top = '0';
@@ -743,12 +810,27 @@
                 
                 const fsBtn = document.createElement('button');
                 fsBtn.className = 'btn-fs-overlay';
-                fsBtn.innerHTML = '⛶'; // Unicode for fullscreen icon
+                fsBtn.innerHTML = '⛶';
                 fsBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     openFullscreen(item.file, mediaEl.src, key);
                 });
                 card.appendChild(fsBtn);
+                
+                const rankIdx = rankedOrder.indexOf(key);
+                if (rankIdx > -1) {
+                    card.classList.add('ranked');
+                    const badge = document.createElement('div');
+                    badge.className = 'rank-badge';
+                    badge.textContent = `#${rankIdx + 1}`;
+                    card.appendChild(badge);
+                } else if (markedForTrash.has(key)) {
+                    card.classList.add('trash-marked');
+                    const tBadge = document.createElement('div');
+                    tBadge.className = 'trash-badge';
+                    tBadge.textContent = '🗑️';
+                    card.appendChild(tBadge);
+                }
                 
                 container.appendChild(card);
             });
