@@ -197,20 +197,39 @@
             box-sizing: border-box;
         }
         .arena-grid.widescreen-view .arena-card {
+            aspect-ratio: auto;
             width: 100%;
-            max-width: 100%;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             box-sizing: border-box;
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+            background: rgba(10, 15, 30, 0.75);
+            transition: all 0.25s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .arena-grid.widescreen-view .arena-card:hover {
+            border-color: rgba(0, 240, 255, 0.5);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
+        }
+        .arena-grid.widescreen-view .arena-card.ranked {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3) !important;
+        }
+        .arena-grid.widescreen-view .arena-card.trash-marked {
+            border-color: var(--danger) !important;
+            box-shadow: 0 0 15px rgba(255, 0, 60, 0.3) !important;
         }
         .arena-grid.widescreen-view .arena-card img,
         .arena-grid.widescreen-view .arena-card video {
             object-fit: contain;
             pointer-events: auto;
         }
+        /* Widescreen bottom-aligned badges */
         .arena-grid.widescreen-view .arena-card .rank-badge,
         .arena-grid.widescreen-view .arena-card .trash-badge {
             top: auto;
-            bottom: 12px;
+            bottom: 52px;
             transform: translateX(-50%);
             font-size: 2rem;
         }
@@ -795,14 +814,52 @@
                 }
                 
                 const wrapper = document.createElement('div');
-                wrapper.style.position = 'absolute';
-                wrapper.style.top = '0';
-                wrapper.style.left = '0';
-                wrapper.style.width = '100%';
-                wrapper.style.height = '100%';
-                wrapper.style.overflow = 'hidden';
+                if (arenaViewMode === 'widescreen') {
+                    wrapper.style.position = 'relative';
+                    wrapper.style.width = '100%';
+                    wrapper.style.aspectRatio = '1/1';
+                    wrapper.style.overflow = 'hidden';
+                    wrapper.style.background = '#000';
+                } else {
+                    wrapper.style.position = 'absolute';
+                    wrapper.style.top = '0';
+                    wrapper.style.left = '0';
+                    wrapper.style.width = '100%';
+                    wrapper.style.height = '100%';
+                    wrapper.style.overflow = 'hidden';
+                }
                 wrapper.appendChild(mediaEl);
                 card.appendChild(wrapper);
+                
+                if (arenaViewMode === 'widescreen') {
+                    const actionBar = document.createElement('div');
+                    actionBar.className = 'arena-card-action-bar';
+                    actionBar.style.width = '100%';
+                    actionBar.style.height = '40px';
+                    actionBar.style.display = 'flex';
+                    actionBar.style.alignItems = 'center';
+                    actionBar.style.justifyContent = 'center';
+                    actionBar.style.fontFamily = 'Orbitron';
+                    actionBar.style.fontSize = '0.75rem';
+                    actionBar.style.fontWeight = 'bold';
+                    actionBar.style.borderTop = '1px solid var(--glass-border)';
+                    actionBar.style.background = 'rgba(0, 0, 0, 0.4)';
+                    
+                    const rankIdx = rankedOrder.indexOf(key);
+                    if (rankIdx > -1) {
+                        actionBar.textContent = `RANK: #${rankIdx + 1}`;
+                        actionBar.style.color = 'var(--primary)';
+                        actionBar.style.textShadow = 'var(--glow)';
+                    } else if (markedForTrash.has(key)) {
+                        actionBar.textContent = '🗑️ MARKED FOR TRASH';
+                        actionBar.style.color = 'var(--danger)';
+                        actionBar.style.textShadow = 'var(--danger-glow)';
+                    } else {
+                        actionBar.textContent = 'TAP TO RANK';
+                        actionBar.style.color = '#94a3b8';
+                    }
+                    card.appendChild(actionBar);
+                }
                 
                 card.addEventListener('click', () => {
                     handleArenaTap(key, card);
@@ -850,6 +907,13 @@
                     if (el) {
                         const b = el.querySelector('.rank-badge');
                         if (b) b.textContent = `#${idx + 1}`;
+                        
+                        const bar = el.querySelector('.arena-card-action-bar');
+                        if (bar) {
+                            bar.textContent = `RANK: #${idx + 1}`;
+                            bar.style.color = 'var(--primary)';
+                            bar.style.textShadow = 'var(--glow)';
+                        }
                     }
                 });
 
@@ -859,12 +923,26 @@
                 tBadge.className = 'trash-badge';
                 tBadge.textContent = '🗑️';
                 cardEl.appendChild(tBadge);
+                
+                const bar = cardEl.querySelector('.arena-card-action-bar');
+                if (bar) {
+                    bar.textContent = '🗑️ MARKED FOR TRASH';
+                    bar.style.color = 'var(--danger)';
+                    bar.style.textShadow = 'var(--danger-glow)';
+                }
             } else if (markedForTrash.has(key)) {
                 // State: Trash-Marked -> Transition to: Untapped
                 markedForTrash.delete(key);
                 cardEl.classList.remove('trash-marked');
                 const tBadge = cardEl.querySelector('.trash-badge');
                 if (tBadge) tBadge.remove();
+                
+                const bar = cardEl.querySelector('.arena-card-action-bar');
+                if (bar) {
+                    bar.textContent = 'TAP TO RANK';
+                    bar.style.color = '#94a3b8';
+                    bar.style.textShadow = 'none';
+                }
             } else {
                 // State: Untapped -> Transition to: Ranked
                 rankedOrder.push(key);
@@ -873,6 +951,13 @@
                 badge.className = 'rank-badge';
                 badge.textContent = `#${rankedOrder.length}`;
                 cardEl.appendChild(badge);
+                
+                const bar = cardEl.querySelector('.arena-card-action-bar');
+                if (bar) {
+                    bar.textContent = `RANK: #${rankedOrder.length}`;
+                    bar.style.color = 'var(--primary)';
+                    bar.style.textShadow = 'var(--glow)';
+                }
             }
         }
 
