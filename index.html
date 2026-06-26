@@ -701,6 +701,50 @@
             switchScreen('arena');
         });
 
+        function loadRemoteMedia(files, inputUrl) {
+            isRemoteMode = true;
+            remoteServerUrl = inputUrl;
+            mediaData = {}; mediaKeys = []; currentBatchKeys = [];
+            activeImageKeys.clear();
+            activeVideoKeys.clear();
+            trashedImageKeys.clear();
+            trashedVideoKeys.clear();
+            
+            const pathToHashStats = {};
+            if (loadedSaveData) {
+                for (const hash in loadedSaveData) {
+                    const data = loadedSaveData[hash];
+                    if (data.known_paths && Array.isArray(data.known_paths)) {
+                        data.known_paths.forEach(p => { pathToHashStats[p] = { ...data, hash }; });
+                    }
+                }
+            }
+            
+            const videoRegex = /\.(mp4|webm|mov)$/i;
+            files.forEach(path => {
+                mediaKeys.push(path);
+                const isVid = videoRegex.test(path);
+                let item;
+                if (pathToHashStats[path]) {
+                    item = { file: null, isVid: isVid, hash: pathToHashStats[path].hash, mu: pathToHashStats[path].mu ?? 25, sigma: pathToHashStats[path].sigma ?? 8.333, trashed: pathToHashStats[path].trashed || false, matches: pathToHashStats[path].matches ?? 0, crop: pathToHashStats[path].crop || null };
+                } else {
+                    item = { file: null, isVid: isVid, hash: null, mu: 25, sigma: 8.333, trashed: false, matches: 0, crop: null };
+                }
+                mediaData[path] = item;
+                if (item.trashed) {
+                    if (isVid) trashedVideoKeys.add(path);
+                    else trashedImageKeys.add(path);
+                } else {
+                    if (isVid) activeVideoKeys.add(path);
+                    else activeImageKeys.add(path);
+                }
+            });
+            
+            document.getElementById('app-header').classList.remove('hidden');
+            document.getElementById('bottom-nav').classList.remove('hidden');
+            switchScreen('arena');
+        }
+
         document.getElementById('btn-remote-connect').addEventListener('click', async () => {
             let inputUrl = document.getElementById('remote-url-input').value.trim();
             if (!inputUrl) {
@@ -722,48 +766,7 @@
                     alert("Need at least 2 media files on the server.");
                     return;
                 }
-                
-                isRemoteMode = true;
-                remoteServerUrl = inputUrl;
-                mediaData = {}; mediaKeys = []; currentBatchKeys = [];
-                activeImageKeys.clear();
-                activeVideoKeys.clear();
-                trashedImageKeys.clear();
-                trashedVideoKeys.clear();
-                
-                const pathToHashStats = {};
-                if (loadedSaveData) {
-                    for (const hash in loadedSaveData) {
-                        const data = loadedSaveData[hash];
-                        if (data.known_paths && Array.isArray(data.known_paths)) {
-                            data.known_paths.forEach(p => { pathToHashStats[p] = { ...data, hash }; });
-                        }
-                    }
-                }
-                
-                const videoRegex = /\.(mp4|webm|mov)$/i;
-                files.forEach(path => {
-                    mediaKeys.push(path);
-                    const isVid = videoRegex.test(path);
-                    let item;
-                    if (pathToHashStats[path]) {
-                        item = { file: null, isVid: isVid, hash: pathToHashStats[path].hash, mu: pathToHashStats[path].mu ?? 25, sigma: pathToHashStats[path].sigma ?? 8.333, trashed: pathToHashStats[path].trashed || false, matches: pathToHashStats[path].matches ?? 0, crop: pathToHashStats[path].crop || null };
-                    } else {
-                        item = { file: null, isVid: isVid, hash: null, mu: 25, sigma: 8.333, trashed: false, matches: 0, crop: null };
-                    }
-                    mediaData[path] = item;
-                    if (item.trashed) {
-                        if (isVid) trashedVideoKeys.add(path);
-                        else trashedImageKeys.add(path);
-                    } else {
-                        if (isVid) activeVideoKeys.add(path);
-                        else activeImageKeys.add(path);
-                    }
-                });
-                
-                document.getElementById('app-header').classList.remove('hidden');
-                document.getElementById('bottom-nav').classList.remove('hidden');
-                switchScreen('arena');
+                loadRemoteMedia(files, inputUrl);
             } catch (err) {
                 alert(`Connection failed: ${err.message}. Make sure server.py is running and accessible.`);
             }
@@ -1835,6 +1838,28 @@ for f in files_to_delete:
                         location.reload();
                     }, 50);
                 };
+        });
+
+        // Auto-connect if served over HTTP/HTTPS (Origin Server Mode)
+        window.addEventListener('DOMContentLoaded', async () => {
+            const loc = window.location;
+            if (loc.protocol.startsWith('http')) {
+                const originUrl = loc.origin;
+                // Pre-fill the input field
+                document.getElementById('remote-url-input').value = originUrl;
+                
+                // Silent auto-connect
+                try {
+                    const res = await fetch(`${originUrl}/api/files`);
+                    if (res.ok) {
+                        const files = await res.json();
+                        if (Array.isArray(files) && files.length >= 2) {
+                            loadRemoteMedia(files, originUrl);
+                        }
+                    }
+                } catch (e) {
+                    console.log("Auto-connect to host failed, showing connection UI.", e);
+                }
             }
         });
     </script>

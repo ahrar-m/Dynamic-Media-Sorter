@@ -64,7 +64,9 @@ class RemoteMediaHandler(BaseHTTPRequestHandler):
         parsed_url = urllib.parse.urlparse(self.path)
         path = urllib.parse.unquote(parsed_url.path)
 
-        if path == "/api/files":
+        if path in ("/", "/index.html"):
+            self.handle_serve_frontend()
+        elif path == "/api/files":
             self.handle_list_files()
         elif path.startswith("/api/hash/"):
             rel_path = path[len("/api/hash/"):]
@@ -74,6 +76,24 @@ class RemoteMediaHandler(BaseHTTPRequestHandler):
             self.handle_serve_media(rel_path)
         else:
             self.send_error(404, "Not Found")
+
+    def handle_serve_frontend(self):
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        frontend_path = os.path.join(script_dir, "index.html")
+        if not os.path.exists(frontend_path):
+            self.send_error(404, "index.html not found. Please copy index.html alongside server.py.")
+            return
+
+        file_size = os.path.getsize(frontend_path)
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html")
+        self.send_header("Content-Length", str(file_size))
+        self.end_headers()
+        try:
+            with open(frontend_path, "rb") as f:
+                self.copy_file_range(f, self.wfile, 0, file_size)
+        except Exception as e:
+            print(f"Error serving frontend: {e}")
 
     def handle_list_files(self):
         if not os.path.exists(MEDIA_DIR):
