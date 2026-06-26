@@ -469,6 +469,7 @@
         
         let mediaData = {}; let mediaKeys = []; let loadedSaveData = null; 
         let isRemoteMode = false; let remoteServerUrl = "";
+        let remoteFilesList = null; let remoteOriginUrl = "";
         let mediaMode = 'image'; let currentScreen = 'home'; let currentBatchKeys = []; let rankedOrder = [];
         let previousState = null; let currentSaveName = "save";
         let isScanning = false; let scanCancel = false;
@@ -672,12 +673,12 @@
                 }
             }
             
-            const mediaRegex = /\.(jpe?g|png|webp|gif|mp4|webm|mov)$/i;
+            const mediaRegex = /\.(jpe?g|png|webp|gif|mp4|webm|mov|m4v)$/i;
             for (let i = 0; i < files.length; i++) {
                 const f = files[i];
                 if (mediaRegex.test(f.name)) {
                     const path = f.webkitRelativePath || f.name; mediaKeys.push(path);
-                    const isVid = f.type.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(f.name);
+                    const isVid = f.type.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/i.test(f.name);
                     let item;
                     if (pathToHashStats[path]) {
                         item = { file: f, isVid: isVid, hash: pathToHashStats[path].hash, mu: pathToHashStats[path].mu ?? 25, sigma: pathToHashStats[path].sigma ?? 8.333, trashed: pathToHashStats[path].trashed || false, matches: pathToHashStats[path].matches ?? 0, crop: pathToHashStats[path].crop || null };
@@ -720,7 +721,7 @@
                 }
             }
             
-            const videoRegex = /\.(mp4|webm|mov)$/i;
+            const videoRegex = /\.(mp4|webm|mov|m4v)$/i;
             files.forEach(path => {
                 mediaKeys.push(path);
                 const isVid = videoRegex.test(path);
@@ -883,9 +884,9 @@
         function isVideo(fileOrKey) {
             if (!fileOrKey) return false;
             if (typeof fileOrKey === 'string') {
-                return /\.(mp4|webm|mov)$/i.test(fileOrKey);
+                return /\.(mp4|webm|mov|m4v)$/i.test(fileOrKey);
             }
-            return (fileOrKey.type && fileOrKey.type.startsWith('video/')) || /\.(mp4|webm|mov)$/i.test(fileOrKey.name);
+            return (fileOrKey.type && fileOrKey.type.startsWith('video/')) || /\.(mp4|webm|mov|m4v)$/i.test(fileOrKey.name);
         }
         function getActiveKeys() { return mediaMode === 'video' ? Array.from(activeVideoKeys) : Array.from(activeImageKeys); }
 
@@ -1846,16 +1847,34 @@ for f in files_to_delete:
             const loc = window.location;
             if (loc.protocol.startsWith('http')) {
                 const originUrl = loc.origin;
-                // Pre-fill the input field
                 document.getElementById('remote-url-input').value = originUrl;
                 
-                // Silent auto-connect
                 try {
                     const res = await fetch(`${originUrl}/api/files`);
                     if (res.ok) {
                         const files = await res.json();
                         if (Array.isArray(files) && files.length >= 2) {
-                            loadRemoteMedia(files, originUrl);
+                            remoteFilesList = files;
+                            remoteOriginUrl = originUrl;
+                            
+                            // Hide the remote connection card since we are already hosted on the Pi
+                            const remoteCard = document.getElementById('remote-card');
+                            if (remoteCard) remoteCard.classList.add('hidden');
+                            
+                            // Show the wipe cache card (even if db isn't open yet, user can wipe)
+                            const wipeCard = document.getElementById('wipe-cache-card');
+                            if (wipeCard) wipeCard.classList.remove('hidden');
+                            
+                            // Update folder card to allow starting remote session or resuming first
+                            const folderCard = document.getElementById('folder-card');
+                            if (folderCard) {
+                                folderCard.innerHTML = `
+                                    <button class="btn success" id="btn-start-remote" style="width:100%;">Folder Auto-Loaded (Remote Pi)</button>
+                                `;
+                                document.getElementById('btn-start-remote').addEventListener('click', () => {
+                                    loadRemoteMedia(remoteFilesList, remoteOriginUrl);
+                                });
+                            }
                         }
                     }
                 } catch (e) {

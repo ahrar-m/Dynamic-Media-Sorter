@@ -8,7 +8,7 @@ A lightning-fast, privacy-first, local web application designed to sort and rank
 - **TrueSkill Matchmaking Engine**: Employs an intelligent N-Way matchmaking algorithm powered by `openskill`. Items are presented in dynamic batches (balanced 30% Discovery / 70% Ranked) to find their true ranking quickly and efficiently.
 - **Zero-Friction Offline Access**: Download the `index.html` file and open it. No backend, no dependencies, no installation.
 - **Persistent State & Progress**: Uses your browser's IndexedDB to silently and automatically save your exact progress. Safely export and resume your ranking sessions as `.json` files to move between devices.
-- **Deep Media Support**: Handles both images (`jpg`, `png`, `webp`, `gif`) and videos (`mp4`, `webm`, `mov`) natively with optimized memory management.
+- **Deep Media Support**: Handles both images (`jpg`, `png`, `webp`, `gif`) and videos (`mp4`, `webm`, `mov`, `m4v`) natively with optimized memory management.
 - **Sleek, Responsive UI**: A beautiful, modern "glassmorphism" dark mode interface designed for extreme efficiency on both desktop and mobile/touch devices. Features full gesture support.
 
 ## Usage
@@ -50,12 +50,13 @@ Allows you to rank massive collections on an external hard drive connected to a 
    - The server binds to all interfaces and runs on port `8000`.
 
 5. **Open Frontend on Phone**:
-   - Transfer [index.html](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/index.html) to your phone.
-   - Open [index.html](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/index.html) in your phone's web browser.
+   - **Option A (Recommended - Origin Mode)**: Open your mobile browser and go directly to the Pi's server address (e.g. `http://10.x.x.x:8000/`). The Pi serves the frontend itself. This bypasses all browser Private Network Access blocks and automatically detects the connection.
+   - **Option B (CORS Mode)**: Open the local standalone [index.html](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/index.html) file on your phone. Under the **Connect Remote Pi** card, enter the Pi's IP address and port and click **CONNECT**.
 
-6. **Connect Phone to Pi**:
-   - In the frontend, under the **Connect Remote Pi** card, enter the Pi's IP address and port (e.g., `http://192.168.43.100:8000`).
-   - Click **CONNECT**.
+6. **Resume Session or Start**:
+   - If you want to resume a session, upload your `.json` backup file under **Resume Session** first.
+   - If you want to wipe the browser cache, click **Wipe Cache**.
+   - When ready, click **Folder Auto-Loaded (Remote Pi)** (or **CONNECT** if using Option B) to start your ranking session.
 
 7. **Rank & Sort**:
    - The phone streams media over the local hotspot network connection.

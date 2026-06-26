@@ -47,6 +47,7 @@ MEDIA_DIR = os.path.abspath("./media")
 mimetypes.add_type('video/mp4', '.mp4')
 mimetypes.add_type('video/webm', '.webm')
 mimetypes.add_type('video/quicktime', '.mov')
+mimetypes.add_type('video/mp4', '.m4v')
 
 class RemoteMediaHandler(BaseHTTPRequestHandler):
     def end_headers(self):
@@ -103,7 +104,7 @@ class RemoteMediaHandler(BaseHTTPRequestHandler):
             return
 
         files = []
-        valid_extensions = ('.png', '.jpg', '.jpeg', '.webp', '.gif', '.mp4', '.webm', '.mov')
+        valid_extensions = ('.png', '.jpg', '.jpeg', '.webp', '.gif', '.mp4', '.webm', '.mov', '.m4v')
         for root, _, filenames in os.walk(MEDIA_DIR):
             for f in filenames:
                 if f.lower().endswith(valid_extensions):
