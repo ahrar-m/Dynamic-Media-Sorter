@@ -33,6 +33,7 @@ To run this backend on a Raspberry Pi (e.g., Pi 5) and connect your phone:
 import os
 import sys
 import json
+import socket
 import urllib.parse
 import hashlib
 import mimetypes
@@ -225,6 +226,30 @@ class RemoteMediaHandler(BaseHTTPRequestHandler):
             print(f"Error hashing {filepath}: {e}")
             return None
 
+def get_local_ips():
+    ips = ["127.0.0.1"]
+    try:
+        # Resolve routing to external internet to find active network interface IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        if local_ip not in ips:
+            ips.append(local_ip)
+        s.close()
+    except Exception:
+        pass
+        
+    try:
+        # Fallback using getaddrinfo
+        hostname = socket.gethostname()
+        for info in socket.getaddrinfo(hostname, None):
+            ip = info[4][0]
+            if ":" not in ip and ip not in ips: # IPv4 only
+                ips.append(ip)
+    except Exception:
+        pass
+    return ips
+
 def main():
     global MEDIA_DIR
     if len(sys.argv) > 1:
@@ -245,7 +270,13 @@ def main():
     # Use ThreadingHTTPServer to handle concurrent video/image streaming requests smoothly on the Pi 5
     httpd = ThreadingHTTPServer(server_address, RemoteMediaHandler)
     
-    print(f"Server running at: http://localhost:{port}")
+    print("Server running at:")
+    for ip in get_local_ips():
+        if ip == "127.0.0.1":
+            print(f"  - Local: http://localhost:{port}")
+        else:
+            print(f"  - Network: http://{ip}:{port} (Type this into your phone browser)")
+            
     print(f"Press Ctrl+C to stop.")
     print("=========================================")
     
