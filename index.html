@@ -42,6 +42,7 @@
             padding: 8px 16px; border-radius: 4px; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; cursor: pointer; transition: all 0.2s ease; box-shadow: inset 0 0 5px rgba(0,240,255,0.1);
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
+            text-align: center;
         }
         button:hover, .btn:hover { background: var(--primary); color: #000; box-shadow: var(--glow); }
         button.danger { border-color: var(--danger); color: var(--danger); box-shadow: inset 0 0 5px rgba(255,0,60,0.1); }
@@ -90,8 +91,49 @@
         #home-screen { align-items: center; justify-content: center; text-align: center; padding: 20px; }
         #home-screen h1 { font-size: 2.5rem; margin-bottom: 15px; color: var(--primary); text-shadow: var(--glow); }
         .action-cards { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 30px; }
-        .card { padding: 30px; width: 100%; max-width: 300px; border-radius: 8px; }
+        .card { 
+            padding: 30px; 
+            width: 100%; 
+            max-width: 300px; 
+            border-radius: 8px; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: stretch;
+        }
         .card input[type="file"] { display: none; }
+        .card h3 {
+            color: var(--primary);
+            font-size: 1rem;
+            margin-bottom: 8px;
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: var(--glow);
+            text-align: center;
+        }
+        .card p {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            line-height: 1.4;
+            text-align: center;
+        }
+        .card input[type="text"] {
+            background: rgba(0, 0, 0, 0.5);
+            color: var(--text-color);
+            border: 1px solid var(--glass-border);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            width: 100%;
+            text-align: center;
+            margin-bottom: 12px;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .card input[type="text"]:focus {
+            border-color: var(--primary);
+            box-shadow: var(--glow);
+        }
 
                 .arena-grid { padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; flex: 1; align-content: start; }
         .arena-card { 
@@ -259,9 +301,17 @@
                     <input type="file" id="savefile-input" accept=".json">
                     <span id="savefile-status" class="hidden" style="color:var(--primary); font-size:0.75rem; margin-top:10px;">Save loaded. Select folder to continue.</span>
                 </div>
+                <div class="card glass" id="remote-card">
+                    <h3>Connect Remote Pi</h3>
+                    <p style="font-size: 0.65rem; margin-top: 0; margin-bottom: 12px;">
+                        Enable phone hotspot, connect your Raspberry Pi 5 to it, launch the backend server, and enter the Pi's IP below.
+                    </p>
+                    <input type="text" id="remote-url-input" placeholder="http://192.168.43.100:8000">
+                    <button class="btn" id="btn-remote-connect">CONNECT</button>
+                </div>
                 <div class="card glass hidden" id="wipe-cache-card">
                     <button class="btn danger" id="btn-wipe-db">Wipe Cache</button>
-                    <p style="font-size:0.75rem; margin-top:10px; color:#94a3b8;">Deletes the IndexedDB backup. Your previously saved backups are safe.</p>
+                    <p style="margin-top: 10px;">Deletes the IndexedDB backup. Your previously saved backups are safe.</p>
                 </div>
             </div>
         </section>
@@ -385,11 +435,40 @@
     </div>
 
     <script type="module">
+        /*
+         * RASPBERRY PI INTEGRATION & PHONE HOTSPOT SETUP:
+         * 
+         * To run the application in Remote Media Mode (using a Raspberry Pi 5 as a backend server):
+         * 
+         * 1. CONFIGURE MOBILE HOTSPOT ON PHONE:
+         *    - Enable the portable hotspot feature on your phone's network settings.
+         *    - Check and note down the network Name (SSID) and Password.
+         * 
+         * 2. CONNECT RASPBERRY PI TO HOTSPOT:
+         *    - Connect the Pi 5 to the phone's Wi-Fi hotspot network (via the desktop panel or terminal).
+         *    - Command-line utility to connect:
+         *      sudo nmcli dev wifi connect "YOUR_HOTSPOT_SSID" password "YOUR_HOTSPOT_PASSWORD"
+         * 
+         * 3. FIND PI IP ADDRESS:
+         *    - Run `hostname -I` in the terminal of the Raspberry Pi.
+         *    - Use the IP address (usually starting with `192.168.43.x` or `172.20.10.x`) to connect.
+         * 
+         * 4. RUN BACKEND ON PI:
+         *    - Deploy [server.py](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/server.py) on the Pi and launch:
+         *      python3 server.py /path/to/media/directory
+         * 
+         * 5. OPEN FRONTEND AND CONNECT:
+         *    - Load this [index.html](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/index.html) file locally in your phone's web browser.
+         *    - In the 'Connect Remote Pi' card, enter the URL e.g. `http://192.168.43.100:8000` (substitute the correct Pi IP address).
+         *    - Click CONNECT.
+         */
+
         import { rating, rate, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@5.0.1/+esm';
 
         window.addEventListener('contextmenu', e => e.preventDefault());
         
         let mediaData = {}; let mediaKeys = []; let loadedSaveData = null; 
+        let isRemoteMode = false; let remoteServerUrl = "";
         let mediaMode = 'image'; let currentScreen = 'home'; let currentBatchKeys = []; let rankedOrder = [];
         let previousState = null; let currentSaveName = "save";
         let isScanning = false; let scanCancel = false;
@@ -424,28 +503,67 @@
             }
         }
 
+        function simpleBufferHash(buffer) {
+            const view = new Uint8Array(buffer);
+            let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+            for (let i = 0; i < view.length; i++) {
+                const val = view[i];
+                h1 = Math.imul(h1 ^ val, 2654435761);
+                h2 = Math.imul(h2 ^ val, 1597334903);
+            }
+            h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+            h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+            h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+            h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+            return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
+        }
+
         async function generateFileHash(file) {
             if (file.size === 0) return `0-empty`;
             const start = file.slice(0, 1024);
             const middle = file.slice(Math.floor(file.size/2), Math.floor(file.size/2) + 1024);
             const b1 = await start.arrayBuffer();
             const b2 = await middle.arrayBuffer();
-            const hash1 = await crypto.subtle.digest('SHA-1', b1);
-            const hash2 = await crypto.subtle.digest('SHA-1', b2);
-            const hex1 = Array.from(new Uint8Array(hash1)).map(b => b.toString(16).padStart(2, '0')).join('');
-            const hex2 = Array.from(new Uint8Array(hash2)).map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            let hex1, hex2;
+            if (window.crypto && window.crypto.subtle) {
+                try {
+                    const hash1 = await crypto.subtle.digest('SHA-1', b1);
+                    const hash2 = await crypto.subtle.digest('SHA-1', b2);
+                    hex1 = Array.from(new Uint8Array(hash1)).map(b => b.toString(16).padStart(2, '0')).join('');
+                    hex2 = Array.from(new Uint8Array(hash2)).map(b => b.toString(16).padStart(2, '0')).join('');
+                } catch (e) {
+                    hex1 = simpleBufferHash(b1);
+                    hex2 = simpleBufferHash(b2);
+                }
+            } else {
+                hex1 = simpleBufferHash(b1);
+                hex2 = simpleBufferHash(b2);
+            }
             return `${file.size}-${hex1}${hex2}`;
         }
 
         async function ensureHashedAndHealed(k) {
             if (mediaData[k].hash) return;
-            mediaData[k].hash = await generateFileHash(mediaData[k].file);
+            if (isRemoteMode) {
+                try {
+                    const res = await fetch(`${remoteServerUrl}/api/hash/${encodeURIComponent(k)}`);
+                    if (!res.ok) throw new Error("Remote hash error");
+                    const data = await res.json();
+                    mediaData[k].hash = data.hash;
+                } catch (e) {
+                    console.error("Remote hashing failed for key:", k, e);
+                    mediaData[k].hash = `remote-err-${k}`;
+                }
+            } else {
+                mediaData[k].hash = await generateFileHash(mediaData[k].file);
+            }
             const h = mediaData[k].hash;
             let healed = false;
             if (loadedSaveData && loadedSaveData[h]) {
-                mediaData[k].mu = loadedSaveData[h].mu;
-                mediaData[k].sigma = loadedSaveData[h].sigma;
-                mediaData[k].matches = loadedSaveData[h].matches;
+                mediaData[k].mu = loadedSaveData[h].mu ?? 25;
+                mediaData[k].sigma = loadedSaveData[h].sigma ?? 8.333;
+                mediaData[k].matches = loadedSaveData[h].matches ?? 0;
                 mediaData[k].crop = loadedSaveData[h].crop || null;
                 setItemTrashed(k, loadedSaveData[h].trashed || false);
                 healed = true;
@@ -453,11 +571,11 @@
             if (!healed) {
                 const existing = mediaKeys.find(otherKey => otherKey !== k && mediaData[otherKey].hash === h && (mediaData[otherKey].matches > 0 || mediaData[otherKey].trashed || mediaData[otherKey].crop));
                 if (existing) {
-                    mediaData[k].mu = mediaData[existing].mu;
-                    mediaData[k].sigma = mediaData[existing].sigma;
-                    mediaData[k].matches = mediaData[existing].matches;
+                    mediaData[k].mu = mediaData[existing].mu ?? 25;
+                    mediaData[k].sigma = mediaData[existing].sigma ?? 8.333;
+                    mediaData[k].matches = mediaData[existing].matches ?? 0;
                     mediaData[k].crop = mediaData[existing].crop || null;
-                    setItemTrashed(k, mediaData[existing].trashed);
+                    setItemTrashed(k, mediaData[existing].trashed || false);
                 }
             }
         }
@@ -548,7 +666,7 @@
             if (loadedSaveData) {
                 for (const hash in loadedSaveData) {
                     const data = loadedSaveData[hash];
-                    if (data.known_paths) {
+                    if (data.known_paths && Array.isArray(data.known_paths)) {
                         data.known_paths.forEach(p => { pathToHashStats[p] = { ...data, hash }; });
                     }
                 }
@@ -562,7 +680,7 @@
                     const isVid = f.type.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(f.name);
                     let item;
                     if (pathToHashStats[path]) {
-                        item = { file: f, isVid: isVid, hash: pathToHashStats[path].hash, mu: pathToHashStats[path].mu, sigma: pathToHashStats[path].sigma, trashed: pathToHashStats[path].trashed, matches: pathToHashStats[path].matches, crop: pathToHashStats[path].crop || null };
+                        item = { file: f, isVid: isVid, hash: pathToHashStats[path].hash, mu: pathToHashStats[path].mu ?? 25, sigma: pathToHashStats[path].sigma ?? 8.333, trashed: pathToHashStats[path].trashed || false, matches: pathToHashStats[path].matches ?? 0, crop: pathToHashStats[path].crop || null };
                     } else {
                         item = { file: f, isVid: isVid, hash: null, mu: 25, sigma: 8.333, trashed: false, matches: 0, crop: null };
                     }
@@ -581,6 +699,74 @@
             document.getElementById('app-header').classList.remove('hidden');
             document.getElementById('bottom-nav').classList.remove('hidden');
             switchScreen('arena');
+        });
+
+        document.getElementById('btn-remote-connect').addEventListener('click', async () => {
+            let inputUrl = document.getElementById('remote-url-input').value.trim();
+            if (!inputUrl) {
+                alert("Please enter a valid remote server URL.");
+                return;
+            }
+            if (!/^https?:\/\//i.test(inputUrl)) {
+                inputUrl = "http://" + inputUrl;
+            }
+            if (inputUrl.endsWith('/')) {
+                inputUrl = inputUrl.slice(0, -1);
+            }
+            
+            try {
+                const res = await fetch(`${inputUrl}/api/files`);
+                if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+                const files = await res.json();
+                if (!Array.isArray(files) || files.length < 2) {
+                    alert("Need at least 2 media files on the server.");
+                    return;
+                }
+                
+                isRemoteMode = true;
+                remoteServerUrl = inputUrl;
+                mediaData = {}; mediaKeys = []; currentBatchKeys = [];
+                activeImageKeys.clear();
+                activeVideoKeys.clear();
+                trashedImageKeys.clear();
+                trashedVideoKeys.clear();
+                
+                const pathToHashStats = {};
+                if (loadedSaveData) {
+                    for (const hash in loadedSaveData) {
+                        const data = loadedSaveData[hash];
+                        if (data.known_paths && Array.isArray(data.known_paths)) {
+                            data.known_paths.forEach(p => { pathToHashStats[p] = { ...data, hash }; });
+                        }
+                    }
+                }
+                
+                const videoRegex = /\.(mp4|webm|mov)$/i;
+                files.forEach(path => {
+                    mediaKeys.push(path);
+                    const isVid = videoRegex.test(path);
+                    let item;
+                    if (pathToHashStats[path]) {
+                        item = { file: null, isVid: isVid, hash: pathToHashStats[path].hash, mu: pathToHashStats[path].mu ?? 25, sigma: pathToHashStats[path].sigma ?? 8.333, trashed: pathToHashStats[path].trashed || false, matches: pathToHashStats[path].matches ?? 0, crop: pathToHashStats[path].crop || null };
+                    } else {
+                        item = { file: null, isVid: isVid, hash: null, mu: 25, sigma: 8.333, trashed: false, matches: 0, crop: null };
+                    }
+                    mediaData[path] = item;
+                    if (item.trashed) {
+                        if (isVid) trashedVideoKeys.add(path);
+                        else trashedImageKeys.add(path);
+                    } else {
+                        if (isVid) activeVideoKeys.add(path);
+                        else activeImageKeys.add(path);
+                    }
+                });
+                
+                document.getElementById('app-header').classList.remove('hidden');
+                document.getElementById('bottom-nav').classList.remove('hidden');
+                switchScreen('arena');
+            } catch (err) {
+                alert(`Connection failed: ${err.message}. Make sure server.py is running and accessible.`);
+            }
         });
 
         document.getElementById('toggle-images').addEventListener('click', () => setMode('image'));
@@ -691,7 +877,13 @@
                 `VID - RANKED: ${vidRanked} | TRASHED: ${vidTrashed} | TOTAL: ${vidTotal}`;
         }
 
-        function isVideo(file) { return file.type.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(file.name); }
+        function isVideo(fileOrKey) {
+            if (!fileOrKey) return false;
+            if (typeof fileOrKey === 'string') {
+                return /\.(mp4|webm|mov)$/i.test(fileOrKey);
+            }
+            return (fileOrKey.type && fileOrKey.type.startsWith('video/')) || /\.(mp4|webm|mov)$/i.test(fileOrKey.name);
+        }
         function getActiveKeys() { return mediaMode === 'video' ? Array.from(activeVideoKeys) : Array.from(activeImageKeys); }
 
         function pickNextBatch() {
@@ -751,12 +943,18 @@
         }
 
 
-        function createMediaElement(file) {
-            let el = document.createElement(isVideo(file) ? 'video' : 'img'); 
-            const url = URL.createObjectURL(file);
-            el.src = url;
-            el.dataset.blobUrl = url;
-            if (isVideo(file)) { el.controls = true; el.autoplay = true; el.loop = true; el.muted = true; el.playsInline = true; }
+        function createMediaElement(fileOrKey) {
+            const isVid = isVideo(fileOrKey);
+            let el = document.createElement(isVid ? 'video' : 'img'); 
+            if (typeof fileOrKey === 'string') {
+                const url = `${remoteServerUrl}/api/media/${encodeURIComponent(fileOrKey)}`;
+                el.src = url;
+            } else {
+                const url = URL.createObjectURL(fileOrKey);
+                el.src = url;
+                el.dataset.blobUrl = url;
+            }
+            if (isVid) { el.controls = true; el.autoplay = true; el.loop = true; el.muted = true; el.playsInline = true; }
             return el;
         }
 
@@ -786,7 +984,7 @@
                 card.className = 'arena-card glass';
                 card.dataset.key = key;
                 
-                const mediaEl = createMediaElement(item.file);
+                const mediaEl = createMediaElement(isRemoteMode ? key : item.file);
                 if (mediaEl.tagName === 'VIDEO') {
                     if (arenaViewMode === 'widescreen') {
                         mediaEl.controls = true;
@@ -988,21 +1186,28 @@
             content.innerHTML = '';
             
             document.getElementById('fullscreen-dropdown').classList.add('hidden');
-            document.getElementById('fullscreen-info-path').textContent = file.webkitRelativePath || file.name;
-            document.getElementById('btn-fullscreen-share').onclick = async () => {
-                if(navigator.share) await navigator.share({files: [file]}).catch(e=>{});
-                else alert("Share not supported on this browser.");
-            };
+            document.getElementById('fullscreen-info-path').textContent = isRemoteMode ? key : (file.webkitRelativePath || file.name);
+            
+            if (isRemoteMode) {
+                document.getElementById('btn-fullscreen-share').classList.add('hidden');
+            } else {
+                document.getElementById('btn-fullscreen-share').classList.remove('hidden');
+                document.getElementById('btn-fullscreen-share').onclick = async () => {
+                    if(navigator.share) await navigator.share({files: [file]}).catch(e=>{});
+                    else alert("Share not supported on this browser.");
+                };
+            }
 
             const cropBtn = document.getElementById('btn-fullscreen-crop');
+            const isVid = isVideo(isRemoteMode ? key : file);
             if (cropBtn) {
-                if (isVideo(file) || !key) cropBtn.classList.add('hidden');
+                if (isVid || !key) cropBtn.classList.add('hidden');
                 else cropBtn.classList.remove('hidden');
             }
 
-            const el = document.createElement(isVideo(file) ? 'video' : 'img');
-            el.src = existingSrc || URL.createObjectURL(file);
-            if (!existingSrc) el.dataset.blobUrl = el.src;
+            const el = document.createElement(isVid ? 'video' : 'img');
+            el.src = existingSrc || (isRemoteMode ? `${remoteServerUrl}/api/media/${encodeURIComponent(key)}` : URL.createObjectURL(file));
+            if (!existingSrc && !isRemoteMode) el.dataset.blobUrl = el.src;
             el.style.width = '100%'; el.style.height = '100%'; el.style.objectFit = 'contain';
             if(el.tagName === 'VIDEO') { el.controls = true; el.play().catch(()=>{}); }
             content.appendChild(el);
@@ -1069,10 +1274,10 @@
             const imgRect = img.getBoundingClientRect();
             const frameRect = document.getElementById('crop-frame-box').getBoundingClientRect();
             
-            const naturalWidth = img.naturalWidth;
-            const naturalHeight = img.naturalHeight;
+            const naturalWidth = img.naturalWidth || 1;
+            const naturalHeight = img.naturalHeight || 1;
             const imgRatio = naturalWidth / naturalHeight;
-            const containerRatio = imgRect.width / imgRect.height;
+            const containerRatio = imgRect.width / (imgRect.height || 1);
             
             let contentWidth, contentHeight, contentLeft, contentTop;
             if (imgRatio > containerRatio) {
@@ -1160,10 +1365,10 @@
             if (!img || img.tagName !== 'IMG') return null;
             
             const containerRect = content.getBoundingClientRect();
-            const naturalWidth = img.naturalWidth;
-            const naturalHeight = img.naturalHeight;
+            const naturalWidth = img.naturalWidth || 1;
+            const naturalHeight = img.naturalHeight || 1;
             const imgRatio = naturalWidth / naturalHeight;
-            const containerRatio = containerRect.width / containerRect.height;
+            const containerRatio = containerRect.width / (containerRect.height || 1);
             
             let contentWidth, contentHeight;
             if (imgRatio > containerRatio) {
@@ -1181,14 +1386,14 @@
         document.getElementById('btn-crop-fit-w').addEventListener('click', () => {
             const dims = getCropperImageContentDims();
             if (dims) {
-                const scale = 280 / dims.contentWidth;
+                const scale = 280 / (dims.contentWidth || 1);
                 applyCropTransform(scale, 0, 0);
             }
         });
         document.getElementById('btn-crop-fit-h').addEventListener('click', () => {
             const dims = getCropperImageContentDims();
             if (dims) {
-                const scale = 280 / dims.contentHeight;
+                const scale = 280 / (dims.contentHeight || 1);
                 applyCropTransform(scale, 0, 0);
             }
         });
@@ -1353,7 +1558,7 @@
                 const el = document.createElement('div'); el.className = 'grid-item glass';
                 
                 const thumb = document.createElement('div'); thumb.className = 'media-thumb';
-                const mediaEl = createMediaElement(item.file);
+                const mediaEl = createMediaElement(isRemoteMode ? k : item.file);
                 if(mediaEl.tagName === 'VIDEO') {
                     mediaEl.removeAttribute('controls');
                 } else if (item.crop) {
@@ -1467,7 +1672,7 @@
             feedItem.dataset.index = i; feedItem.dataset.key = k;
 
             const content = document.createElement('div'); content.className = 'detail-content';
-            content.appendChild(createMediaElement(item.file)); feedItem.appendChild(content);
+            content.appendChild(createMediaElement(isRemoteMode ? k : item.file)); feedItem.appendChild(content);
 
             const footer = document.createElement('div'); footer.className = 'detail-footer';
             if (isDetailTrashFeed) {

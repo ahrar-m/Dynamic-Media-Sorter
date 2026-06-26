@@ -13,11 +13,54 @@ A lightning-fast, privacy-first, local web application designed to sort and rank
 
 ## Usage
 
-1. **Download**: Clone the repository or simply download the `index.html` file.
-2. **Open**: Double click the `index.html` file to open it in any modern browser (Chrome, Edge, Firefox, Safari).
-3. **Select Folder**: Click "Select Media Folder" to point the app to the folder containing your unorganized media.
-4. **Rank**: Reorder the media on the screen from Best (top-left) to Worst (bottom-right).
-5. **Submit**: Click "Submit Rankings" to feed the results into the TrueSkill math engine. The app will immediately load the next intelligent batch for you to rank.
+### Mode 1: Local Folder (Standalone Mode)
+1. **Download**: Clone the repository or simply download [index.html](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/index.html).
+2. **Open**: Open [index.html](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/index.html) in any modern mobile or desktop browser.
+3. **Select Folder**: Click "Select Media Folder" and point it to the folder containing your media.
+4. **Rank**: Drag/Tap items to rank them.
+5. **Submit**: Click "Submit Rankings" to calculate TrueSkill ratings and load the next batch.
+
+### Mode 2: Remote Media (Raspberry Pi / Server Mode)
+Allows you to rank massive collections on an external hard drive connected to a Raspberry Pi over Wi-Fi, while keeping the ratings database securely in your phone's browser.
+
+#### Step-by-Step Connection Setup
+
+1. **Configure Mobile Hotspot on Phone**:
+   - Enable Portable Hotspot / Mobile Hotspot in your phone's network settings.
+   - Note the Wi-Fi network name (SSID) and Password.
+
+2. **Connect Raspberry Pi to Phone Hotspot**:
+   - Turn on Wi-Fi on your Raspberry Pi 5.
+   - Connect the Pi 5 to the phone's hotspot Wi-Fi network.
+   - You can connect via the desktop GUI or using the terminal:
+     ```bash
+     sudo nmcli dev wifi connect "YOUR_HOTSPOT_SSID" password "YOUR_HOTSPOT_PASSWORD"
+     ```
+
+3. **Retrieve Raspberry Pi's IP Address**:
+   - Run `hostname -I` in a terminal on the Raspberry Pi.
+   - Note the active Wi-Fi IP address assigned to the Pi (usually starts with `192.168.43.x` on Android or `172.20.10.x` on iOS).
+
+4. **Launch Backend on Raspberry Pi**:
+   - Transfer [server.py](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/server.py) to your Raspberry Pi.
+   - Start the server using Python 3, pointing it to your media directory:
+     ```bash
+     python3 server.py /path/to/external/hdd/media
+     ```
+   - The server binds to all interfaces and runs on port `8000`.
+
+5. **Open Frontend on Phone**:
+   - Transfer [index.html](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/index.html) to your phone.
+   - Open [index.html](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/index.html) in your phone's web browser.
+
+6. **Connect Phone to Pi**:
+   - In the frontend, under the **Connect Remote Pi** card, enter the Pi's IP address and port (e.g., `http://192.168.43.100:8000`).
+   - Click **CONNECT**.
+
+7. **Rank & Sort**:
+   - The phone streams media over the local hotspot network connection.
+   - JIT hashing is performed directly on the Pi 5 to conserve phone battery and bandwidth.
+   - Ratings are calculated dynamically and stored locally in the phone browser's IndexedDB.
 
 ### Matchmaking Modes
 - **Discovery**: Unranked or new items are pulled in to establish baseline scores.
