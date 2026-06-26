@@ -50,14 +50,16 @@ mimetypes.add_type('video/quicktime', '.mov')
 
 class RemoteMediaHandler(BaseHTTPRequestHandler):
     def end_headers(self):
-        # Enable CORS for phone browser access (local HTML file)
+        # Enable CORS and Private Network Access for local HTML file origins
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS, HEAD")
-        self.send_header("Access-Control-Allow-Headers", "Range, Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Range, Content-Type, Access-Control-Allow-Private-Network")
+        self.send_header("Access-Control-Allow-Private-Network", "true")
         super().end_headers()
 
     def do_OPTIONS(self):
         self.send_response(200)
+        self.send_header("Access-Control-Allow-Private-Network", "true")
         self.end_headers()
 
     def do_GET(self):
