@@ -6,7 +6,7 @@ A lightning-fast, privacy-first, local web application designed to sort and rank
 
 - **Local-First & Privacy Focused**: The entire application is a single HTML file. It runs entirely inside your browser using the local file system. Your media is never uploaded to any server.
 - **TrueSkill Matchmaking Engine**: Employs an intelligent N-Way matchmaking algorithm powered by `openskill`. Items are presented in dynamic batches (balanced 30% Discovery / 70% Ranked) to find their true ranking quickly and efficiently.
-- **Zero-Friction Offline Access**: Download the `index.html` file and open it. No backend, no dependencies, no installation.
+- **Zero-Friction Offline Access**: Download the [index.html](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/index.html) file and open it. No backend, no dependencies, no installation.
 - **Persistent State & Progress**: Uses your browser's IndexedDB to silently and automatically save your exact progress. Safely export and resume your ranking sessions as `.json` files to move between devices.
 - **Deep Media Support**: Handles both images (`jpg`, `png`, `webp`, `gif`) and videos (`mp4`, `webm`, `mov`, `m4v`) natively with optimized memory management.
 - **Sleek, Responsive UI**: A beautiful, modern "glassmorphism" dark mode interface designed for extreme efficiency on both desktop and mobile/touch devices. Features full gesture support.
@@ -40,6 +40,7 @@ Allows you to rank massive collections on an external hard drive connected to a 
 3. **Retrieve Raspberry Pi's IP Address**:
    - Run `hostname -I` in a terminal on the Raspberry Pi.
    - Note the active Wi-Fi IP address assigned to the Pi (usually starts with `192.168.43.x` on Android or `172.20.10.x` on iOS).
+   - Alternatively, check the terminal logs on the Pi when starting the server; it will automatically resolve and print the active Network URL.
 
 4. **Launch Backend on Raspberry Pi**:
    - Transfer [server.py](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/server.py) to your Raspberry Pi.

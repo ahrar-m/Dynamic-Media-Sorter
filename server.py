@@ -11,23 +11,29 @@ To run this backend on a Raspberry Pi (e.g., Pi 5) and connect your phone:
    Turn on your phone's Portable/Mobile Hotspot and note the SSID/Password.
 
 2. CONNECT PI TO HOTSPOT:
-   Connect your Raspberry Pi 5 to the phone's hotspot Wi-Fi.
+   Connect your Raspberry Pi 5 to the phone's hotspot Wi-Fi network.
    Command-line connection:
      sudo nmcli dev wifi connect "YOUR_HOTSPOT_SSID" password "YOUR_HOTSPOT_PASSWORD"
 
 3. GET PI LOCAL IP:
-   Run `hostname -I` in the Raspberry Pi terminal to get its Wi-Fi network IP.
-   (Typically looks like 192.168.43.x on Android, or 172.20.10.x on iOS).
+   - Run `hostname -I` in the Raspberry Pi terminal to get its Wi-Fi network IP
+     (Typically looks like 192.168.43.x on Android, or 172.20.10.x on iOS).
+   - Alternatively, check the server startup console logs, which will print the direct URLs.
 
 4. LAUNCH THE SERVER:
    Execute [server.py](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/server.py) from your terminal:
      python3 server.py /path/to/external/hdd/media
    By default, it serves from './media' and binds to all network interfaces on port 8000.
 
-5. CONNECT IN FRONTEND:
-   Open the frontend [index.html](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/index.html) in your phone's browser, and enter:
-     http://<PI_IP>:8000
-   into the 'Connect Remote Pi' input.
+5. OPEN FRONTEND AND CONNECT:
+   - OPTION A (Recommended - Origin Mode): Open your phone's mobile browser and navigate directly to `http://<PI_IP>:8000/`.
+     The server will host the frontend itself. This auto-connects to the server, hides the connection card, and bypasses Private Network Access blocks.
+   - OPTION B (CORS Mode): Open the standalone [index.html](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/index.html) file locally on your phone.
+     In the 'Connect Remote Pi' card, enter `http://<PI_IP>:8000` and click CONNECT.
+
+6. RESUME SESSION OR START:
+   - If resuming from a previous browser auto-save, the local IndexedDB progress will restore automatically.
+   - If resuming from a exported JSON backup, click "Resume Session" and upload your `.json` file FIRST before connecting/starting the remote media folder.
 """
 
 import os
@@ -185,27 +191,30 @@ class RemoteMediaHandler(BaseHTTPRequestHandler):
             print(f"Error serving full file: {e}")
 
     def handle_range_request(self, full_path, range_header, file_size, mime_type):
-        # Format: bytes=start-end
+        # Format: bytes=start-end or bytes=-suffix_length
         try:
             range_str = range_header.split("=")[1]
             parts = range_str.split("-")
             
-            start = 0
-            if parts[0]:
-                start = int(parts[0])
-                
-            end = file_size - 1
-            if len(parts) > 1 and parts[1]:
-                end = int(parts[1])
+            if not parts[0] and parts[1]: # Suffix range: e.g. bytes=-500 (last 500 bytes)
+                suffix_len = int(parts[1])
+                start = max(0, file_size - suffix_len)
+                end = file_size - 1
+            else:
+                start = int(parts[0]) if parts[0] else 0
+                end = int(parts[1]) if (len(parts) > 1 and parts[1]) else (file_size - 1)
         except (IndexError, ValueError):
             self.handle_full_request(full_path, file_size, mime_type)
             return
 
-        if start >= file_size or end >= file_size or start > end:
+        if start >= file_size or start > end:
             self.send_response(416) # Range Not Satisfiable
             self.send_header("Content-Range", f"bytes */{file_size}")
             self.end_headers()
             return
+
+        if end >= file_size:
+            end = file_size - 1
 
         chunk_length = end - start + 1
 

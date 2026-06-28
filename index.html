@@ -75,7 +75,7 @@
         .media-toggle button.active { background: var(--primary); color: #000; box-shadow: var(--glow); }
         .header-actions { display: flex; gap: 10px; align-items: center; }
 
-        main { flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; padding-bottom: calc(var(--nav-height) + 40px); }
+        main { flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; padding-bottom: calc(var(--nav-height) + 110px); }
         section { min-height: 100%; display: flex; flex-direction: column; }
 
         nav {
@@ -188,7 +188,21 @@
             border-color: var(--primary);
             box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
         }
-        .arena-controls { padding: 10px; display: flex; justify-content: center; gap: 15px; background: rgba(0,0,0,0.8); border-top: 1px solid var(--glass-border); flex-shrink: 0; }
+        .arena-controls {
+            position: sticky;
+            bottom: var(--nav-height);
+            z-index: 90;
+            padding: 12px 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(10, 15, 30, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-top: 1px solid var(--glass-border);
+            flex-shrink: 0;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.5);
+        }
 
         /* Leaderboard / Grid */
         .grid-header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--glass-border); }
@@ -210,7 +224,7 @@
         .grid-score { font-size: 0.65rem; color: #94a3b8; font-family: 'Orbitron'; }
         
         .load-more-trigger { height: 20px; width: 100%; margin-bottom: 40px; }
-        .stats-text { text-align: center; padding: 10px; color: var(--primary); font-family: 'Orbitron'; font-size: 0.65rem; line-height: 1.5; text-shadow: var(--glow); }
+        .stats-text { text-align: center; padding: 0; color: var(--primary); font-family: 'Orbitron'; font-size: 0.65rem; line-height: 1.5; text-shadow: var(--glow); }
 
         /* Detail Feed Modal */
         #detail-view-modal {
@@ -275,6 +289,16 @@
             transform: translateX(-50%);
             font-size: 2rem;
         }
+
+        @media (max-width: 480px) {
+            button, .btn {
+                padding: 6px 12px;
+                font-size: 0.75rem;
+            }
+            .card {
+                padding: 20px 15px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -290,28 +314,41 @@
     <main id="main-scroll">
         <section id="home-screen">
             <h1>Dynamic Media Sorter</h1>
-            <p style="color:#94a3b8;">Let the math do the ranking for your media!</p>
+            <p style="color:#94a3b8; font-size: 0.9rem; margin-top: 5px;">Let the math do the ranking for your media!</p>
             <div class="action-cards">
                 <div class="card glass" id="folder-card">
-                    <label class="btn" for="folder-input">Select Media Folder</label>
+                    <h3 id="folder-card-title">Local Session</h3>
+                    <p id="folder-card-desc" style="font-size: 0.65rem; margin-top: 0; margin-bottom: 12px;">
+                        Select a local folder containing images or videos to start a new ranking session.
+                    </p>
+                    <div id="folder-card-action">
+                        <label class="btn" for="folder-input" style="display: block; width: 100%; box-sizing: border-box;">Select Media Folder</label>
+                    </div>
                     <input type="file" id="folder-input" webkitdirectory multiple accept="image/*,video/*">
                 </div>
                 <div class="card glass" id="resume-card">
-                    <label class="btn" for="savefile-input">Resume Session</label>
+                    <h3>Resume Session</h3>
+                    <p style="font-size: 0.65rem; margin-top: 0; margin-bottom: 12px;">
+                        Load a previously exported JSON backup file to resume your progress.
+                    </p>
+                    <label class="btn" for="savefile-input" style="display: block; width: 100%; box-sizing: border-box;">Load Backup File</label>
                     <input type="file" id="savefile-input" accept=".json">
                     <span id="savefile-status" class="hidden" style="color:var(--primary); font-size:0.75rem; margin-top:10px;">Save loaded. Select folder to continue.</span>
                 </div>
                 <div class="card glass" id="remote-card">
-                    <h3>Connect Remote Pi</h3>
+                    <h3>Remote Server</h3>
                     <p style="font-size: 0.65rem; margin-top: 0; margin-bottom: 12px;">
-                        Enable phone hotspot, connect your Raspberry Pi 5 to it, launch the backend server, and enter the Pi's IP below.
+                        Enable hotspot, connect your Raspberry Pi, launch the backend, and enter the Pi's IP below.
                     </p>
                     <input type="text" id="remote-url-input" placeholder="http://192.168.43.100:8000">
                     <button class="btn" id="btn-remote-connect">CONNECT</button>
                 </div>
-                <div class="card glass hidden" id="wipe-cache-card">
-                    <button class="btn danger" id="btn-wipe-db">Wipe Cache</button>
-                    <p style="margin-top: 10px;">Deletes the IndexedDB backup. Your previously saved backups are safe.</p>
+                <div class="card glass hidden" id="wipe-cache-card" style="border-color: rgba(255, 0, 60, 0.35);">
+                    <h3 style="color: var(--danger); text-shadow: var(--danger-glow);">Wipe Cache</h3>
+                    <p style="font-size: 0.65rem; margin-top: 0; margin-bottom: 12px;">
+                        Deletes the IndexedDB backup from browser storage. Your JSON files remain safe.
+                    </p>
+                    <button class="btn danger" id="btn-wipe-db">WIPE DB</button>
                 </div>
             </div>
         </section>
@@ -326,10 +363,12 @@
             </div>
             <div class="arena-grid" id="arena-grid"></div>
             <div class="arena-controls">
-                <button class="btn danger" id="btn-arena-trash-unranked">TRASH UNRANKED</button>
-                <button class="btn success" id="btn-arena-submit" style="flex:1;">SUBMIT RANKINGS</button>
+                <div class="stats-text" id="stats-text"></div>
+                <div style="display: flex; gap: 15px; width: 100%;">
+                    <button class="btn danger" id="btn-arena-trash-unranked">TRASH UNRANKED</button>
+                    <button class="btn success" id="btn-arena-submit" style="flex:1;">SUBMIT RANKINGS</button>
+                </div>
             </div>
-            <div class="stats-text" id="stats-text"></div>
         </section>
 
         <section id="leaderboard-screen" class="hidden">
@@ -442,25 +481,31 @@
          * 
          * 1. CONFIGURE MOBILE HOTSPOT ON PHONE:
          *    - Enable the portable hotspot feature on your phone's network settings.
-         *    - Check and note down the network Name (SSID) and Password.
+         *    - Note down the Wi-Fi network Name (SSID) and Password.
          * 
          * 2. CONNECT RASPBERRY PI TO HOTSPOT:
-         *    - Connect the Pi 5 to the phone's Wi-Fi hotspot network (via the desktop panel or terminal).
+         *    - Connect the Pi 5 to the phone's Wi-Fi hotspot network.
          *    - Command-line utility to connect:
          *      sudo nmcli dev wifi connect "YOUR_HOTSPOT_SSID" password "YOUR_HOTSPOT_PASSWORD"
          * 
          * 3. FIND PI IP ADDRESS:
          *    - Run `hostname -I` in the terminal of the Raspberry Pi.
          *    - Use the IP address (usually starting with `192.168.43.x` or `172.20.10.x`) to connect.
+         *    - Alternatively, check the terminal logs on the Pi when starting the server to see the auto-resolved URL.
          * 
          * 4. RUN BACKEND ON PI:
          *    - Deploy [server.py](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/server.py) on the Pi and launch:
          *      python3 server.py /path/to/media/directory
          * 
          * 5. OPEN FRONTEND AND CONNECT:
-         *    - Load this [index.html](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/index.html) file locally in your phone's web browser.
-         *    - In the 'Connect Remote Pi' card, enter the URL e.g. `http://192.168.43.100:8000` (substitute the correct Pi IP address).
-         *    - Click CONNECT.
+         *    - OPTION A (Recommended - Origin Mode): Open your phone's mobile browser and navigate directly to `http://<PI_IP>:8000/`.
+         *      This auto-connects to the server, hides the connection card, and bypasses Private Network Access blocks.
+         *    - OPTION B (CORS Mode): Load this [index.html](file:///storage/emulated/0/Documents/Antigravity/Dynamic%20Media%20Sorter/index.html) file locally in your phone's web browser.
+         *      In the 'Connect Remote Pi' card, enter the URL e.g. `http://192.168.43.100:8000` (substitute the correct Pi IP address) and click CONNECT.
+         * 
+         * 6. RESUME SESSION OR START:
+         *    - If resuming from a previous browser auto-save, the local IndexedDB progress will restore automatically.
+         *    - If resuming from an exported JSON backup, click "Resume Session" and upload your `.json` file FIRST before connecting/starting the remote media folder.
          */
 
         import { rating, rate, ordinal } from 'https://cdn.jsdelivr.net/npm/openskill@5.0.1/+esm';
@@ -623,11 +668,27 @@
         function autoSaveToDB() {
             if (!db) return;
             const saveObj = {}; 
+            if (loadedSaveData) {
+                Object.assign(saveObj, loadedSaveData);
+            }
             mediaKeys.forEach(k => { 
-                if((mediaData[k].matches > 0 || mediaData[k].trashed) && mediaData[k].hash) {
+                if((mediaData[k].matches > 0 || mediaData[k].trashed || mediaData[k].crop) && mediaData[k].hash) {
                     const h = mediaData[k].hash;
-                    if (!saveObj[h]) saveObj[h] = { mu: mediaData[k].mu, sigma: mediaData[k].sigma, trashed: mediaData[k].trashed, matches: mediaData[k].matches, known_paths: [] };
-                    saveObj[h].known_paths.push(k);
+                    let knownPaths = [];
+                    if (saveObj[h] && saveObj[h].known_paths) {
+                        knownPaths = [...saveObj[h].known_paths];
+                    }
+                    if (!knownPaths.includes(k)) {
+                        knownPaths.push(k);
+                    }
+                    saveObj[h] = { 
+                        mu: mediaData[k].mu, 
+                        sigma: mediaData[k].sigma, 
+                        trashed: mediaData[k].trashed, 
+                        matches: mediaData[k].matches, 
+                        crop: mediaData[k].crop || null,
+                        known_paths: knownPaths 
+                    };
                 }
             });
             const tx = db.transaction(['saves'], 'readwrite');
@@ -668,7 +729,17 @@
                 for (const hash in loadedSaveData) {
                     const data = loadedSaveData[hash];
                     if (data.known_paths && Array.isArray(data.known_paths)) {
-                        data.known_paths.forEach(p => { pathToHashStats[p] = { ...data, hash }; });
+                        data.known_paths.forEach(p => {
+                            const normalized = p.replace(/\\/g, '/');
+                            pathToHashStats[normalized] = { ...data, hash };
+                            const idx = normalized.indexOf('/');
+                            if (idx !== -1) {
+                                const stripped = normalized.substring(idx + 1);
+                                if (stripped) {
+                                    pathToHashStats[stripped] = { ...data, hash };
+                                }
+                            }
+                        });
                     }
                 }
             }
@@ -680,8 +751,11 @@
                     const path = f.webkitRelativePath || f.name; mediaKeys.push(path);
                     const isVid = f.type.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/i.test(f.name);
                     let item;
-                    if (pathToHashStats[path]) {
-                        item = { file: f, isVid: isVid, hash: pathToHashStats[path].hash, mu: pathToHashStats[path].mu ?? 25, sigma: pathToHashStats[path].sigma ?? 8.333, trashed: pathToHashStats[path].trashed || false, matches: pathToHashStats[path].matches ?? 0, crop: pathToHashStats[path].crop || null };
+                    const normalizedPath = path.replace(/\\/g, '/');
+                    const matchData = pathToHashStats[normalizedPath] || 
+                                      (normalizedPath.indexOf('/') !== -1 ? pathToHashStats[normalizedPath.substring(normalizedPath.indexOf('/') + 1)] : null);
+                    if (matchData) {
+                        item = { file: f, isVid: isVid, hash: matchData.hash, mu: matchData.mu ?? 25, sigma: matchData.sigma ?? 8.333, trashed: matchData.trashed || false, matches: matchData.matches ?? 0, crop: matchData.crop || null };
                     } else {
                         item = { file: f, isVid: isVid, hash: null, mu: 25, sigma: 8.333, trashed: false, matches: 0, crop: null };
                     }
@@ -716,7 +790,17 @@
                 for (const hash in loadedSaveData) {
                     const data = loadedSaveData[hash];
                     if (data.known_paths && Array.isArray(data.known_paths)) {
-                        data.known_paths.forEach(p => { pathToHashStats[p] = { ...data, hash }; });
+                        data.known_paths.forEach(p => {
+                            const normalized = p.replace(/\\/g, '/');
+                            pathToHashStats[normalized] = { ...data, hash };
+                            const idx = normalized.indexOf('/');
+                            if (idx !== -1) {
+                                const stripped = normalized.substring(idx + 1);
+                                if (stripped) {
+                                    pathToHashStats[stripped] = { ...data, hash };
+                                }
+                            }
+                        });
                     }
                 }
             }
@@ -726,8 +810,11 @@
                 mediaKeys.push(path);
                 const isVid = videoRegex.test(path);
                 let item;
-                if (pathToHashStats[path]) {
-                    item = { file: null, isVid: isVid, hash: pathToHashStats[path].hash, mu: pathToHashStats[path].mu ?? 25, sigma: pathToHashStats[path].sigma ?? 8.333, trashed: pathToHashStats[path].trashed || false, matches: pathToHashStats[path].matches ?? 0, crop: pathToHashStats[path].crop || null };
+                const normalizedPath = path.replace(/\\/g, '/');
+                const matchData = pathToHashStats[normalizedPath] || 
+                                  (normalizedPath.indexOf('/') !== -1 ? pathToHashStats[normalizedPath.substring(normalizedPath.indexOf('/') + 1)] : null);
+                if (matchData) {
+                    item = { file: null, isVid: isVid, hash: matchData.hash, mu: matchData.mu ?? 25, sigma: matchData.sigma ?? 8.333, trashed: matchData.trashed || false, matches: matchData.matches ?? 0, crop: matchData.crop || null };
                 } else {
                     item = { file: null, isVid: isVid, hash: null, mu: 25, sigma: 8.333, trashed: false, matches: 0, crop: null };
                 }
@@ -876,9 +963,13 @@
             let vidRanked = 0;
             activeVideoKeys.forEach(k => { if (mediaData[k].matches > 0) vidRanked++; });
 
-            document.getElementById('stats-text').innerHTML = 
-                `IMG - RANKED: ${imgRanked} | TRASHED: ${imgTrashed} | TOTAL: ${imgTotal}<br>` +
-                `VID - RANKED: ${vidRanked} | TRASHED: ${vidTrashed} | TOTAL: ${vidTotal}`;
+            if (mediaMode === 'video') {
+                document.getElementById('stats-text').innerHTML = 
+                    `VIDEOS &bull; RANKED: ${vidRanked} &bull; TRASHED: ${vidTrashed} &bull; TOTAL: ${vidTotal}`;
+            } else {
+                document.getElementById('stats-text').innerHTML = 
+                    `IMAGES &bull; RANKED: ${imgRanked} &bull; TRASHED: ${imgTrashed} &bull; TOTAL: ${imgTotal}`;
+            }
         }
 
         function isVideo(fileOrKey) {
@@ -971,8 +1062,8 @@
         }
 
         function renderArenaGrid() {
+            clearContainerAndRevoke('arena-grid');
             const container = document.getElementById('arena-grid');
-            container.innerHTML = '';
             
             if (arenaViewMode === 'widescreen') {
                 container.classList.add('widescreen-view');
@@ -1779,11 +1870,27 @@
             if (isAuto && currentSaveName === "save" && !loadedSaveData) baseName = "autosave";
 
             const saveObj = {}; 
+            if (loadedSaveData) {
+                Object.assign(saveObj, loadedSaveData);
+            }
             mediaKeys.forEach(k => { 
                 if((mediaData[k].matches > 0 || mediaData[k].trashed || mediaData[k].crop) && mediaData[k].hash) {
                     const h = mediaData[k].hash;
-                    if (!saveObj[h]) saveObj[h] = { mu: mediaData[k].mu, sigma: mediaData[k].sigma, trashed: mediaData[k].trashed, matches: mediaData[k].matches, crop: mediaData[k].crop, known_paths: [] };
-                    saveObj[h].known_paths.push(k);
+                    let knownPaths = [];
+                    if (saveObj[h] && saveObj[h].known_paths) {
+                        knownPaths = [...saveObj[h].known_paths];
+                    }
+                    if (!knownPaths.includes(k)) {
+                        knownPaths.push(k);
+                    }
+                    saveObj[h] = { 
+                        mu: mediaData[k].mu, 
+                        sigma: mediaData[k].sigma, 
+                        trashed: mediaData[k].trashed, 
+                        matches: mediaData[k].matches, 
+                        crop: mediaData[k].crop, 
+                        known_paths: knownPaths 
+                    };
                 }
             });
             downloadBlob(JSON.stringify(saveObj), 'application/json', `${baseName}_${getFormattedDateTime()}.json`);
@@ -1866,10 +1973,14 @@ for f in files_to_delete:
                             if (wipeCard) wipeCard.classList.remove('hidden');
                             
                             // Update folder card to allow starting remote session or resuming first
-                            const folderCard = document.getElementById('folder-card');
-                            if (folderCard) {
-                                folderCard.innerHTML = `
-                                    <button class="btn success" id="btn-start-remote" style="width:100%;">Folder Auto-Loaded (Remote Pi)</button>
+                            const folderTitle = document.getElementById('folder-card-title');
+                            const folderDesc = document.getElementById('folder-card-desc');
+                            const folderAction = document.getElementById('folder-card-action');
+                            if (folderTitle) folderTitle.textContent = "Remote Session";
+                            if (folderDesc) folderDesc.textContent = "The media folder is auto-loaded from your Raspberry Pi server.";
+                            if (folderAction) {
+                                folderAction.innerHTML = `
+                                    <button class="btn success" id="btn-start-remote" style="display: block; width: 100%; box-sizing: border-box;">START SESSION</button>
                                 `;
                                 document.getElementById('btn-start-remote').addEventListener('click', () => {
                                     loadRemoteMedia(remoteFilesList, remoteOriginUrl);
