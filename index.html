@@ -75,7 +75,7 @@
         .media-toggle button.active { background: var(--primary); color: #000; box-shadow: var(--glow); }
         .header-actions { display: flex; gap: 10px; align-items: center; }
 
-        main { flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; padding-bottom: calc(var(--nav-height) + 110px); }
+        main { flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; padding-bottom: calc(var(--nav-height) + 40px); }
         section { min-height: 100%; display: flex; flex-direction: column; }
 
         nav {
@@ -189,9 +189,6 @@
             box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
         }
         .arena-controls {
-            position: sticky;
-            bottom: var(--nav-height);
-            z-index: 90;
             padding: 12px 15px;
             display: flex;
             flex-direction: column;
